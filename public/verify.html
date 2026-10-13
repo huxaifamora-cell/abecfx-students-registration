@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verify Student | ABECFX</title>
+  <meta name="description" content="Check an ABECFX student's registration number and status." />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .result dl { margin: 0; text-align: left; }
+    .result .row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .result .row:last-child { border-bottom: 0; }
+    .result dt { color: var(--muted); font-size: .88rem; }
+    .result dd { margin: 0; font-weight: 600; text-align: right; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--purple-soft); color: var(--purple-dark); }
+    .badge.uncertified { background: #f1eef2; color: var(--muted); }
+    .pageLink { display: block; text-align: center; margin-top: 16px; color: var(--purple-dark); font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <img src="/logo.png" alt="ABECFX bull logo" width="96" />
+      <h1>ABECFX</h1>
+      <p class="sub">Adebass Base Edge Consult &middot; Forex</p>
+    </header>
+
+    <section class="card">
+      <h2>Verify a student</h2>
+      <p class="lead">Enter a registration number to see the student's name, gender and status.</p>
+      <form id="lookupForm" novalidate>
+        <div class="field">
+          <label for="reg">Registration number</label>
+          <input id="reg" type="text" autocomplete="off" autocapitalize="characters" placeholder="ABECFX/26/0001" required />
+        </div>
+        <p class="formErr" id="lookupErr" role="alert"></p>
+        <button type="submit" id="lookupBtn">Search</button>
+      </form>
+    </section>
+
+    <section class="card result" id="result" hidden style="margin-top:16px">
+      <dl>
+        <div class="row"><dt>Registration number</dt><dd id="rReg"></dd></div>
+        <div class="row"><dt>Full name</dt><dd id="rName"></dd></div>
+        <div class="row"><dt>Gender</dt><dd id="rGender"></dd></div>
+        <div class="row"><dt>Status</dt><dd><span class="badge" id="rStatus"></span></dd></div>
+        <div class="row" id="rDateRow"><dt>Status date</dt><dd id="rDate"></dd></div>
+      </dl>
+    </section>
+
+    <a class="pageLink" href="/">New student? Register here</a>
+    <footer>&copy; <span id="year"></span> Adebass Base Edge Consult</footer>
+  </main>
+  <script>
+    (function () {
+      document.getElementById("year").textContent = new Date().getFullYear();
+      var form = document.getElementById("lookupForm");
+      var input = document.getElementById("reg");
+      var err = document.getElementById("lookupErr");
+      var btn = document.getElementById("lookupBtn");
+      var result = document.getElementById("result");
+
+      var pre = new URLSearchParams(location.search).get("reg");
+      if (pre) { input.value = pre; search(); }
+
+      form.addEventListener("submit", function (e) { e.preventDefault(); search(); });
+
+      function search() {
+        err.textContent = "";
+        result.hidden = true;
+        var reg = input.value.trim();
+        if (!reg) { err.textContent = "Please enter a registration number."; return; }
+        btn.disabled = true;
+        btn.textContent = "Searching...";
+        fetch("/api/lookup?reg=" + encodeURIComponent(reg))
+          .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+          .then(function (res) {
+            if (!res.ok) { err.textContent = res.body.error || "Something went wrong."; return; }
+            var d = res.body;
+            document.getElementById("rReg").textContent = d.regNumber;
+            document.getElementById("rName").textContent = d.fullName;
+            document.getElementById("rGender").textContent = d.gender;
+            var s = document.getElementById("rStatus");
+            s.textContent = d.status;
+            s.className = "badge" + (d.status === "Uncertified" ? " uncertified" : "");
+            document.getElementById("rDateRow").hidden = d.status === "Uncertified";
+            document.getElementById("rDate").textContent = d.statusDate || "Not recorded";
+            result.hidden = false;
+          })
+          .catch(function () { err.textContent = "Network problem. Please try again."; })
+          .then(function () { btn.disabled = false; btn.textContent = "Search"; });
+      }
+    })();
+  </script>
+</body>
+</html>

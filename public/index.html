@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ABECFX Student Registration</title>
+  <meta name="description" content="Register for the ABECFX Forex Mentorship programme by Adebass Base Edge Consult." />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <img src="/logo.png" alt="ABECFX bull logo" width="96" />
+      <h1>ABECFX</h1>
+      <p class="sub">Adebass Base Edge Consult &middot; Forex</p>
+    </header>
+
+    <section class="card" id="formCard">
+      <h2>Student Registration</h2>
+      <p class="lead">Fill in your details to secure your place and receive your student registration number.</p>
+
+      <form id="regForm" novalidate>
+        <div class="field">
+          <label for="country">Country</label>
+          <select id="country" name="country" required>
+            <option value="">Select your country</option>
+          </select>
+          <span class="err" data-for="country"></span>
+        </div>
+
+        <div class="field">
+          <label for="programme">Programme type</label>
+          <select id="programme" name="programme" required>
+            <option value="Forex Mentorship" selected>Forex Mentorship</option>
+          </select>
+          <span class="err" data-for="programme"></span>
+        </div>
+
+        <div class="field">
+          <label for="fullName">Full name</label>
+          <input id="fullName" name="fullName" type="text" autocomplete="name" placeholder="e.g. Adebayo Samuel Okafor" required />
+          <span class="err" data-for="fullName"></span>
+        </div>
+
+        <div class="field">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+          <span class="err" data-for="email"></span>
+        </div>
+
+        <div class="field">
+          <label for="whatsapp">WhatsApp number</label>
+          <input id="whatsapp" name="whatsapp" type="tel" autocomplete="tel" placeholder="+234 801 234 5678" required />
+          <span class="hint">Include your country code.</span>
+          <span class="err" data-for="whatsapp"></span>
+        </div>
+
+        <div class="field">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            <option value="">Select gender</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+          <span class="err" data-for="gender"></span>
+        </div>
+
+        <div class="field">
+          <label for="promoCode">Promo code <em>(optional)</em></label>
+          <input id="promoCode" name="promoCode" type="text" autocomplete="off" placeholder="If you have one" />
+          <span class="err" data-for="promoCode"></span>
+        </div>
+
+        <!-- honeypot -->
+        <div class="hp" aria-hidden="true">
+          <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        </div>
+
+        <p class="formErr" id="formErr" role="alert"></p>
+        <button type="submit" id="submitBtn">Register</button>
+      </form>
+    </section>
+
+    <section class="card success" id="successCard" hidden>
+      <div class="tick" aria-hidden="true">&#10003;</div>
+      <h2>Registration successful</h2>
+      <p id="welcome" class="lead"></p>
+      <p class="regLabel">Your student registration number</p>
+      <div class="regNumber" id="regNumber"></div>
+      <button type="button" id="copyBtn" class="secondary">Copy number</button>
+      <p class="note">Please keep this number safe. You will need it for all your communication with ABECFX.</p>
+    </section>
+
+    <p style="text-align:center;margin-top:16px;font-size:.9rem"><a href="/verify" style="color:var(--purple-dark)">Already registered? Check a registration number</a></p>
+    <footer>&copy; <span id="year"></span> Adebass Base Edge Consult</footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
