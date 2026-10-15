@@ -19,3 +19,5 @@ services:
         sync: false
       - key: QUIZ_BOT_URL
         sync: false
+      - key: QUIZ_APP_URL
+        sync: false

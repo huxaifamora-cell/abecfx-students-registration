@@ -10,6 +10,19 @@ const idrules = require("./idrules");
 const grading = require("./grading");
 const { buildStats } = require("./stats");
 const crypto = require("crypto");
+const quizToken = require("./quiztoken");
+
+// The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
+// address (https only); the security policy below lets the portal frame that one address and no other.
+function httpsOrigin(u) {
+  try {
+    const x = new URL(String(u || ""));
+    return x.protocol === "https:" ? x.origin : "";
+  } catch (e) {
+    return "";
+  }
+}
+const QUIZ_APP_ORIGIN = httpsOrigin(process.env.QUIZ_APP_URL);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +37,8 @@ app.use(
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         // national flags on the ID card come from flagcdn.com
         "img-src": ["'self'", "data:", "https://flagcdn.com"],
+        // the quiz is shown inside the student portal
+        "frame-src": ["'self'", ...(QUIZ_APP_ORIGIN ? [QUIZ_APP_ORIGIN] : [])],
       },
     },
   })
@@ -333,7 +348,34 @@ function quizEntry(q) {
   };
 }
 
-app.get("/api/config", (_req, res) => res.json({ quizUrl: process.env.QUIZ_BOT_URL || "" }));
+app.get("/api/config", (_req, res) =>
+  res.json({
+    quizUrl: process.env.QUIZ_BOT_URL || "",
+    quizEmbed: Boolean(QUIZ_APP_ORIGIN && process.env.QUIZ_API_KEY),
+  })
+);
+
+// Student portal: open the quiz inside the portal. Returns the quiz address with a short-lived,
+// signed pass for this registration number (in the part after #, which is never sent to a server).
+app.get("/api/quiz/session", lookupLimiter, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!QUIZ_APP_ORIGIN || !process.env.QUIZ_API_KEY) {
+    return res.status(503).json({ error: "The quiz is not available inside the portal yet." });
+  }
+  const reg = normaliseReg(req.query.reg);
+  if (!reg) return res.status(400).json({ error: "Enter a valid registration number." });
+  try {
+    const rows = await store.readCached(5000);
+    if (!rows.some((row) => (row[0] || "").toUpperCase() === reg)) {
+      return res.status(404).json({ error: "No student found with that registration number." });
+    }
+    const token = quizToken.sign(reg, process.env.QUIZ_API_KEY);
+    res.json({ url: QUIZ_APP_ORIGIN + "/#t=" + token });
+  } catch (err) {
+    console.error("Quiz session failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
 
 // Quiz bot: look up a student's name by registration number (so the quiz can greet and label them).
 app.get("/api/quiz/student", botAuth, async (req, res) => {
@@ -356,11 +398,12 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
   const reg = normaliseReg(b.reg);
   const score = Number(b.score);
   const total = Number(b.total);
-  const tgId = clean(b.telegramId, 20);
+  const viaPortal = b.source === "portal"; // sent by the quiz service for a quiz taken inside the portal
+  const tgId = viaPortal ? "portal" : clean(b.telegramId, 20);
   if (!reg || !Number.isInteger(score) || !Number.isInteger(total) || total < 1 || total > 500 || score < 0 || score > total) {
     return res.status(400).json({ error: "That result could not be read." });
   }
-  if (!/^\d{1,20}$/.test(tgId)) return res.status(400).json({ error: "Missing Telegram account." });
+  if (!viaPortal && !/^\d{1,20}$/.test(tgId)) return res.status(400).json({ error: "Missing Telegram account." });
   let breakdown = "";
   try { breakdown = JSON.stringify(b.breakdown || {}).slice(0, 3000); } catch (e) { breakdown = ""; }
 
@@ -373,8 +416,12 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
       const quizRows = await store.readQuiz(0);
       const mine = quizRows.filter((q) => q[1] === reg);
       // First Telegram account to take the quiz for a number keeps it, so others can't post results under it.
-      const owner = mine.find((q) => q[8]);
-      if (owner && owner[8] !== tgId) {
+      // A portal quiz is not tied to a Telegram account, so it cannot be used to get around that link.
+      const owner = mine.find((q) => /^\d+$/.test(q[8] || ""));
+      if (viaPortal && owner) {
+        return { status: 403, body: { error: "This registration number is linked to a Telegram account. Please take the quiz on Telegram, or contact ABECFX." } };
+      }
+      if (!viaPortal && owner && owner[8] !== tgId) {
         return { status: 403, body: { error: "This registration number is already linked to another Telegram account. Contact ABECFX." } };
       }
       // Ignore an accidental double submit (same result within 2 minutes).
