@@ -24,6 +24,7 @@
 8. Editor dashboard: student statistics and quiz results.
 9. Keep the free Render service from sleeping.
 10. Keep this status file current with every code change.
+11. Students take the quiz inside their portal without leaving it (Telegram stays as a second way in).
 
 ## 2. Decisions
 
@@ -47,6 +48,10 @@
 | 2026-10-15 | Dashboard "certified/graduates" = Certified + Graduate + Alumni Member; "team" = Mentor + Staff + CEO | Derived from the owner's rule that Certified = graduate. |
 | 2026-10-15 | Dashboard protected by one password (`ADMIN_PASSWORD`); shows no email or phone | Simple and safe for one editor. Off if the variable is missing. |
 | 2026-10-15 | Month charts use the "Registered At" date, not the ID Issue Date | Renewing an ID must not move a student to a new month. |
+| 2026-10-15 | The quiz opens **inside the portal** in a frame; the Telegram link stays as the second choice. Switched on by `QUIZ_APP_URL` (the quiz service's https address) | Owner request: students must not leave the portal. The security policy lets the portal frame that one address only. |
+| 2026-10-15 | Portal-to-quiz sign-in is a short-lived **signed pass**: one registration number, HMAC-signed with `QUIZ_API_KEY`, valid 4 hours, carried after the `#` so it is never sent to a server and is removed from the address bar. The quiz service takes the number from the pass, never from the page | Same principle as the Telegram login. Code: `quiztoken.js` (website) and `verifyPortalToken` in `bot.js`. |
+| 2026-10-15 | Portal results are saved with the word `portal` in the Telegram ID column. A number already linked to a Telegram account cannot save portal results; Telegram can still claim a number that only has portal results | Stops the portal from getting around the earlier Telegram-link rule. **Assumed**, not yet confirmed by owner. |
+| 2026-10-15 | The quiz page itself is not edited for portal mode. `webapp/embed.js`, added to the page by `bot.js`, does it (signs the student in, locks the number, hides the Telegram-only button, tells the portal when a result is saved) | The full 130 KB quiz file was not available. It relies on the ids `reg-input`, `reg-check-btn`, `reg-change-btn`, `save-status`, `grade-line` and on the button text "Send score to chat". If any change, update `embed.js`. |
 
 ## 3. Current state
 
@@ -60,18 +65,19 @@
 - **New:** quiz results in the portal (grade badge, score, history, grading scale, "Take the quiz on Telegram" button).
 - **New:** quiz bot asks for registration number, shows the student's name, Full length default, saves finished results with an A-F grade.
 - **New:** editor dashboard at `/admin` (statistics and quiz results, CSV download).
+- **New:** the quiz runs inside the student portal ("Take the quiz here"): the student is signed in automatically, cannot switch to another number, the result is graded and saved, and the portal's results card refreshes by itself. "Close quiz" and "Not you?" remove the running quiz. Telegram still works as before.
 
 **Pages and endpoints (registration site):**
 
 | Address | Purpose |
 | --- | --- |
 | `/`, `/register`, `/status`, `/admin` | Pages |
-| `GET /api/lookup`, `/api/photo`, `/api/results`, `/api/countries`, `/api/states`, `/api/config` | Public |
+| `GET /api/lookup`, `/api/photo`, `/api/results`, `/api/countries`, `/api/states`, `/api/config`, `/api/quiz/session` | Public (`/api/quiz/session` gives the quiz address plus a signed pass for one registration number; rate limited) |
 | `POST /api/register` | Public, rate limited |
-| `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`) |
+| `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`). The result route accepts either a Telegram id or `source: "portal"` |
 | `GET /api/admin/stats`, `/api/admin/results` | Editor only (Bearer password) |
 
-**Sheet tabs:** Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, promo, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K).
+**Sheet tabs:** Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, promo, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
 
 **Environment variables:**
 
@@ -81,13 +87,14 @@
 | Website | `QUIZ_API_KEY` | Shared secret with the quiz bot |
 | Website | `ADMIN_PASSWORD` | Editor dashboard password |
 | Website | `QUIZ_BOT_URL` | Telegram link shown in the portal |
+| Website | `QUIZ_APP_URL` | Quiz service's own https address (e.g. `https://abecfx-quiz-bot.onrender.com`); turns on the in-portal quiz |
 | Website | `KEEP_AWAKE=off` | Optional: turn off self-ping |
 | Quiz bot | `BOT_TOKEN` | From BotFather |
 | Quiz bot | `REG_SITE_URL` | Website address |
 | Quiz bot | `QUIZ_API_KEY` | Same value as on the website |
 
-**Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy.
-**Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them).
+**Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy. **Added for the in-portal quiz:** 32 checks on the pass (tampering, other number, expiry, wrong key) and the website routes (including the Telegram-link rules and the security policy), 17 checks on the quiz service (the number comes from the pass, bad passes never reach the website, Telegram login unchanged, limits), and 23 checks in a real Chromium browser over https with the real `server.js`, `bot.js` and `portal.js` (portal opens the quiz in the page, automatic sign-in, save and live refresh, close, "Not you?", Telegram-linked refusal, damaged pass, phone width).
+**Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 ## 4. Next steps
 
@@ -98,6 +105,12 @@
 3. On the **quiz bot** Render service add `REG_SITE_URL` (the website address) and the **same** `QUIZ_API_KEY`. Push the updated bot code.
 4. Open the bot in Telegram, enter a real registration number, finish a quiz, then check the portal and `/admin`.
 5. Set up the UptimeRobot monitor on the website's `/healthz` (and on the bot's `/healthz`, which is new).
+
+**Then, to switch the in-portal quiz on (owner actions, after the steps above):**
+
+1. On the **website** Render service add `QUIZ_APP_URL` = the quiz service's own https address (the address shown on the quiz bot's Render page). Use the exact same `QUIZ_API_KEY` on both services.
+2. Push the website code (new file `quiztoken.js`) and the quiz bot code (updated `bot.js` and the new `webapp/embed.js`; `webapp/index.html` does not change). Both services redeploy.
+3. Open the portal, sign in, tap **Take the quiz here**, finish a quiz and check the result appears in the portal and in `/admin`.
 
 **Suggested next work (not started, awaiting owner):**
 
@@ -115,11 +128,14 @@
 3. Should shorter quiz lengths stay selectable, or should the official quiz always be Full?
 4. Should a student be allowed unlimited retakes (currently yes; every attempt is stored, the portal shows the latest and best)?
 5. Is `idcard.js` / `apple-touch-icon.png` in the project yours? (Unused; left in place.)
+6. **Portal sign-in is only the registration number**, and numbers are sequential and shown on the public find-a-student page. So anyone who knows a number can open that student's portal and take the quiz under it. Add a second check (email or WhatsApp last 4 digits) before the quiz, or accept this for now?
+7. A number linked to a Telegram account cannot save portal results (and the reverse is open). Is that the right rule, or should a student be able to use both?
 
 ## 6. Change log (newest first)
 
 | Date | Change |
 | --- | --- |
+| 2026-10-15 | **Quiz inside the student portal**: "Take the quiz here" opens the quiz in the page with automatic sign-in by a signed short-lived pass; results save with a grade and refresh the results card; Telegram stays as a second choice. New `quiztoken.js`, `/api/quiz/session`, `QUIZ_APP_URL`, `webapp/embed.js`; `bot.js` accepts the pass. |
 | 2026-10-15 | Quiz bot linked to the website (reg-number sign-in, Full default, saved graded results), results in the student portal, editor dashboard at `/admin`, **this status file and its generator**. |
 | 2026-10-15 | Fixed photo upload "We could not read that photo" (CSP blocked `blob:` images). |
 | 2026-10-15 | Added keep-awake self-ping and README setup for an external pinger. |
