@@ -63,7 +63,19 @@
           <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">
             <h3 id="quizTitle">Quiz results</h3>
             <div id="quizBody" class="quizbody"><p class="live" role="status">Loading your results...</p></div>
-            <a id="quizLink" class="btn primary wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
+            <button type="button" id="quizStartBtn" class="btn primary wide" hidden>Take the quiz here</button>
+            <a id="quizLink" class="btn ghost wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
+          </section>
+
+          <!-- The quiz runs here, inside the portal -->
+          <section class="quizrun" id="quizRun" aria-labelledby="quizRunTitle" hidden>
+            <div class="quizrun-bar">
+              <strong id="quizRunTitle">Edge Handbook Quiz</strong>
+              <button type="button" id="quizCloseBtn" class="btn ghost">Close quiz</button>
+            </div>
+            <p class="live" id="quizRunMsg" role="status">Opening the quiz. The first load can take up to a minute.</p>
+            <iframe id="quizFrame" title="ABECFX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
+            <p class="quizrun-foot"><a id="quizTab" href="#" target="_blank" rel="noopener">Quiz not loading? Open it in a new tab</a></p>
           </section>
         </section>
 

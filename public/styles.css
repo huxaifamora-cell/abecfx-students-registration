@@ -494,4 +494,15 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quiz-scale { margin: 12px 0 0; font-size: .75rem; color: var(--muted); line-height: 1.6; }
 .g-A { background: #1f9d6b; } .g-B { background: #4a9d3b; } .g-C { background: #b8920f; }
 .g-D { background: #d17a14; } .g-E { background: #c9531f; } .g-F { background: var(--danger); }
-@media print { .quizcard { display: none; } }
+/* ---------- Quiz running inside the portal ---------- */
+.quizrun { max-width: 480px; margin: 22px auto 0; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
+.quizrun[hidden] { display: none; }
+.quizrun-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.quizrun-bar strong { font-family: var(--display); font-size: 1.05rem; }
+.quizrun-bar .btn { height: 40px; padding: 0 16px; font-size: .9rem; white-space: nowrap; flex: none; }
+.quizrun .live { max-width: none; margin: 4px 0 10px; }
+.quizrun iframe { display: block; width: 100%; height: 78vh; height: 78dvh; min-height: 520px; max-height: 900px; border: 0; border-radius: 12px; background: #fff; }
+.quizrun-foot { margin: 10px 0 0; text-align: center; font-size: .82rem; }
+.quizrun-foot a { color: var(--muted); }
+.quizcard .btn.wide + .btn.wide { margin-top: 10px; }
+@media print { .quizcard, .quizrun { display: none; } }

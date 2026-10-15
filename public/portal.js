@@ -10,6 +10,14 @@
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
+  // The quiz opens inside the portal (a frame on the quiz service) so students never leave this page.
+  var currentReg = "";
+  var quizOrigin = "";
+  var quizRun = document.getElementById("quizRun");
+  var quizFrame = document.getElementById("quizFrame");
+  var quizMsg = document.getElementById("quizRunMsg");
+  var quizStartBtn = document.getElementById("quizStartBtn");
+
   function remember(reg) { try { localStorage.setItem(KEY, reg); } catch (e) {} }
   function forget() { try { localStorage.removeItem(KEY); } catch (e) {} }
   function saved() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
@@ -39,6 +47,8 @@
     live.textContent = note ? note.text : "Live record, checked at " + t;
     live.className = "live" + (note ? " live-" + note.level : "");
     home.hidden = false;
+    currentReg = d.regNumber;
+    closeQuiz(true);
     showQuiz(d.regNumber);
   }
 
@@ -55,14 +65,20 @@
     var link = document.getElementById("quizLink");
     body.replaceChildren(el("p", "live", "Loading your results..."));
     fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) {
-      if (c.quizUrl && /^https:\/\//.test(c.quizUrl)) { link.href = c.quizUrl; link.hidden = false; }
+      if (c.quizUrl && /^https:\/\//.test(c.quizUrl)) {
+        link.href = c.quizUrl;
+        link.hidden = false;
+        // When the quiz can run inside the portal, Telegram becomes the second choice.
+        if (c.quizEmbed) link.textContent = "Take it on Telegram instead";
+      }
+      quizStartBtn.hidden = !c.quizEmbed || !quizRun.hidden;
     }).catch(function () {});
     fetch("/api/results?reg=" + encodeURIComponent(reg))
       .then(function (r) { return r.json().then(function (b) { if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (d) {
         body.replaceChildren();
         if (!d.latest) {
-          body.appendChild(el("p", "quiz-empty", "You have not taken the quiz yet. Open the quiz on Telegram, enter your registration number " + reg + " and your result will appear here."));
+          body.appendChild(el("p", "quiz-empty", "You have not taken the quiz yet. Take it from this page and your result will appear here."));
           return;
         }
         var l = d.latest;
@@ -99,6 +115,50 @@
       });
   }
 
+  // ---- Take the quiz inside the portal ----
+  function closeQuiz(silent) {
+    if (!silent && !window.confirm("Close the quiz? A quiz you have not finished is not saved.")) return;
+    quizFrame.src = "about:blank";
+    quizRun.hidden = true;
+    quizOrigin = "";
+    quizStartBtn.hidden = true; // showQuiz decides again whether to offer it
+    if (!silent && currentReg) showQuiz(currentReg);
+  }
+
+  function openQuiz() {
+    if (!currentReg) return;
+    quizStartBtn.disabled = true;
+    fetch("/api/quiz/session?reg=" + encodeURIComponent(currentReg))
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.body.url) throw new Error(res.body.error || "We could not open the quiz just now.");
+        quizOrigin = new URL(res.body.url).origin;
+        quizMsg.textContent = "Opening the quiz. The first load can take up to a minute.";
+        quizMsg.hidden = false;
+        document.getElementById("quizTab").href = res.body.url;
+        quizFrame.src = res.body.url + "&o=" + encodeURIComponent(window.location.origin);
+        quizRun.hidden = false;
+        quizStartBtn.hidden = true;
+        quizRun.scrollIntoView({ behavior: "smooth", block: "start" });
+      })
+      .catch(function (e) {
+        quizStartBtn.hidden = false;
+        window.alert(e.message || "We could not open the quiz just now.");
+      })
+      .then(function () { quizStartBtn.disabled = false; });
+  }
+
+  quizStartBtn.addEventListener("click", openQuiz);
+  document.getElementById("quizCloseBtn").addEventListener("click", function () { closeQuiz(false); });
+  quizFrame.addEventListener("load", function () {
+    if (quizFrame.getAttribute("src") && quizFrame.getAttribute("src") !== "about:blank") quizMsg.hidden = true;
+  });
+  // The quiz page tells the portal when a result has been saved, so the results card refreshes by itself.
+  window.addEventListener("message", function (e) {
+    if (!quizOrigin || e.origin !== quizOrigin || e.source !== quizFrame.contentWindow) return;
+    if (e.data && e.data.type === "abecfx_quiz_saved" && currentReg) showQuiz(currentReg);
+  });
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     err.textContent = "";
@@ -118,6 +178,8 @@
 
   document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
   document.getElementById("switchBtn").addEventListener("click", function () {
+    closeQuiz(true);
+    currentReg = "";
     forget();
     input.value = "";
     showSignin("");
