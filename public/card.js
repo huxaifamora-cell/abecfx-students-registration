@@ -1,0 +1,224 @@
+/*
+ * Student ID card renderer (shared by the registration success screen and the status page).
+ * Needs qr.js loaded first. All text is set with textContent, never innerHTML.
+ */
+(function () {
+  "use strict";
+
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var stampCounter = 0;
+
+  var STATUS_CLASS = {
+    "Uncertified": "s-uncertified",
+    "Certified": "s-certified",
+    "Graduate": "s-graduate",
+    "Alumni Member": "s-alumni",
+    "Mentor": "s-mentor",
+    "Staff Member": "s-staff",
+    "CEO": "s-ceo"
+  };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function svgEl(tag, attrs) {
+    var e = document.createElementNS(SVG_NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    return e;
+  }
+  function initials(name) {
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    var a = parts[0].charAt(0), b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : "";
+    return (a + b).toUpperCase();
+  }
+  function emojiFlag(code) {
+    if (!/^[a-z]{2}$/i.test(code || "")) return "";
+    return String.fromCodePoint.apply(null, code.toUpperCase().split("").map(function (c) {
+      return 0x1f1e6 + c.charCodeAt(0) - 65;
+    }));
+  }
+
+  // Round stamp: "Certified graduate of ABEC-FX" (Certified and Graduate students) or "Alumni member" (alumni).
+  function buildStamp(status, dateText) {
+    var isGrad = status !== "Alumni Member";
+    var top = isGrad ? "CERTIFIED GRADUATE" : "ALUMNI MEMBER";
+    var id = "stamp" + ++stampCounter;
+
+    var svg = svgEl("svg", { viewBox: "0 0 200 200", "class": "idc-stamp-svg", role: "img",
+      "aria-label": isGrad ? "Certified graduate of ABEC-FX" : "Alumni member of ABEC-FX" });
+
+    var defs = svgEl("defs");
+    defs.appendChild(svgEl("path", { id: id + "t", d: "M 100,100 m -67,0 a 67,67 0 1,1 134,0" }));
+    defs.appendChild(svgEl("path", { id: id + "b", d: "M 100,100 m -78,0 a 78,78 0 0,0 156,0" }));
+    svg.appendChild(defs);
+
+    svg.appendChild(svgEl("circle", { cx: 100, cy: 100, r: 95, "class": "st-ring st-ring-thick" }));
+    svg.appendChild(svgEl("circle", { cx: 100, cy: 100, r: 89, "class": "st-ring st-ring-thin" }));
+    svg.appendChild(svgEl("circle", { cx: 100, cy: 100, r: 53, "class": "st-ring st-ring-thin" }));
+
+    function arcText(pathId, str, size) {
+      var t = svgEl("text", { "class": "st-arc", "font-size": size });
+      var tp = svgEl("textPath", { href: "#" + pathId, startOffset: "50%", "text-anchor": "middle" });
+      tp.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + pathId);
+      tp.textContent = str;
+      t.appendChild(tp);
+      return t;
+    }
+    svg.appendChild(arcText(id + "t", top, 13.5));
+    svg.appendChild(arcText(id + "b", "ADEBASS BASE EDGE CONSULT", 10.5));
+
+    var stars = svgEl("text", { x: 100, y: 83, "text-anchor": "middle", "class": "st-stars", "font-size": 10 });
+    stars.textContent = "★ ★ ★";
+    svg.appendChild(stars);
+
+    var name = svgEl("text", { x: 100, y: 107, "text-anchor": "middle", "class": "st-name", "font-size": 20 });
+    name.textContent = "ABEC-FX";
+    svg.appendChild(name);
+
+    svg.appendChild(svgEl("line", { x1: 72, y1: 115, x2: 128, y2: 115, "class": "st-line" }));
+
+    var date = svgEl("text", { x: 100, y: 129, "text-anchor": "middle", "class": "st-date", "font-size": 9.5 });
+    date.textContent = dateText ? String(dateText).toUpperCase() : "OFFICIAL";
+    svg.appendChild(date);
+    return svg;
+  }
+
+  // Text for the "expires" line on the card.
+  function expiryLine(d) {
+    if (d.expiryKind === "date") {
+      if (d.expired) return { text: "Expired " + d.expires, cls: "is-expired" };
+      if (d.daysLeft === 0) return { text: "Expires today", cls: "is-soon" };
+      return { text: "Expires " + d.expires, cls: d.daysLeft <= 14 ? "is-soon" : "" };
+    }
+    if (d.expiryKind === "unknown") return { text: "Expiry date not set", cls: "" };
+    return { text: "No expiry", cls: "" };
+  }
+
+  // Message shown under the card when an ID has expired or is about to.
+  window.expiryNotice = function (d) {
+    if (d.expiryKind !== "date") return null;
+    if (d.expired) return { level: "bad", text: "This ID expired on " + d.expires + ". Speak to ABECFX to renew it." };
+    if (d.daysLeft <= 14) {
+      var when = d.daysLeft === 0 ? "today" : d.daysLeft === 1 ? "tomorrow" : "in " + d.daysLeft + " days";
+      return { level: "soon", text: "This ID expires " + when + " (" + d.expires + ")." };
+    }
+    return null;
+  };
+
+  /**
+   * d: card data from /api/lookup or /api/register
+   * opts.photoSrc: use this image instead of /api/photo (e.g. the just-taken photo)
+   */
+  window.renderStudentCard = function (d, opts) {
+    opts = opts || {};
+    var status = d.status || "Uncertified";
+    var card = el("article", "idc");
+    card.setAttribute("data-status", status.toLowerCase().replace(/\s+/g, "-"));
+    card.setAttribute("aria-label", "Student ID card for " + d.fullName);
+
+    // ---- header
+    var top = el("div", "idc-top");
+    var brand = el("div", "idc-brand");
+    var logo = el("img");
+    logo.src = "/logo-white.png"; logo.alt = ""; logo.width = 30; logo.height = 23;
+    brand.appendChild(logo);
+    brand.appendChild(el("span", null, "ABECFX"));
+    top.appendChild(brand);
+    top.appendChild(el("span", "idc-kind", "Student ID card"));
+    card.appendChild(top);
+
+    // ---- passport photo + national flag + facts
+    var hero = el("div", "idc-hero");
+    var photoBox = el("div", "idc-photo");
+    var fallback = el("span", "idc-initials", initials(d.fullName));
+    fallback.setAttribute("aria-hidden", "true");
+    photoBox.appendChild(fallback);
+    var photo = el("img", "idc-photo-img");
+    photo.alt = "Passport photograph of " + d.fullName;
+    photo.addEventListener("load", function () { photoBox.classList.add("has-photo"); });
+    photo.addEventListener("error", function () { photo.remove(); });
+    photo.src = opts.photoSrc || "/api/photo?reg=" + encodeURIComponent(d.regNumber);
+    photoBox.appendChild(photo);
+
+    if (d.countryCode) {
+      var flagWrap = el("div", "idc-flag");
+      var flag = el("img");
+      flag.alt = (d.country || "National") + " flag";
+      flag.src = "https://flagcdn.com/w80/" + d.countryCode + ".png";
+      flag.srcset = "https://flagcdn.com/w80/" + d.countryCode + ".png 1x, https://flagcdn.com/w160/" + d.countryCode + ".png 2x";
+      flag.addEventListener("error", function () {
+        flagWrap.textContent = emojiFlag(d.countryCode);
+        flagWrap.classList.add("idc-flag-emoji");
+      });
+      flagWrap.appendChild(flag);
+      photoBox.appendChild(flagWrap);
+    }
+    hero.appendChild(photoBox);
+
+    var facts = el("dl", "idc-facts");
+    function fact(label, value) {
+      var row = el("div");
+      row.appendChild(el("dt", null, label));
+      row.appendChild(el("dd", null, value || "Not recorded"));
+      facts.appendChild(row);
+    }
+    fact("Country", d.country);
+    if (d.state) fact("State", d.state);
+    fact("Gender", d.gender);
+    fact("Programme", d.programme);
+    fact("Admitted", d.admitted ? String(d.admitted) : "");
+    hero.appendChild(facts);
+    card.appendChild(hero);
+
+    // ---- name + registration number
+    if (d.expired) {
+      card.classList.add("idc-is-expired");
+      var mark = el("div", "idc-expired-mark", "EXPIRED");
+      mark.setAttribute("aria-hidden", "true");
+      card.appendChild(mark);
+    }
+    card.appendChild(el("h3", "idc-name", d.fullName));
+    card.appendChild(el("p", "idc-reg", d.regNumber));
+
+    // ---- status (+ stamp for graduates and alumni)
+    var row = el("div", "idc-statusrow");
+    var col = el("div", "idc-statuscol");
+    var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
+    chip.appendChild(el("span", null, status));
+    col.appendChild(chip);
+    col.appendChild(el("span", "idc-since",
+      status === "Uncertified" ? "Awaiting certification"
+        : "Since " + (d.statusDate || "date not recorded")));
+    row.appendChild(col);
+    if (status === "Graduate" || status === "Certified" || status === "Alumni Member") {
+      var stampWrap = el("div", "idc-stamp");
+      stampWrap.appendChild(buildStamp(status, d.statusDate));
+      row.appendChild(stampWrap);
+    }
+    card.appendChild(row);
+
+    // ---- QR code: opens this student's live status
+    var url = (opts.origin || location.origin) + "/status?reg=" + d.regNumber;
+    var verify = el("div", "idc-verify");
+    var qr = el("div", "idc-qr");
+    try { qr.appendChild(window.QR.toSvg(url, { border: 1 })); } catch (e) { qr.textContent = ""; }
+    verify.appendChild(qr);
+    var vt = el("div", "idc-vtext");
+    vt.appendChild(el("strong", null, "Scan to check status"));
+    vt.appendChild(el("span", null, "Opens this student's live record."));
+    if (d.issued) vt.appendChild(el("span", "idc-issued", "Issued " + d.issued));
+    var exp = expiryLine(d);
+    vt.appendChild(el("span", "idc-expiry " + exp.cls, exp.text));
+    verify.appendChild(vt);
+    card.appendChild(verify);
+
+    var foot = el("div", "idc-foot");
+    foot.appendChild(el("span", null, "Adebass Base Edge Consult"));
+    card.appendChild(foot);
+    return card;
+  };
+})();
