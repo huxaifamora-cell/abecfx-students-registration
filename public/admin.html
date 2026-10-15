@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Editor dashboard | ABECFX</title>
+  <meta name="theme-color" content="#5a1060" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body class="adm">
+  <header class="adm-top">
+    <a class="adm-brand" href="/" aria-label="ABECFX home">
+      <img src="/logo-white.png" alt="" width="34" height="26" />
+      <span><b>ABECFX</b><i>Editor dashboard</i></span>
+    </a>
+    <div class="adm-actions" id="topActions" hidden>
+      <span class="adm-stamp" id="stamp"></span>
+      <button type="button" class="btn ghost" id="refreshBtn">Refresh</button>
+      <button type="button" class="btn ghost" id="logoutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <main class="adm-main">
+    <section id="login" class="adm-login">
+      <h1>Editor sign in</h1>
+      <p class="lead">Enter the editor password to see student statistics and quiz results.</p>
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="pw">Password</label>
+          <input id="pw" type="password" autocomplete="current-password" required />
+        </div>
+        <p class="formErr" id="loginErr" role="alert"></p>
+        <button type="submit" class="primary" id="loginBtn">Sign in</button>
+      </form>
+    </section>
+
+    <section id="dash" hidden>
+      <nav class="adm-tabs" role="tablist" aria-label="Dashboard sections">
+        <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
+        <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
+      </nav>
+
+      <div id="view-overview" role="tabpanel" aria-labelledby="tab-overview">
+        <div class="kpis" id="kpis"></div>
+
+        <div class="grid">
+          <article class="adm-card"><h3>Certification status</h3><div id="c-status"></div><p class="adm-note" id="c-status-note"></p></article>
+          <article class="adm-card"><h3>Gender</h3><div id="c-gender"></div></article>
+          <article class="adm-card"><h3>Programme enrolled</h3><div id="c-programme"></div></article>
+          <article class="adm-card"><h3>Year joined</h3><div id="c-year"></div></article>
+          <article class="adm-card"><h3>Country of residence</h3><div id="c-country"></div></article>
+          <article class="adm-card"><h3>State of residence</h3><div id="c-state"></div></article>
+        </div>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Month joined</h3>
+            <label class="adm-select">Year <select id="yearSel"></select></label>
+          </div>
+          <div id="c-monthyear"></div>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Monthly student growth</h3>
+          <p class="adm-note">Bars are new students each month; the line is the running total.</p>
+          <div id="c-growth"></div>
+          <div class="tablewrap"><table class="adm-table" id="growthTable"></table></div>
+          <p class="adm-note" id="undatedNote"></p>
+        </article>
+      </div>
+
+      <div id="view-quiz" role="tabpanel" aria-labelledby="tab-quiz" hidden>
+        <div class="kpis" id="quizKpis"></div>
+        <div class="grid">
+          <article class="adm-card"><h3>Grades (latest attempt per student)</h3><div id="c-grades"></div></article>
+          <article class="adm-card"><h3>Grading scale</h3><div class="tablewrap"><table class="adm-table" id="c-scale"></table></div></article>
+        </div>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>All results</h3>
+            <button type="button" class="btn ghost" id="csvBtn">Download CSV</button>
+          </div>
+          <div class="filters">
+            <input id="q" type="search" placeholder="Search name or reg number" aria-label="Search results" />
+            <select id="gradeFilter" aria-label="Filter by grade"><option value="">All grades</option></select>
+            <select id="viewMode" aria-label="Which attempts">
+              <option value="all">Every attempt</option>
+              <option value="latest">Latest per student</option>
+              <option value="best">Best per student</option>
+            </select>
+          </div>
+          <div class="tablewrap"><table class="adm-table" id="resultsTable"></table></div>
+          <p class="adm-note" id="resultsNote"></p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
