@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: abecfx-registration
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: QUIZ_API_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: QUIZ_BOT_URL
+        sync: false
