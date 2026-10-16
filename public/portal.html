@@ -36,17 +36,23 @@
         <!-- Not signed in on this device -->
         <section id="signin" hidden>
           <h2>Open your student portal</h2>
-          <p class="lead">Enter the registration number you received when you registered, for example ABECFX/26/0001.</p>
+          <p class="lead">The student portal is for registered students. Sign in with the registration number you received and the email address you registered with.</p>
           <form id="signinForm" novalidate>
             <div class="field">
               <label for="reg">Registration number</label>
               <input id="reg" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" required />
             </div>
+            <div class="field">
+              <label for="email">Registered email</label>
+              <input id="email" type="email" autocomplete="email" spellcheck="false" placeholder="you@example.com" required />
+            </div>
             <p class="formErr" id="signinErr" role="alert"></p>
-            <button type="submit" id="signinBtn" class="primary">Open portal</button>
+            <button type="submit" id="signinBtn" class="primary">Sign in</button>
           </form>
           <p class="or">New to ABECFX?</p>
           <a class="btn ghost wide" href="/register">Register as a new student</a>
+          <p class="or">Just want to check a student's ID?</p>
+          <a class="btn ghost wide" href="/status">Find a student</a>
         </section>
 
         <!-- Signed in -->
@@ -57,7 +63,7 @@
           <p class="live" id="liveLine" role="status"></p>
           <div class="pass-actions">
             <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
-            <button type="button" id="switchBtn" class="btn ghost">Not you?</button>
+            <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
           </div>
 
           <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">

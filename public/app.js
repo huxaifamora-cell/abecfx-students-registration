@@ -225,7 +225,7 @@
             window.renderStudentCard(res.body.card, { photoSrc: photoDataUrl })
           );
           regNumberText = res.body.regNumber;
-          try { localStorage.setItem(KEY, res.body.regNumber); } catch (e) {}
+          try { localStorage.setItem(KEY, res.body.regNumber); if (res.body.token) localStorage.setItem("abecfx_token", res.body.token); } catch (e) {}
           document.getElementById("returning").hidden = true;
           document.getElementById("formCard").hidden = true;
           document.getElementById("successCard").hidden = false;

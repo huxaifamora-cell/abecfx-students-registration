@@ -1,10 +1,12 @@
 (function () {
   var KEY = "abecfx_reg";
+  var TKEY = "abecfx_token"; // sign-in token from the website; the portal is private without it
   var loading = document.getElementById("loading");
   var signin = document.getElementById("signin");
   var home = document.getElementById("home");
   var form = document.getElementById("signinForm");
   var input = document.getElementById("reg");
+  var emailInput = document.getElementById("email");
   var err = document.getElementById("signinErr");
   var btn = document.getElementById("signinBtn");
 
@@ -18,12 +20,38 @@
   var quizMsg = document.getElementById("quizRunMsg");
   var quizStartBtn = document.getElementById("quizStartBtn");
 
-  function remember(reg) { try { localStorage.setItem(KEY, reg); } catch (e) {} }
-  function forget() { try { localStorage.removeItem(KEY); } catch (e) {} }
+  function remember(reg, token) {
+    try { localStorage.setItem(KEY, reg); if (token) localStorage.setItem(TKEY, token); } catch (e) {}
+  }
+  function forget() { try { localStorage.removeItem(KEY); localStorage.removeItem(TKEY); } catch (e) {} }
   function saved() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
+  function token() { try { return localStorage.getItem(TKEY) || ""; } catch (e) { return ""; } }
 
-  function lookup(reg) {
-    return fetch("/api/lookup?reg=" + encodeURIComponent(reg)).then(function (r) {
+  // Every private request carries the sign-in token.
+  function authFetch(url) {
+    return fetch(url, { headers: { Authorization: "Bearer " + token() } });
+  }
+
+  // The sign-in has expired or is not valid: back to the sign-in form.
+  function signedOut(message) {
+    closeQuiz(true);
+    currentReg = "";
+    forget();
+    showSignin(message || "Please sign in again.");
+  }
+
+  function login(reg, email) {
+    return fetch("/api/portal/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reg: reg, email: email }),
+    }).then(function (r) {
+      return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; });
+    });
+  }
+
+  function myCard() {
+    return authFetch("/api/portal/me").then(function (r) {
       return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; });
     });
   }
@@ -73,8 +101,8 @@
       }
       quizStartBtn.hidden = !c.quizEmbed || !quizRun.hidden;
     }).catch(function () {});
-    fetch("/api/results?reg=" + encodeURIComponent(reg))
-      .then(function (r) { return r.json().then(function (b) { if (!r.ok) throw new Error(b.error); return b; }); })
+    authFetch("/api/results")
+      .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (d) {
         body.replaceChildren();
         if (!d.latest) {
@@ -110,7 +138,8 @@
         }).join("  |  "));
         body.appendChild(sc);
       })
-      .catch(function () {
+      .catch(function (e) {
+        if (e && e.message === "signed out") return;
         body.replaceChildren(el("p", "quiz-empty", "We could not load your quiz results just now. Refresh to try again."));
       });
   }
@@ -128,8 +157,8 @@
   function openQuiz() {
     if (!currentReg) return;
     quizStartBtn.disabled = true;
-    fetch("/api/quiz/session?reg=" + encodeURIComponent(currentReg))
-      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+    authFetch("/api/quiz/session")
+      .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error(""); } return { ok: r.ok, body: b }; }); })
       .then(function (res) {
         if (!res.ok || !res.body.url) throw new Error(res.body.error || "We could not open the quiz just now.");
         quizOrigin = new URL(res.body.url).origin;
@@ -142,6 +171,7 @@
         quizRun.scrollIntoView({ behavior: "smooth", block: "start" });
       })
       .catch(function (e) {
+        if (!e.message) return; // signed out: the sign-in form is already showing
         quizStartBtn.hidden = false;
         window.alert(e.message || "We could not open the quiz just now.");
       })
@@ -163,17 +193,20 @@
     e.preventDefault();
     err.textContent = "";
     var reg = input.value.trim();
+    var email = emailInput.value.trim();
     if (!reg) { err.textContent = "Enter your registration number."; input.focus(); return; }
+    if (!email) { err.textContent = "Enter the email address you registered with."; emailInput.focus(); return; }
     btn.disabled = true;
-    btn.textContent = "Opening...";
-    lookup(reg)
+    btn.textContent = "Signing in...";
+    login(reg, email)
       .then(function (res) {
         if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
-        remember(res.body.regNumber);
-        showHome(res.body);
+        remember(res.body.card.regNumber, res.body.token);
+        emailInput.value = "";
+        showHome(res.body.card);
       })
       .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
-      .then(function () { btn.disabled = false; btn.textContent = "Open portal"; });
+      .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
   });
 
   document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
@@ -182,25 +215,27 @@
     currentReg = "";
     forget();
     input.value = "";
+    emailInput.value = "";
     showSignin("");
     input.focus();
   });
 
-  // Returning student on this device: go straight to their portal.
+  // Returning student on this device: go straight to their portal if their sign-in is still valid.
   var reg = saved();
-  if (reg) {
-    lookup(reg)
+  if (token()) {
+    myCard()
       .then(function (res) {
         if (res.ok) { showHome(res.body); return; }
-        if (res.status === 404 || res.status === 400) { forget(); showSignin(""); return; }
-        showSignin("We could not open your portal just now. Enter your registration number to try again.");
+        if (res.status === 401) { forget(); showSignin("Please sign in again."); input.value = reg; return; }
+        showSignin("We could not open your portal just now. Please try again.");
         input.value = reg;
       })
       .catch(function () {
-        showSignin("Network problem. Enter your registration number to try again.");
+        showSignin("Network problem. Please check your connection and try again.");
         input.value = reg;
       });
   } else {
     showSignin("");
+    if (reg) input.value = reg; // an earlier visit without a sign-in: ask for the email now
   }
 })();
