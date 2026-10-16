@@ -11,6 +11,7 @@ const grading = require("./grading");
 const { buildStats } = require("./stats");
 const crypto = require("crypto");
 const quizToken = require("./quiztoken");
+const session = require("./session");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -93,7 +94,7 @@ function validate(body) {
     email: clean(body.email, 254).toLowerCase(),
     whatsapp: clean(body.whatsapp, 25),
     gender: clean(body.gender),
-    promoCode: clean(body.promoCode, 30).toUpperCase(),
+    mentorshipCode: clean(body.mentorshipCode, 40).toUpperCase(),
     photo: checkPhoto(body.photo),
   };
   const errors = {};
@@ -115,8 +116,9 @@ function validate(body) {
   if (!/^\+?[\d\s\-()]+$/.test(d.whatsapp) || digits.length < 7 || digits.length > 15)
     errors.whatsapp = "Enter a valid WhatsApp number with country code, e.g. +234 801 234 5678.";
   if (!GENDERS.includes(d.gender)) errors.gender = "Please select your gender.";
-  if (d.promoCode && !/^[A-Z0-9_-]{2,30}$/.test(d.promoCode))
-    errors.promoCode = "Promo code can only contain letters, numbers, - and _.";
+  if (!d.mentorshipCode) errors.mentorshipCode = "Enter the mentorship code you were given.";
+  else if (!/^[A-Z0-9_-]{4,40}$/.test(d.mentorshipCode))
+    errors.mentorshipCode = "That mentorship code is not valid. Check it and try again.";
   if (!d.photo) errors.photo = "Add a passport photograph. Choose a clear photo of your face.";
   return { d, errors };
 }
@@ -177,6 +179,15 @@ app.post("/api/register", limiter, async (req, res) => {
         throw err;
       }
 
+      // The mentorship code is required, works once, and is checked here (inside the queue) so two
+      // people can never use the same code at the same time.
+      const free = await store.findFreeCode(d.mentorshipCode);
+      if (!free) {
+        const err = new Error("badcode");
+        err.code = "BADCODE";
+        throw err;
+      }
+
       const yy = admissionYY();
       const prefix = `ABECFX/${yy}/`;
       let max = 0;
@@ -197,13 +208,18 @@ app.post("/api/register", limiter, async (req, res) => {
         d.email,
         d.whatsapp,
         d.gender,
-        d.promoCode,
+        free.code,
         "Uncertified",
         "",
         idrules.lagosToday(), // ID Issue Date. An editor can set a new date here to renew an expired ID.
         d.state,
       ];
       await store.appendRow(row);
+      try {
+        await store.markCodeUsed(free.sheetRow, reg, lagosTimestamp());
+      } catch (e) {
+        console.error("Could not mark mentorship code used for", reg, e.message);
+      }
 
       // The student row is saved. Save the photo too, retrying once; if it still fails the
       // registration stands and the ID card shows the student's initials instead.
@@ -219,8 +235,20 @@ app.post("/api/register", limiter, async (req, res) => {
       return cardFromRow(row);
     });
 
-    res.json({ regNumber: card.regNumber, fullName: card.fullName, card });
+    // A student who has just registered is signed in straight away.
+    const secret = sessionSecret();
+    res.json({
+      regNumber: card.regNumber,
+      fullName: card.fullName,
+      card,
+      token: secret ? session.sign(card.regNumber, secret) : "",
+    });
   } catch (err) {
+    if (err.code === "BADCODE") {
+      return res.status(400).json({
+        errors: { mentorshipCode: "This mentorship code is not valid or has already been used. Ask your mentor for a new one." },
+      });
+    }
     if (err.code === "DUPLICATE") {
       return res.status(409).json({
         errors: { email: "This email address is already registered with ABECFX." },
@@ -281,6 +309,70 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
     res.json(cardFromRow(r));
   } catch (err) {
     console.error("Lookup failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// ---- Student portal sign-in ----
+// The portal is for registered students only. A student signs in with their registration number
+// and the email they registered with. Find-a-student (/status, /api/lookup, /api/photo) stays public.
+// The signing secret is SESSION_SECRET, or QUIZ_API_KEY when SESSION_SECRET is not set.
+function sessionSecret() {
+  return process.env.SESSION_SECRET || process.env.QUIZ_API_KEY || "";
+}
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true, // only wrong attempts count
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many sign-in attempts. Please try again in a few minutes." },
+});
+
+function studentAuth(req, res, next) {
+  res.set("Cache-Control", "no-store");
+  const secret = sessionSecret();
+  if (!secret) return res.status(503).json({ error: "Student sign-in is not set up on the website yet." });
+  const given = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const reg = session.verify(given, secret);
+  if (!reg) return res.status(401).json({ error: "Please sign in to your student portal." });
+  req.studentReg = reg;
+  next();
+}
+
+app.post("/api/portal/login", loginLimiter, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const secret = sessionSecret();
+  if (!secret) return res.status(503).json({ error: "Student sign-in is not set up on the website yet." });
+  const reg = normaliseReg((req.body || {}).reg);
+  const email = clean((req.body || {}).email, 254).toLowerCase();
+  if (!reg || !email) {
+    return res.status(400).json({ error: "Enter your registration number and the email you registered with." });
+  }
+  try {
+    const rows = await store.readCached(5000);
+    const r = rows.find((row) => (row[0] || "").toUpperCase() === reg);
+    // One message for "no such number" and "wrong email", so nobody can probe which numbers exist.
+    if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
+      return res.status(401).json({ error: "That registration number and email do not match our records." });
+    }
+    res.json({ token: session.sign(reg, secret), card: cardFromRow(r) });
+  } catch (err) {
+    console.error("Portal sign-in failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// The signed-in student's own card.
+app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
+  try {
+    const rows = await store.readCached();
+    const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
+    if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
+    res.json(cardFromRow(r));
+  } catch (err) {
+    console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
   }
 });
@@ -357,13 +449,12 @@ app.get("/api/config", (_req, res) =>
 
 // Student portal: open the quiz inside the portal. Returns the quiz address with a short-lived,
 // signed pass for this registration number (in the part after #, which is never sent to a server).
-app.get("/api/quiz/session", lookupLimiter, async (req, res) => {
+app.get("/api/quiz/session", lookupLimiter, studentAuth, async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!QUIZ_APP_ORIGIN || !process.env.QUIZ_API_KEY) {
     return res.status(503).json({ error: "The quiz is not available inside the portal yet." });
   }
-  const reg = normaliseReg(req.query.reg);
-  if (!reg) return res.status(400).json({ error: "Enter a valid registration number." });
+  const reg = req.studentReg; // taken from the sign-in, never from the page
   try {
     const rows = await store.readCached(5000);
     if (!rows.some((row) => (row[0] || "").toUpperCase() === reg)) {
@@ -447,9 +538,8 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
 });
 
 // Student portal: a student's own quiz results.
-app.get("/api/results", lookupLimiter, async (req, res) => {
-  const reg = normaliseReg(req.query.reg);
-  if (!reg) return res.status(400).json({ error: "Enter a valid registration number." });
+app.get("/api/results", lookupLimiter, studentAuth, async (req, res) => {
+  const reg = req.studentReg; // a student can only ever see their own results
   try {
     const rows = await store.readQuiz();
     const attempts = rows.filter((q) => q[1] === reg).map(quizEntry).reverse(); // newest first

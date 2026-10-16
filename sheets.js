@@ -25,7 +25,7 @@ const HEADERS = [
   "Email",
   "WhatsApp Number",
   "Gender",
-  "Promo Code",
+  "Mentorship Code",
   "Status",
   "Status Date",
   "ID Issue Date",
@@ -48,6 +48,11 @@ const QUIZ_HEADERS = [
   "Submitted (UTC)",
 ];
 const QUIZ_LAST_COL = "K";
+
+// Mentorship codes: one row per code. The editor types new codes into column A; a code works once.
+const CODE_TAB = process.env.GOOGLE_CODE_TAB || "Mentorship Codes";
+const CODE_HEADERS = ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"];
+const CODE_LAST_COL = "D";
 
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -126,6 +131,9 @@ async function init() {
   await ensureTab(QUIZ_TAB);
   await ensureHeaders(QUIZ_TAB, QUIZ_HEADERS, QUIZ_LAST_COL);
 
+  await ensureTab(CODE_TAB);
+  await ensureHeaders(CODE_TAB, CODE_HEADERS, CODE_LAST_COL);
+
   await call(":batchUpdate", {
     method: "POST",
     data: {
@@ -197,6 +205,31 @@ async function appendQuiz(row) {
   quizCache.at = 0;
 }
 
+// ---- Mentorship codes (always read fresh: a code must never be accepted twice) ----
+const normCode = (v) => String(v || "").trim().toUpperCase();
+
+// Returns { row, sheetRow } for an unused code, or null if the code is unknown or already used.
+async function findFreeCode(code) {
+  const want = normCode(code);
+  if (!want) return null;
+  const data = await call(`/values/${range(`A2:${CODE_LAST_COL}`, CODE_TAB)}`);
+  const rows = data.values || [];
+  for (let i = 0; i < rows.length; i++) {
+    if (normCode(rows[i][0]) === want) {
+      if ((rows[i][2] || "").trim()) return null; // already used
+      return { code: want, sheetRow: i + 2 };
+    }
+  }
+  return null;
+}
+
+async function markCodeUsed(sheetRow, reg, usedAt) {
+  await call(`/values/${range(`C${sheetRow}:D${sheetRow}`, CODE_TAB)}?valueInputOption=RAW`, {
+    method: "PUT",
+    data: { values: [[reg, usedAt]] },
+  });
+}
+
 // ---- Passport photos (kept on their own tab so student reads stay small and fast) ----
 let photoIndex = { at: 0, regs: [] };
 async function photoRegs(ttlMs) {
@@ -240,5 +273,5 @@ async function getPhoto(reg) {
 }
 
 module.exports = {
-  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, HEADERS, STATUSES,
+  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed, HEADERS, STATUSES,
 };
