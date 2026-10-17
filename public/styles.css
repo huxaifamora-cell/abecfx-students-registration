@@ -134,7 +134,7 @@ a { color: inherit; }
 label, .label { font-weight: 600; font-size: .9rem; margin-bottom: 7px; }
 label em { font-weight: 400; color: var(--muted); font-style: normal; }
 
-input[type="text"], input[type="email"], input[type="tel"], select {
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select {
   font: inherit;
   height: 52px;
   padding: 0 16px;
@@ -154,12 +154,19 @@ select {
   background-position: right 18px center;
 }
 input::placeholder { color: #a99fb0; }
-input:focus-visible, select:focus-visible {
+input:focus-visible, select:focus-visible, input[type="date"]:focus-visible {
   outline: none;
   border-color: var(--violet);
   box-shadow: 0 0 0 4px rgba(139, 31, 142, .15);
 }
 .field.invalid input, .field.invalid select { border-color: var(--danger); }
+/* Date picker: same rounded look as the other fields; Safari/Chrome add their own inner box and icon */
+input[type="date"] { min-height: 52px; text-align: left; display: block; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+input[type="date"]::-webkit-datetime-edit { padding: 0; }
+input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .75; }
+input[type="date"]:invalid { color: #a99fb0; }
+input[type="date"]:valid { color: var(--ink); }
 .hint { font-size: .8rem; color: var(--muted); margin-top: 6px; }
 .err { font-size: .84rem; color: var(--danger); margin-top: 6px; font-weight: 500; }
 .err:empty { display: none; }
