@@ -578,3 +578,20 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 @media (min-width: 700px) { .hb-cards { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .subnav a { flex: 1 1 0; white-space: normal; display: grid; place-items: center; padding: 8px 6px; font-size: .86rem; line-height: 1.2; min-height: 46px; } }
 @media print { .subnav, .journey, #viewQuiz, #viewHandbook { display: none; } }
+
+/* ---------- Computer view: menu at the top left, for everyone ---------- */
+/* The logo is first, the menu sits right under it, the headline moves to the bottom of the panel.
+   The panel stays pinned while the page scrolls, so the menu is always in view. Phones keep the
+   bottom tab bar (max-width: 900px rules above). */
+@media (min-width: 901px) {
+  .panel {
+    position: sticky; top: 0; align-self: start;
+    height: 100vh; height: 100dvh; min-height: 520px;
+    justify-content: flex-start;
+  }
+  .brandbar { order: 1; }
+  .panel .nav { order: 2; display: flex; flex-wrap: wrap; gap: 8px; }
+  .panel .nav a { padding: 10px 16px; border-radius: 999px; font-size: .95rem; }
+  .panel .nav svg { width: 18px; height: 18px; }
+  .panel .pitch { order: 3; margin-top: auto; }
+}
