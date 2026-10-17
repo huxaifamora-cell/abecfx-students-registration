@@ -90,6 +90,16 @@ function checkPhoto(p) {
   return p;
 }
 
+// Date of birth as YYYY-MM-DD: a real calendar date, not in the future, not before 1920.
+function validDob(v, todayISO) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (!m) return false;
+  const y = +m[1], mo = +m[2], da = +m[3];
+  const dt = new Date(Date.UTC(y, mo - 1, da));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== da) return false;
+  return y >= 1920 && v <= todayISO;
+}
+
 function validate(body) {
   const d = {
     country: clean(body.country),
@@ -99,6 +109,7 @@ function validate(body) {
     email: clean(body.email, 254).toLowerCase(),
     whatsapp: clean(body.whatsapp, 25),
     gender: clean(body.gender),
+    dob: clean(body.dob, 10),
     mentorshipCode: clean(body.mentorshipCode, 40).toUpperCase(),
     photo: checkPhoto(body.photo),
   };
@@ -120,6 +131,8 @@ function validate(body) {
   const digits = d.whatsapp.replace(/[^\d]/g, "");
   if (!/^\+?[\d\s\-()]+$/.test(d.whatsapp) || digits.length < 7 || digits.length > 15)
     errors.whatsapp = "Enter a valid WhatsApp number with country code, e.g. +234 801 234 5678.";
+  if (!d.dob) errors.dob = "Please enter your date of birth.";
+  else if (!validDob(d.dob, idrules.lagosToday())) errors.dob = "Enter a real date of birth (not in the future), e.g. 1995-03-27.";
   if (!GENDERS.includes(d.gender)) errors.gender = "Please select your gender.";
   if (!d.mentorshipCode) errors.mentorshipCode = "Enter the mentorship code you were given.";
   else if (!/^[A-Z0-9_-]{4,40}$/.test(d.mentorshipCode))
@@ -218,6 +231,7 @@ app.post("/api/register", limiter, async (req, res) => {
         "",
         idrules.lagosToday(), // ID Issue Date. An editor can set a new date here to renew an expired ID.
         d.state,
+        d.dob, // Date of Birth (column N). Never shown on the public ID card or the dashboard lists.
       ];
       await store.appendRow(row);
       try {
