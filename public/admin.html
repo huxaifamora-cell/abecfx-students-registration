@@ -41,9 +41,10 @@
       <nav class="adm-tabs" role="tablist" aria-label="Dashboard sections">
         <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
+        <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
       </nav>
 
-      <p class="adm-hint">Tap or click any number, bar or chart column to see the students behind it.</p>
+      <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
 
       <div id="view-overview" role="tabpanel" aria-labelledby="tab-overview">
         <div class="kpis" id="kpis"></div>
@@ -97,6 +98,18 @@
           </div>
           <div class="tablewrap"><table class="adm-table" id="resultsTable"></table></div>
           <p class="adm-note" id="resultsNote"></p>
+        </article>
+      </div>
+
+      <div id="view-links" role="tabpanel" aria-labelledby="tab-links" hidden>
+        <article class="adm-card wide">
+          <h3>Site links</h3>
+          <p class="adm-note">These show as icons on the website (portal, register and find-a-student pages) and change as soon as you press Save. Leave a box empty to hide that icon. Web addresses must start with https://</p>
+          <form id="linksForm" class="lk-form" novalidate></form>
+          <div class="lk-bar">
+            <button type="button" class="primary" id="linksSave">Save</button>
+            <span class="lk-msg" id="linksMsg" role="status"></span>
+          </div>
         </article>
       </div>
     </section>

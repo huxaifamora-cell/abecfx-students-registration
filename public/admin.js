@@ -27,11 +27,13 @@
   function pct(n, total) { return total ? Math.round((n / total) * 100) : 0; }
 
   // ---------- API ----------
-  function api(path) {
-    return fetch(path, { headers: { Authorization: "Bearer " + password } }).then(function (r) {
+  function api(path, method, body) {
+    var opts = { method: method || "GET", headers: { Authorization: "Bearer " + password } };
+    if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    return fetch(path, opts).then(function (r) {
       return r.json().then(function (b) {
         if (r.status === 401) { var e = new Error(b.error || "Wrong password."); e.auth = true; throw e; }
-        if (!r.ok) throw new Error(b.error || "Something went wrong.");
+        if (!r.ok) { var e2 = new Error(b.error || "Something went wrong."); e2.fields = b.errors; throw e2; }
         return b;
       });
     });
@@ -481,15 +483,71 @@
   dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener("close", function () { drillSeq++; drillData = null; });
 
+  // ---------- Site links ----------
+  var linkFields = [];
+  function renderLinks(fields, values) {
+    linkFields = fields;
+    var form = $("linksForm");
+    form.replaceChildren();
+    fields.forEach(function (f) {
+      var wrap = el("div", "field");
+      wrap.id = "lk-wrap-" + f.key;
+      var label = el("label", null, f.label);
+      label.setAttribute("for", "lk-" + f.key);
+      var input;
+      if (f.kind === "text") { input = el("textarea"); input.maxLength = f.max || 700; }
+      else { input = el("input"); input.type = f.kind === "phone" ? "tel" : "url"; input.autocomplete = "off"; input.spellcheck = false; }
+      input.id = "lk-" + f.key;
+      input.placeholder = f.hint || "";
+      input.value = values[f.key] || "";
+      var err = el("p", "lk-err");
+      err.id = "lk-err-" + f.key;
+      err.setAttribute("role", "alert");
+      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(err);
+      form.appendChild(wrap);
+    });
+  }
+  function showLinkErrors(errs) {
+    linkFields.forEach(function (f) {
+      var msg = (errs && errs[f.key]) || "";
+      $("lk-err-" + f.key).textContent = msg;
+      $("lk-wrap-" + f.key).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadLinks() {
+    return api("/api/admin/links").then(function (r) { renderLinks(r.fields, r.values); $("linksMsg").textContent = ""; });
+  }
+  $("linksSave").addEventListener("click", function () {
+    var b = this, body = {};
+    linkFields.forEach(function (f) { body[f.key] = $("lk-" + f.key).value; });
+    b.disabled = true;
+    $("linksMsg").textContent = "Saving...";
+    showLinkErrors(null);
+    api("/api/admin/links", "PUT", body)
+      .then(function (r) { renderLinks(linkFields, r.values); $("linksMsg").textContent = "Saved. The website now shows these links."; })
+      .catch(function (err) {
+        if (err.auth) { showLogin(err.message); return; }
+        showLinkErrors(err.fields);
+        $("linksMsg").textContent = err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz"].forEach(function (n) {
+    ["overview", "quiz", "links"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
+    $("statsHint").hidden = name === "links";
+    if (name === "links") {
+      $("linksMsg").textContent = "Loading...";
+      loadLinks().catch(function (err) { if (err.auth) showLogin(err.message); else $("linksMsg").textContent = err.message; });
+    }
   }
   $("tab-overview").addEventListener("click", function () { setTab("overview"); });
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
+  $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);

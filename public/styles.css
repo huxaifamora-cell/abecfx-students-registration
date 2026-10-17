@@ -595,3 +595,35 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   .panel .nav svg { width: 18px; height: 18px; }
   .panel .pitch { order: 3; margin-top: auto; }
 }
+
+/* ---------- Social icons, Deriv button, About / Contact (editable from /admin) ---------- */
+.social { display: grid; gap: 14px; }
+.social[hidden] { display: none; }
+.soc-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.soc {
+  appearance: none; cursor: pointer; text-decoration: none; font: inherit;
+  display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  color: #fff; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .32);
+  transition: background .2s, color .2s, transform .2s;
+}
+.soc svg { width: 21px; height: 21px; }
+.soc:hover { background: #fff; color: var(--violet-deep); transform: translateY(-2px); }
+.soc:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.deriv-cta {
+  display: inline-flex; align-items: center; justify-content: center; text-align: center;
+  padding: 13px 20px; border-radius: 14px; font-weight: 800; text-decoration: none;
+  color: var(--violet-deep); background: #fff; border: 0; box-shadow: 0 8px 22px rgba(0, 0, 0, .22);
+}
+.deriv-cta:hover { background: var(--gold); }
+.deriv-cta:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+@media (min-width: 901px) { .panel .social { order: 4; } }
+@media (max-width: 900px) { .social { justify-items: start; } }
+
+.info-dlg { border: 0; border-radius: 20px; padding: 0; max-width: min(440px, calc(100vw - 32px)); width: 100%; color: var(--ink, #1c0f20); }
+.info-dlg::backdrop { background: rgba(30, 6, 36, .55); }
+.info-box { padding: 24px 22px 20px; display: grid; gap: 12px; }
+.info-box h2 { margin: 0; font-family: var(--display); font-size: 1.4rem; color: var(--violet-deep); }
+.info-body { display: grid; gap: 10px; line-height: 1.6; }
+.info-body p { margin: 0; }
+.info-phone { font-family: var(--display); font-weight: 800; font-size: 1.4rem; color: var(--violet-deep); }
+@media print { .social, .info-dlg { display: none; } }
