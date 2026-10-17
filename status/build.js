@@ -17,7 +17,7 @@ const SITE_FILES = [
   "public/status.html", "public/status.js",
   "public/card.js", "public/qr.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
-  "public/styles.css", "public/links.js", "links.js",
+  "public/styles.css", "public/links.js", "links.js", "videos.js",
   "status/build.js",
 ];
 const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf"];
