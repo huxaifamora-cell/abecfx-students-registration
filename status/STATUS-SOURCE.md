@@ -1,7 +1,7 @@
 # ABECFX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
-**Last updated:** {{DATE}} (Lagos time)
+**Last updated:** 17 Oct 2026 (Lagos time), after change 3 of 5 (portal submenu, Mentorship Handbook and learning-progress bar)
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -15,7 +15,7 @@
 ## 1. Goals
 
 1. Student registration with a unique number `ABECFX/YY/NNNN` (YY = admission year, NNNN = student number), saved in a Google Sheet, deployed on Render.
-2. Registration fields: country, state/region, programme (Forex Mentorship), full name, email, WhatsApp number, gender, passport photo, optional promo code.
+2. Registration fields: country, state/region, programme (Forex Mentorship), full name, email, WhatsApp number, gender, passport photo, **required one-time mentorship code** (replaces the old optional promo code).
 3. Top-of-the-range branding and UI using the purple bull-horn logo.
 4. Student status managed by the sheet editor: Uncertified (default), Certified, Graduate, Alumni Member, Mentor, Staff Member, CEO, with a status date.
 5. Public "find a student" page that shows a student ID card: QR code to the live status, national flag, passport photo, graduate stamp, expiry.
@@ -25,6 +25,7 @@
 9. Keep the free Render service from sleeping.
 10. Keep this status file current with every code change.
 11. Students take the quiz inside their portal without leaving it (Telegram stays as a second way in).
+12. **Owner's change list of 16 Oct 2026, done one at a time, each approved before the next:** (1) mentorship code at registration [DONE, awaiting live check]; (2) only registered users reach the student portal, while find-a-student stays public [DONE, awaiting live check]; (3) My Portal submenu: Quiz and Mentorship Handbook (the PDF the quiz came from), with a learning-progress bar in percent [DONE, awaiting live check]; (4) every statistic on the admin page clickable and viewable [not started]; (5) on computer screens the menu goes to the top for everyone, not bottom left [not started].
 
 ## 2. Decisions
 
@@ -32,7 +33,7 @@
 | --- | --- | --- |
 | 2026-10-13 | Google **Sheets** is the database (not Docs) | Docs cannot store rows. Same Google account and Drive. |
 | 2026-10-13 | Numbering restarts at 0001 each year | Matches the `YY` in the format. Flagged to owner, not contradicted. |
-| 2026-10-13 | Public lookup never shows email, WhatsApp or promo code | Privacy. Name, gender, country, state, photo and status are shown. |
+| 2026-10-13 | Public lookup never shows email, WhatsApp or mentorship code (was promo code) | Privacy. Name, gender, country, state, photo and status are shown. |
 | 2026-10-13 | All JavaScript is in external files | The site's security policy (helmet CSP) blocks inline scripts. |
 | 2026-10-14 | Non-graduate IDs expire 2 months after the ID Issue Date; editor renews by typing a new date in column L | Owner request. |
 | 2026-10-14 | **Certified students are graduates**: no expiry, graduate stamp. Only Uncertified expires | Owner clarification. |
@@ -47,6 +48,16 @@
 | 2026-10-15 | Grading: A 70-100, B 60-69, C 50-59, D 45-49, E 40-44, F 0-39 | **Assumed** (common Nigerian scale). Not yet confirmed by owner. One place to change: `grading.js`. |
 | 2026-10-15 | Dashboard "certified/graduates" = Certified + Graduate + Alumni Member; "team" = Mentor + Staff + CEO | Derived from the owner's rule that Certified = graduate. |
 | 2026-10-15 | Dashboard protected by one password (`ADMIN_PASSWORD`); shows no email or phone | Simple and safe for one editor. Off if the variable is missing. |
+| 2026-10-16 | **The student portal is private; find-a-student stays public.** A student signs in with registration number + the email they registered with. The website returns a signed session token (30 days, HMAC, `session.js`), kept in the browser and sent as `Authorization: Bearer`. `/api/portal/me`, `/api/results` and `/api/quiz/session` need it and use the registration number **from the token**, never from the page. `/api/lookup` and `/api/photo` (and so `/status`) stay open. A student who has just registered is signed in automatically. Signing secret is `SESSION_SECRET`, or `QUIZ_API_KEY` if that is not set | Owner request. Registration numbers are sequential and public, so a number alone is no longer enough; this also answers open question 6. One message for "wrong number" and "wrong email" so nobody can probe which numbers exist; only wrong attempts count toward the limit (10 per 15 min). **Assumed:** email as the second check, 30-day sign-in. |
+| 2026-10-16 | **Mentorship code replaces the promo code.** Required, one-time, given by admin/editor. Codes live on a new sheet tab **Mentorship Codes** (A: code, B: created at, C: used by reg number, D: used at). The editor adds codes by typing them in column A. Registration is refused if the code is missing, unknown or already used. The code is claimed inside the same queue that issues registration numbers | Owner request. Code is checked before a reg number is issued and marked used right after the student row is saved. Codes are not case-sensitive (stored and compared in capitals). |
+| 2026-10-16 | Students sheet column I is kept in place but renamed **Mentorship Code**; it stores the code the student used. Old promo values in existing rows stay as they were | Keeps every column position, so nothing else (stats, lookup, dashboard) had to change. **Assumed.** |
+| 2026-10-17 | **My portal has a submenu: My ID card, Quiz, Mentorship Handbook.** It sits at the top of the portal content (not in the side menu) and works with addresses `#/card`, `#/quiz`, `#/handbook` and `#/handbook/03`, so a chapter can be opened directly. The quiz results card and the in-portal quiz moved from the ID card page to the Quiz view | Owner request. Kept inside the page so change 5 (menu at the top on computers) does not collide with it. The ID card page keeps the card and shows a small "learning journey" summary that opens the handbook. |
+| 2026-10-17 | **The Mentorship Handbook is read inside the portal**, one section per chapter: Introduction plus chapters 01-12 = **13 steps**. The text and tables come from the owner's PDF "The Edge Handbook, Complete Workbook" (59 pages), stored in `handbook-content.js`. The charts, fill-in workbook pages and signature pages stay in the PDF | Owner request ("interactive"). Workbook pages are for printing and writing on, so they were not rebuilt as forms. **Assumed.** Chapter titles follow the PDF's own contents page. To change the text, edit `handbook-content.js`; progress adjusts itself to the number of chapters. |
+| 2026-10-17 | **Learning progress = chapters marked as read / total chapters, shown as a percent.** A student taps "Mark this chapter as read" (and can undo it). The quiz is separate and does not count | Owner's choice. 1 of 13 = 8%, 7 of 13 = 54%, 13 of 13 = 100%. |
+| 2026-10-17 | **Progress is saved in the Google Sheet**, new tab **Handbook Progress** (one row per student: reg number, name, chapters read, count, total, percent, updated at). It follows the student to any device and the editor can read it | Owner's choice. The row is created on the first "mark as read", not on opening. The editor can fix a student by editing the "Chapters Read" cell (ids like `00,01,03`); numbers without a leading zero are accepted. |
+| 2026-10-17 | **The handbook text and the PDF are for signed-in students only.** The PDF is not in the public folder; a signed-in student asks for a link that is valid for 10 minutes (`pdflink.js`) and `/handbook.pdf` is refused without a valid link | The PDF is the paid mentorship material and registration numbers are public, so it must not be a plain public file. **Assumed.** |
+| 2026-10-17 | Saves use their own queue, separate from registration, and read the sheet fresh before writing | A burst of "mark as read" taps can never slow down issuing registration numbers, and two devices cannot overwrite each other. |
+| 2026-10-17 | Fixed `--purple-soft` (used by the mobile active tab and notice box but never defined) and the phone page grid (`1fr` to `minmax(0, 1fr)`) | Found while testing: the page was 7 px wider than a 375 px phone, and wide handbook tables made it much wider. |
 | 2026-10-15 | Month charts use the "Registered At" date, not the ID Issue Date | Renewing an ID must not move a student to a new month. |
 | 2026-10-15 | The quiz opens **inside the portal** in a frame; the Telegram link stays as the second choice. Switched on by `QUIZ_APP_URL` (the quiz service's https address) | Owner request: students must not leave the portal. The security policy lets the portal frame that one address only. |
 | 2026-10-15 | Portal-to-quiz sign-in is a short-lived **signed pass**: one registration number, HMAC-signed with `QUIZ_API_KEY`, valid 4 hours, carried after the `#` so it is never sent to a server and is removed from the address bar. The quiz service takes the number from the pass, never from the page | Same principle as the Telegram login. Code: `quiztoken.js` (website) and `verifyPortalToken` in `bot.js`. |
@@ -57,44 +68,52 @@
 
 **Built and tested with a mocked browser/server (not yet verified on live Render + real Google Sheets):**
 
-- Registration form with country, state/region, passport photo (cropped and compressed in the browser), duplicate-email check, honeypot, rate limits.
+- Registration form with country, state/region, **required mentorship code**, passport photo (cropped and compressed in the browser), duplicate-email check, honeypot, rate limits.
 - ID card with QR, flag, photo, status chip, graduate stamp, expiry, EXPIRED mark, print.
+- **Private student portal**: sign-in with registration number + registered email, 30-day session, Sign out button; find-a-student open to all.
 - Portal home (`/`), register (`/register`), find a student (`/status`), mobile bottom navigation.
 - Status system and dropdown in the sheet; Certified = graduate rules.
 - Keep-alive self-ping.
 - **New:** quiz results in the portal (grade badge, score, history, grading scale, "Take the quiz on Telegram" button).
 - **New:** quiz bot asks for registration number, shows the student's name, Full length default, saves finished results with an A-F grade.
 - **New:** editor dashboard at `/admin` (statistics and quiz results, CSV download).
+- **New (change 3):** My portal submenu (My ID card, Quiz, Mentorship Handbook). Handbook reader with 13 chapters, "Mark as read", previous/next, and a learning-progress bar (percent) that is saved in the sheet, shown on the handbook page, inside each chapter and as a summary on the ID card page. At 100% a "final word" and a link to the quiz appear. "Open the full handbook PDF" opens a private 10-minute link.
 - **New:** the quiz runs inside the student portal ("Take the quiz here"): the student is signed in automatically, cannot switch to another number, the result is graded and saved, and the portal's results card refreshes by itself. "Close quiz" and "Not you?" remove the running quiz. Telegram still works as before.
 
 **Pages and endpoints (registration site):**
 
 | Address | Purpose |
 | --- | --- |
-| `/`, `/register`, `/status`, `/admin` | Pages |
-| `GET /api/lookup`, `/api/photo`, `/api/results`, `/api/countries`, `/api/states`, `/api/config`, `/api/quiz/session` | Public (`/api/quiz/session` gives the quiz address plus a signed pass for one registration number; rate limited) |
+| `/`, `/register`, `/status`, `/admin` | Pages (`/` shows only a sign-in form until the student signs in) |
+| `GET /api/lookup`, `/api/photo`, `/api/results`, `/api/countries`, `/api/states`, `/api/config` | Public |
+| `POST /api/portal/login` | Public, rate limited (wrong attempts only). Registration number + email in, session token + card out |
+| `GET /api/handbook`, `/api/handbook/progress`, `/api/handbook/pdf-link`; `POST /api/handbook/progress` | **Signed-in student only.** `/api/handbook` gives the chapters and the student's progress; `POST` takes `{chapter, read}` and saves for the student in the token. 120 requests per 10 min |
+| `GET /handbook.pdf?t=...` | Only with a valid 10-minute link from `/api/handbook/pdf-link` |
+| `GET /api/portal/me`, `/api/results`, `/api/quiz/session` | **Signed-in student only** (Bearer token). `/api/quiz/session` gives the quiz address plus a signed pass for the student's own number |
 | `POST /api/register` | Public, rate limited |
 | `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`). The result route accepts either a Telegram id or `source: "portal"` |
 | `GET /api/admin/stats`, `/api/admin/results` | Editor only (Bearer password) |
 
-**Sheet tabs:** Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, promo, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
+**Sheet tabs:** Handbook Progress (A-G, new: reg number, full name, chapters read, count, total, percent, updated at), Mentorship Codes (A-D), Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, mentorship code, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
 
 **Environment variables:**
 
 | Where | Variable | Purpose |
 | --- | --- | --- |
 | Website | `GOOGLE_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` | Sheet access |
-| Website | `QUIZ_API_KEY` | Shared secret with the quiz bot |
+| Website | `QUIZ_API_KEY` | Shared secret with the quiz bot (also signs portal sign-ins unless `SESSION_SECRET` is set) |
+| Website | `SESSION_SECRET` | Optional. Own secret for portal sign-ins. Changing it signs every student out |
 | Website | `ADMIN_PASSWORD` | Editor dashboard password |
 | Website | `QUIZ_BOT_URL` | Telegram link shown in the portal |
 | Website | `QUIZ_APP_URL` | Quiz service's own https address (e.g. `https://abecfx-quiz-bot.onrender.com`); turns on the in-portal quiz |
 | Website | `KEEP_AWAKE=off` | Optional: turn off self-ping |
+| Website | `GOOGLE_PROGRESS_TAB` | Optional: name of the progress tab (default Handbook Progress) |
 | Quiz bot | `BOT_TOKEN` | From BotFather |
 | Quiz bot | `REG_SITE_URL` | Website address |
 | Quiz bot | `QUIZ_API_KEY` | Same value as on the website |
 
 **Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy. **Added for the in-portal quiz:** 32 checks on the pass (tampering, other number, expiry, wrong key) and the website routes (including the Telegram-link rules and the security policy), 17 checks on the quiz service (the number comes from the pass, bad passes never reach the website, Telegram login unchanged, limits), and 23 checks in a real Chromium browser over https with the real `server.js`, `bot.js` and `portal.js` (portal opens the quiz in the page, automatic sign-in, save and live refresh, close, "Not you?", Telegram-linked refusal, damaged pass, phone width).
-**Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
+**Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 ## 4. Next steps
 
@@ -112,7 +131,18 @@
 2. Push the website code (new file `quiztoken.js`) and the quiz bot code (updated `bot.js` and the new `webapp/embed.js`; `webapp/index.html` does not change). Both services redeploy.
 3. Open the portal, sign in, tap **Take the quiz here**, finish a quiz and check the result appears in the portal and in `/admin`.
 
+**Owner action for change 1:** push `server.js`, `sheets.js` and `public/register.html`. On startup the site creates the **Mentorship Codes** tab. Type a few codes in column A (letters, numbers, - or _; 4-40 characters, e.g. `MENTOR-7K2Q`), then try registering with one, and again with the same code (it must be refused).
+
+**Owner action for change 2:** push `session.js`, `server.js`, `.env.example` (comment only), `public/portal.html`, `public/portal.js`, `public/app.js`, `status/build.js`. No new Render variable is needed (it reuses `QUIZ_API_KEY`). Then: open the portal in a private window (must show the sign-in form), sign in with a real number and email, check the card, quiz results and quiz open, then open `/status` signed out (must still work). Students already signed in on a device must sign in once more, now with their email.
+
+**Owner action for change 3:** push the new files `handbook-content.js`, `handbook-progress.js`, `pdflink.js`, `public/handbook.js` and the **`private/handbook.pdf`** folder, plus the changed `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `status/build.js`. No new Render variable is needed. On startup the site creates the **Handbook Progress** tab. Then: sign in to the portal, check the three submenu items, open the handbook, mark two chapters read (bar shows 15%), reload and check it is still 15%, look at the Handbook Progress tab in the sheet, open "Open the full handbook PDF", then sign in as a second student and check they start at 0%. Check that `https://your-site/handbook.pdf` opened without a link says the link has expired.
+
+**Next in the owner's change list (waiting for approval):** change 4 (every statistic on the admin page clickable and viewable), then 5 (menu at the top on computers). Note for 5: the submenu is inside the page content, so it is not affected.
+
 **Suggested next work (not started, awaiting owner):**
+- Show each student's handbook progress on the admin page (it is in the sheet tab now; fits change 4).
+- Optional: let the quiz unlock after the handbook is fully read, or count the quiz toward the percent.
+- A "Generate codes" button on the admin page, so codes need not be typed in the sheet.
 
 - Confirm or change the A-F boundaries.
 - Decide whether to keep both "Certified" and "Graduate" or merge them.
@@ -123,6 +153,8 @@
 
 ## 5. Open questions
 
+0. **Change 2 asks for the registered email as the second check at sign-in.** Is email right, or would you prefer WhatsApp number or a one-time code sent to them? (Answered question 6 below in the meantime.)
+
 1. Is the assumed grading scale right?
 2. Keep or merge Certified and Graduate?
 3. Should shorter quiz lengths stay selectable, or should the official quiz always be Full?
@@ -130,11 +162,20 @@
 5. Is `idcard.js` / `apple-touch-icon.png` in the project yours? (Unused; left in place.)
 6. **Portal sign-in is only the registration number**, and numbers are sequential and shown on the public find-a-student page. So anyone who knows a number can open that student's portal and take the quiz under it. Add a second check (email or WhatsApp last 4 digits) before the quiz, or accept this for now?
 7. A number linked to a Telegram account cannot save portal results (and the reverse is open). Is that the right rule, or should a student be able to use both?
+8. Mentorship codes: is one code per student right (yes, as built), and are you happy typing them into the sheet for now, or should I add a generator to the admin page?
+9. Existing students registered before this change have no mentorship code and can still use the portal. Is that fine?
+10. Progress counts **chapters read only** (your choice). Should passing the quiz ever count toward the percent, or should the quiz stay separate?
+11. A student taps "Mark as read" themselves, so it records what they say, not that they actually read it. Is that enough, or should a chapter only count after a short quiz or a minimum time on the page?
+12. The charts and the fill-in workbook pages are only in the PDF. Do you want the workbook questions turned into forms inside the portal later?
+13. The handbook PDF is private (10-minute links). Is that right, or should it be a normal public download?
 
 ## 6. Change log (newest first)
 
 | Date | Change |
 | --- | --- |
+| 2026-10-17 | **Change 3: My portal submenu, Mentorship Handbook and learning-progress bar.** Submenu (My ID card, Quiz, Mentorship Handbook) with deep links; handbook reader (13 chapters from the owner's PDF) with mark-as-read and a percent progress bar saved in a new **Handbook Progress** sheet tab; private 10-minute PDF link; quiz results and in-portal quiz moved into the Quiz view; ID card page shows a journey summary. New `handbook-content.js`, `handbook-progress.js`, `pdflink.js`, `public/handbook.js`, `private/handbook.pdf`; changes in `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `status/build.js`. Also fixed the undefined `--purple-soft` colour and a 7 px phone overflow. |
+| 2026-10-16 | **Change 2: private student portal.** Sign-in with registration number + registered email; signed 30-day session token; `/api/portal/login`, `/api/portal/me`; `/api/results` and `/api/quiz/session` now need sign-in and use the number from the token; find-a-student stays public; new users are signed in right after registering. New `session.js`; changes in `server.js`, `portal.html`, `portal.js`, `app.js`, `.env.example`, `status/build.js`. |
+| 2026-10-16 | **Change 1: mentorship code.** Required one-time code at registration, replaces the promo code. New sheet tab Mentorship Codes, `findFreeCode` and `markCodeUsed` in `sheets.js`, check in `/api/register` (`server.js`), new field on `register.html`; Students column I renamed Mentorship Code. |
 | 2026-10-15 | **Quiz inside the student portal**: "Take the quiz here" opens the quiz in the page with automatic sign-in by a signed short-lived pass; results save with a grade and refresh the results card; Telegram stays as a second choice. New `quiztoken.js`, `/api/quiz/session`, `QUIZ_APP_URL`, `webapp/embed.js`; `bot.js` accepts the pass. |
 | 2026-10-15 | Quiz bot linked to the website (reg-number sign-in, Full default, saved graded results), results in the student portal, editor dashboard at `/admin`, **this status file and its generator**. |
 | 2026-10-15 | Fixed photo upload "We could not read that photo" (CSP blocked `blob:` images). |
@@ -148,6 +189,6 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on {{DATE}}. Data files (`countries.js`, `countryCodes.js`, `states.json`), images and README files are listed but not embedded.
+Generated by `node status/build.js` on {{DATE}} (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 {{CODE}}

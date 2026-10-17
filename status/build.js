@@ -9,17 +9,18 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js",
+  "server.js", "sheets.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
-  "public/portal.html", "public/portal.js",
+  "public/portal.html", "public/portal.js", "public/handbook.js",
   "public/status.html", "public/status.js",
   "public/card.js", "public/qr.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
   "public/styles.css",
   "status/build.js",
 ];
-const SITE_DATA = ["countries.js", "countryCodes.js", "states.json"];
+const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf"];
 const QUIZ_FILES = ["bot.js", "webapp/embed.js", "package.json", "env.example", "render.yaml"];
 
 const LANG = { js: "js", json: "json", html: "html", css: "css", yaml: "yaml", example: "bash", md: "md" };
