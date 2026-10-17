@@ -1,6 +1,7 @@
 // Thin Google Sheets storage layer (service account + REST API).
 const { JWT } = require("google-auth-library");
 const links = require("./links");
+const videos = require("./videos");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -64,6 +65,11 @@ const PROG_LAST_COL = "G";
 const LINKS_TAB = process.env.GOOGLE_LINKS_TAB || "Site Links";
 const LINKS_HEADERS = ["Key (do not edit)", "What it is", "Value"];
 const LINKS_LAST_COL = "C";
+
+// Chapter videos: one row per handbook chapter 01-12 with its YouTube address, edited from /admin.
+const VIDEO_TAB = process.env.GOOGLE_VIDEO_TAB || "Chapter Videos";
+const VIDEO_HEADERS = ["Chapter", "Chapter title", "YouTube video address"];
+const VIDEO_LAST_COL = "C";
 
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -156,6 +162,16 @@ async function init() {
     await call(`/values/${range(`A2:${LINKS_LAST_COL}${links.FIELDS.length + 1}`, LINKS_TAB)}?valueInputOption=RAW`, {
       method: "PUT",
       data: { values: links.toRows(links.DEFAULTS) },
+    });
+  }
+
+  await ensureTab(VIDEO_TAB);
+  await ensureHeaders(VIDEO_TAB, VIDEO_HEADERS, VIDEO_LAST_COL);
+  const vExisting = await call(`/values/${range(`A2:A`, VIDEO_TAB)}`);
+  if (!(vExisting.values && vExisting.values.length)) {
+    await call(`/values/${range(`A2:${VIDEO_LAST_COL}${videos.VIDEO_CHAPTERS.length + 1}`, VIDEO_TAB)}?valueInputOption=RAW`, {
+      method: "PUT",
+      data: { values: videos.toRows({}) },
     });
   }
 
@@ -309,6 +325,24 @@ async function saveLinks(values) {
   linksCache = { at: Date.now(), values };
 }
 
+// ---- Chapter videos ----
+let videoCache = { at: 0, values: null };
+async function readVideos(ttlMs = 30000) {
+  if (!videoCache.values || Date.now() - videoCache.at > ttlMs) {
+    const data = await call(`/values/${range(`A2:${VIDEO_LAST_COL}`, VIDEO_TAB)}`);
+    videoCache = { values: videos.fromRows(data.values || []), at: Date.now() };
+  }
+  return videoCache.values;
+}
+
+async function saveVideos(values) {
+  await call(`/values/${range(`A2:${VIDEO_LAST_COL}${videos.VIDEO_CHAPTERS.length + 1}`, VIDEO_TAB)}?valueInputOption=RAW`, {
+    method: "PUT",
+    data: { values: videos.toRows(values) },
+  });
+  videoCache = { at: Date.now(), values };
+}
+
 // ---- Passport photos (kept on their own tab so student reads stay small and fast) ----
 let photoIndex = { at: 0, regs: [] };
 async function photoRegs(ttlMs) {
@@ -353,5 +387,5 @@ async function getPhoto(reg) {
 
 module.exports = {
   init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
-  getProgressCell, saveProgress, readLinks, saveLinks, HEADERS, STATUSES,
+  getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
 };

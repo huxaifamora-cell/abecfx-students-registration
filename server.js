@@ -16,6 +16,7 @@ const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
 const pdfLink = require("./pdflink");
 const links = require("./links");
+const videos = require("./videos");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -43,7 +44,7 @@ app.use(
         // national flags on the ID card come from flagcdn.com
         "img-src": ["'self'", "data:", "https://flagcdn.com"],
         // the quiz is shown inside the student portal
-        "frame-src": ["'self'", ...(QUIZ_APP_ORIGIN ? [QUIZ_APP_ORIGIN] : [])],
+        "frame-src": ["'self'", "https://www.youtube-nocookie.com", ...(QUIZ_APP_ORIGIN ? [QUIZ_APP_ORIGIN] : [])],
       },
     },
   })
@@ -417,7 +418,9 @@ app.get("/api/handbook/progress", handbookLimiter, studentAuth, async (req, res)
 // The handbook chapters plus the student's progress.
 app.get("/api/handbook", handbookLimiter, studentAuth, async (req, res) => {
   try {
-    res.json({ chapters: handbook.CHAPTERS, final: handbook.FINAL, progress: await progressFor(req.studentReg) });
+    let vids = {};
+    try { vids = videos.forStudents(await store.readVideos()); } catch (e) { console.error("Chapter videos read failed:", e.message); }
+    res.json({ chapters: handbook.CHAPTERS, final: handbook.FINAL, progress: await progressFor(req.studentReg), videos: vids });
   } catch (err) {
     console.error("Handbook read failed:", err.message);
     res.status(500).json({ error: "We could not load the handbook just now. Please try again." });
@@ -690,6 +693,29 @@ app.put("/api/admin/links", adminLimiter, adminAuth, async (req, res) => {
     res.json({ ok: true, values });
   } catch (err) {
     console.error("Admin links save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
+  }
+});
+
+// The editor reads and changes the chapter video addresses here.
+app.get("/api/admin/videos", adminLimiter, adminAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ chapters: videos.VIDEO_CHAPTERS, values: await store.readVideos(0) });
+  } catch (err) {
+    console.error("Admin videos read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+app.put("/api/admin/videos", adminLimiter, adminAuth, async (req, res) => {
+  const { values, errors } = videos.sanitize(req.body);
+  if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
+  try {
+    await store.saveVideos(values);
+    res.json({ ok: true, values });
+  } catch (err) {
+    console.error("Admin videos save failed:", err.message);
     res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
   }
 });
