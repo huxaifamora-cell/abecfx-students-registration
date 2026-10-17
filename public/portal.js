@@ -28,14 +28,18 @@
   function token() { try { return localStorage.getItem(TKEY) || ""; } catch (e) { return ""; } }
 
   // Every private request carries the sign-in token.
-  function authFetch(url) {
-    return fetch(url, { headers: { Authorization: "Bearer " + token() } });
+  function authFetch(url, opts) {
+    var o = opts || {};
+    var headers = Object.assign({}, o.headers || {}, { Authorization: "Bearer " + token() });
+    return fetch(url, Object.assign({}, o, { headers: headers }));
   }
 
   // The sign-in has expired or is not valid: back to the sign-in form.
   function signedOut(message) {
     closeQuiz(true);
+    window.abecHandbook.reset();
     currentReg = "";
+    currentView = "";
     forget();
     showSignin(message || "Please sign in again.");
   }
@@ -77,8 +81,40 @@
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    showQuiz(d.regNumber);
+    window.abecHandbook.reset();
+    currentView = "";
+    route();
   }
+
+  // ---- My portal submenu: ID card, Quiz, Mentorship Handbook (addresses #/card, #/quiz, #/handbook/03) ----
+  var VIEWS = ["card", "quiz", "handbook"];
+  var currentView = "";
+
+  function parseRoute() {
+    var m = /^#\/(card|quiz|handbook)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
+  }
+
+  function route() {
+    if (home.hidden || !currentReg) return; // not signed in: the sign-in form stays
+    var r = parseRoute();
+    VIEWS.forEach(function (v) {
+      document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== r.view;
+    });
+    var links = document.querySelectorAll("#subnav a");
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
+      else links[i].removeAttribute("aria-current");
+    }
+    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook");
+    if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
+    if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
+    if (r.view === "handbook") window.abecHandbook.show(r.chapter);
+    currentView = r.view;
+    if (r.view !== "handbook" || !r.chapter) window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+  window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Quiz results (taken in the ABECFX Telegram quiz bot) ----
   function el(tag, cls, text) {
@@ -212,7 +248,10 @@
   document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
   document.getElementById("switchBtn").addEventListener("click", function () {
     closeQuiz(true);
+    window.abecHandbook.reset();
     currentReg = "";
+    currentView = "";
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     forget();
     input.value = "";
     emailInput.value = "";

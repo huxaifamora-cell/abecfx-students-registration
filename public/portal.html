@@ -19,7 +19,7 @@
 
       <div class="pitch">
         <h1>Your student portal.</h1>
-        <p>Your ID card, status and expiry date in one place.</p>
+        <p>Your ID card, quiz and Mentorship Handbook in one place.</p>
       </div>
 
       <nav class="nav" aria-label="Main">
@@ -57,32 +57,58 @@
 
         <!-- Signed in -->
         <section id="home" hidden>
-          <h2 id="welcome">Welcome back</h2>
-          <p class="lead">This is your student ID card.</p>
-          <div class="cardwrap" id="cardMount"></div>
-          <p class="live" id="liveLine" role="status"></p>
-          <div class="pass-actions">
-            <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
-            <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
+          <!-- My portal submenu -->
+          <nav class="subnav" id="subnav" aria-label="My portal">
+            <a href="#/card" data-view="card" aria-current="page">My ID card</a>
+            <a href="#/quiz" data-view="quiz">Quiz</a>
+            <a href="#/handbook" data-view="handbook">Mentorship Handbook</a>
+          </nav>
+
+          <!-- View: ID card -->
+          <div id="viewCard" class="view">
+            <h2 id="welcome">Welcome back</h2>
+            <p class="lead">This is your student ID card.</p>
+            <div class="cardwrap" id="cardMount"></div>
+            <p class="live" id="liveLine" role="status"></p>
+            <div class="pass-actions">
+              <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
+              <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
+            </div>
+
+            <a class="journey" id="journeyCard" href="#/handbook" aria-label="Open the Mentorship Handbook">
+              <span class="journey-top"><strong>Your learning journey</strong><span class="journey-pct" id="journeyPct">&ndash;</span></span>
+              <span class="pbar" aria-hidden="true"><span class="pbar-fill" id="journeyFill"></span></span>
+              <span class="journey-sub" id="journeySub">Loading your progress...</span>
+            </a>
           </div>
 
-          <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">
-            <h3 id="quizTitle">Quiz results</h3>
-            <div id="quizBody" class="quizbody"><p class="live" role="status">Loading your results...</p></div>
-            <button type="button" id="quizStartBtn" class="btn primary wide" hidden>Take the quiz here</button>
-            <a id="quizLink" class="btn ghost wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
-          </section>
+          <!-- View: Quiz -->
+          <div id="viewQuiz" class="view" hidden>
+            <h2>Quiz</h2>
+            <p class="lead">Test what you have learned in the Mentorship Handbook.</p>
+            <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">
+              <h3 id="quizTitle">Quiz results</h3>
+              <div id="quizBody" class="quizbody"><p class="live" role="status">Loading your results...</p></div>
+              <button type="button" id="quizStartBtn" class="btn primary wide" hidden>Take the quiz here</button>
+              <a id="quizLink" class="btn ghost wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
+            </section>
 
-          <!-- The quiz runs here, inside the portal -->
-          <section class="quizrun" id="quizRun" aria-labelledby="quizRunTitle" hidden>
-            <div class="quizrun-bar">
-              <strong id="quizRunTitle">Edge Handbook Quiz</strong>
-              <button type="button" id="quizCloseBtn" class="btn ghost">Close quiz</button>
-            </div>
-            <p class="live" id="quizRunMsg" role="status">Opening the quiz. The first load can take up to a minute.</p>
-            <iframe id="quizFrame" title="ABECFX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
-            <p class="quizrun-foot"><a id="quizTab" href="#" target="_blank" rel="noopener">Quiz not loading? Open it in a new tab</a></p>
-          </section>
+            <!-- The quiz runs here, inside the portal -->
+            <section class="quizrun" id="quizRun" aria-labelledby="quizRunTitle" hidden>
+              <div class="quizrun-bar">
+                <strong id="quizRunTitle">Edge Handbook Quiz</strong>
+                <button type="button" id="quizCloseBtn" class="btn ghost">Close quiz</button>
+              </div>
+              <p class="live" id="quizRunMsg" role="status">Opening the quiz. The first load can take up to a minute.</p>
+              <iframe id="quizFrame" title="ABECFX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
+              <p class="quizrun-foot"><a id="quizTab" href="#" target="_blank" rel="noopener">Quiz not loading? Open it in a new tab</a></p>
+            </section>
+          </div>
+
+          <!-- View: Mentorship Handbook -->
+          <div id="viewHandbook" class="view" hidden>
+            <div id="hbMount"><p class="live" role="status">Opening the handbook...</p></div>
+          </div>
         </section>
 
         <p class="sheet-foot">&copy; <span id="year"></span> Adebass Base Edge Consult</p>
@@ -91,6 +117,7 @@
   </div>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
+  <script src="/handbook.js"></script>
   <script src="/portal.js"></script>
 </body>
 </html>
