@@ -8,7 +8,7 @@ const states = require("./states.json"); // country -> list of states / province
 const store = require("./sheets");
 const idrules = require("./idrules");
 const grading = require("./grading");
-const { buildStats } = require("./stats");
+const { buildStats, drill, quizEntry } = require("./stats");
 const crypto = require("crypto");
 const quizToken = require("./quiztoken");
 const session = require("./session");
@@ -518,21 +518,6 @@ function adminAuth(req, res, next) {
   next();
 }
 
-function quizEntry(q) {
-  const g = grading.gradeFor(Number(q[5]));
-  return {
-    date: (q[0] || "").split(",")[0],
-    regNumber: q[1] || "",
-    fullName: q[2] || "",
-    score: Number(q[3]) || 0,
-    total: Number(q[4]) || 0,
-    pct: Number(q[5]) || 0,
-    grade: q[6] || g.grade,
-    label: g.label,
-    attempt: Number(q[7]) || 1,
-  };
-}
-
 app.get("/api/config", (_req, res) =>
   res.json({
     quizUrl: process.env.QUIZ_BOT_URL || "",
@@ -653,6 +638,22 @@ app.get("/api/admin/stats", adminLimiter, adminAuth, async (_req, res) => {
     res.json({ ...buildStats(rows, quiz, idrules.lagosToday()), generatedAt: lagosTimestamp() });
   } catch (err) {
     console.error("Admin stats failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+// The list behind one dashboard number, e.g. ?kind=gender&value=Female. Editor only; no email or phone.
+app.get("/api/admin/drill", adminLimiter, adminAuth, async (req, res) => {
+  const kind = clean(req.query.kind, 30);
+  const value = clean(req.query.value, 120);
+  try {
+    const [rows, quiz] = await Promise.all([store.readCached(), store.readQuiz()]);
+    const out = drill(rows, quiz, kind, value);
+    if (!out) return res.status(400).json({ error: "That statistic could not be found." });
+    res.set("Cache-Control", "no-store");
+    res.json(out);
+  } catch (err) {
+    console.error("Admin drill failed:", err.message);
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
   }
 });
