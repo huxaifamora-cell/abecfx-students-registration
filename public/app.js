@@ -177,6 +177,14 @@
       });
   });
 
+  // The date picker cannot go past today.
+  (function () {
+    var dob = document.getElementById("dob");
+    if (!dob) return;
+    var t = new Date();
+    dob.max = t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
+  })();
+
   function clearErrors() {
     formErr.textContent = "";
     form.querySelectorAll(".err").forEach(function (e) { e.textContent = ""; });
