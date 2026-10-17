@@ -43,6 +43,8 @@
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
       </nav>
 
+      <p class="adm-hint">Tap or click any number, bar or chart column to see the students behind it.</p>
+
       <div id="view-overview" role="tabpanel" aria-labelledby="tab-overview">
         <div class="kpis" id="kpis"></div>
 
@@ -99,6 +101,23 @@
       </div>
     </section>
   </main>
+
+  <!-- The list behind whichever statistic was clicked -->
+  <dialog id="drill" class="adm-drill" aria-labelledby="drillTitle">
+    <div class="drill-box">
+      <div class="drill-head">
+        <h2 id="drillTitle">Details</h2>
+        <button type="button" class="btn ghost" id="drillClose">Close</button>
+      </div>
+      <p class="adm-note drill-summary" id="drillSummary" role="status"></p>
+      <div class="filters">
+        <input id="drillSearch" type="search" placeholder="Search this list" aria-label="Search this list" />
+        <button type="button" class="btn ghost" id="drillCsv">Download CSV</button>
+      </div>
+      <div class="tablewrap"><table class="adm-table" id="drillTable"></table></div>
+      <p class="adm-note" id="drillNote"></p>
+    </div>
+  </dialog>
 
   <script src="/admin.js"></script>
 </body>

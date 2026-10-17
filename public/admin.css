@@ -80,3 +80,36 @@ body.adm { background: var(--bone); min-height: 100vh; }
   .grid { grid-template-columns: minmax(0, 1fr); }
   .bar { grid-template-columns: minmax(80px, 42%) 1fr auto; }
 }
+
+/* ---------- Clickable statistics ---------- */
+.adm-hint { margin: 0 0 14px; font-size: .86rem; color: var(--muted); }
+button.kpi { appearance: none; font: inherit; text-align: left; cursor: pointer; color: inherit; width: 100%; transition: border-color .15s, box-shadow .15s, transform .12s; }
+button.kpi:hover { border-color: var(--violet); box-shadow: 0 8px 20px -12px rgba(90, 16, 96, .55); transform: translateY(-1px); }
+button.kpi:focus-visible, button.bar:focus-visible, .linkbtn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.kpi-cue { display: block; margin-top: 6px; font-style: normal; font-size: .72rem; font-weight: 700; color: var(--violet); }
+button.bar { appearance: none; font: inherit; color: inherit; background: none; border: 0; width: 100%; text-align: left; padding: 4px 6px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+button.bar:hover { background: var(--bone); }
+.linkbtn { appearance: none; font: inherit; color: var(--violet-deep); background: none; border: 0; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; cursor: pointer; font-weight: 700; text-decoration: underline; text-decoration-color: rgba(139, 31, 142, .35); text-underline-offset: 3px; font-variant-numeric: tabular-nums; }
+.linkbtn:hover { background: var(--purple-soft); }
+.chart .hit { fill: transparent; cursor: pointer; }
+.chart .hit:hover { fill: rgba(139, 31, 142, .1); }
+.chart .hit:focus-visible { outline: 3px solid var(--gold); outline-offset: -2px; }
+.chart .dot { cursor: pointer; }
+.chart .dot:hover { fill: var(--violet-deep); }
+.chart .dot:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* ---------- The list behind a statistic ---------- */
+.adm-drill { width: min(980px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 0; border-radius: 20px; background: #fff; color: var(--ink); box-shadow: 0 30px 80px -20px rgba(20, 8, 26, .6); }
+.adm-drill::backdrop { background: rgba(20, 8, 26, .55); }
+.drill-box { padding: 20px clamp(14px, 3vw, 24px) 22px; }
+.drill-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.drill-head h2 { margin: 0; font-family: var(--display); font-size: 1.25rem; line-height: 1.25; }
+.drill-head .btn { height: 40px; padding: 0 16px; flex: none; }
+.drill-summary { margin: 0 0 6px; font-size: .9rem; color: var(--violet-deep); font-weight: 600; }
+.adm-drill .tablewrap { max-height: 56dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+.adm-drill .adm-table th { position: sticky; top: 0; background: #fff; }
+.adm-drill .filters .btn { height: 42px; }
+/* the site-wide button style forces a 54px pill; these are content, not pills */
+button.kpi { display: block; height: auto; font-weight: 400; }
+button.bar { display: grid; height: auto; font-weight: 400; justify-content: stretch; }
+.linkbtn { display: inline; height: auto; }

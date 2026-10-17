@@ -72,7 +72,12 @@
     function draw(all) {
       list.replaceChildren();
       (all || !limit ? items : items.slice(0, limit)).forEach(function (i) {
-        var row = el("div", "bar");
+        var row = el(opts.drill ? "button" : "div", "bar");
+        if (opts.drill) {
+          row.type = "button";
+          row.setAttribute("aria-label", i.label + ": " + i.count + ". Show the list");
+          row.addEventListener("click", function () { var d = opts.drill(i); openDrill(d.kind, d.value, row); });
+        }
         row.appendChild(el("span", "lbl", i.label));
         row.title = i.label;
         var track = el("span", "track");
@@ -100,11 +105,29 @@
     }
   }
 
-  function kpi(label, value) {
-    var d = el("div", "kpi");
+  // A headline number. With a drill target it is a button that opens the list behind it.
+  function kpi(label, value, target) {
+    var d = el(target ? "button" : "div", "kpi");
+    if (target) {
+      d.type = "button";
+      d.setAttribute("aria-label", label + ": " + value + ". Show the list");
+      d.addEventListener("click", function () { openDrill(target.kind, target.value, d); });
+    }
     d.appendChild(el("b", null, String(value)));
     d.appendChild(el("span", null, label));
+    if (target) d.appendChild(el("em", "kpi-cue", "View list \u203a"));
     return d;
+  }
+
+  // Make an SVG shape behave like a button (mouse, touch and keyboard).
+  function svgButton(node, labelText, target) {
+    node.setAttribute("tabindex", "0");
+    node.setAttribute("role", "button");
+    node.setAttribute("aria-label", labelText + ". Show the list");
+    var go = function () { openDrill(target.kind, target.value, node); };
+    node.addEventListener("click", go);
+    node.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    return node;
   }
 
   // Column chart; points = [{label, value}]
@@ -125,10 +148,14 @@
       var h = (H - T - B) * (p.value / max);
       var x = L + slot * i + slot * 0.18;
       var r = svg("rect", { x: x, y: H - B - h, width: slot * 0.64, height: h, rx: 4, "class": "bar-rect" });
-      var tt = svg("title");
-      tt.textContent = p.label + ": " + p.value;
-      r.appendChild(tt);
       s.appendChild(r);
+      if (p.drill) {
+        var hit = svg("rect", { x: L + slot * i, y: T, width: slot, height: H - T - B, "class": "hit" });
+        var tt = svg("title");
+        tt.textContent = p.label + ": " + p.value + " (click for the list)";
+        hit.appendChild(tt);
+        s.appendChild(svgButton(hit, p.label + ": " + p.value, p.drill));
+      }
       if (p.value) {
         var v = svg("text", { x: x + slot * 0.32, y: H - B - h - 4, "text-anchor": "middle" });
         v.textContent = p.value;
@@ -168,10 +195,12 @@
       var h = (H - T - B) * (m.new / maxNew);
       var x = L + slot * i + slot * 0.15;
       var r = svg("rect", { x: x, y: H - B - h, width: slot * 0.7, height: h, rx: 3, "class": "bar-rect" });
-      var tt = svg("title");
-      tt.textContent = label(m.ym) + ": " + m.new + " new, " + m.total + " total";
-      r.appendChild(tt);
       s.appendChild(r);
+      var hit = svg("rect", { x: L + slot * i, y: T, width: slot, height: H - T - B, "class": "hit" });
+      var tt = svg("title");
+      tt.textContent = label(m.ym) + ": " + m.new + " new, " + m.total + " total (click for the students who joined)";
+      hit.appendChild(tt);
+      s.appendChild(svgButton(hit, label(m.ym) + ": " + m.new + " new, " + m.total + " total", { kind: "month", value: m.ym }));
       pts.push([x + slot * 0.35, T + (H - T - B) * (1 - m.total / maxTot)]);
       if (i % step === 0) {
         var t = svg("text", { x: x + slot * 0.35, y: H - 10, "text-anchor": "middle" });
@@ -180,7 +209,13 @@
       }
     });
     s.appendChild(svg("polyline", { points: pts.map(function (p) { return p.join(","); }).join(" "), "class": "line" }));
-    pts.forEach(function (p) { s.appendChild(svg("circle", { cx: p[0], cy: p[1], r: 3, "class": "dot" })); });
+    pts.forEach(function (p, i) {
+      var dot = svg("circle", { cx: p[0], cy: p[1], r: 6, "class": "dot" });
+      var dt = svg("title");
+      dt.textContent = label(months[i].ym) + ": " + months[i].total + " students in total (click for the list)";
+      dot.appendChild(dt);
+      s.appendChild(svgButton(dot, label(months[i].ym) + ": " + months[i].total + " students in total", { kind: "upto", value: months[i].ym }));
+    });
     var wrap = el("div", "chart");
     wrap.appendChild(s);
     container.appendChild(wrap);
@@ -210,6 +245,14 @@
     tbl.appendChild(tb);
   }
 
+  // A table cell that opens a list.
+  function linkCell(text, kind, value) {
+    var b = el("button", "linkbtn", String(text));
+    b.type = "button";
+    b.addEventListener("click", function () { openDrill(kind, value, b); });
+    return { node: b };
+  }
+
   function gradeBadge(g) { return { node: el("span", "grade g-" + g, g) }; }
 
   // ---------- Overview ----------
@@ -217,20 +260,21 @@
     var s = stats;
     var k = $("kpis");
     k.replaceChildren(
-      kpi("Total students", s.total),
-      kpi("Certified / graduates", s.graduates),
-      kpi("Uncertified", s.uncertified),
-      kpi("Mentors, staff and CEO", s.team),
-      kpi("Took the quiz", s.quiz.students),
-      kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%")
+      kpi("Total students", s.total, { kind: "all" }),
+      kpi("Certified / graduates", s.graduates, { kind: "graduates" }),
+      kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
+      kpi("Mentors, staff and CEO", s.team, { kind: "team" }),
+      kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
+      kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );
-    bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total });
+    var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
+    bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
     $("c-status-note").textContent = "Certified / graduates = Certified, Graduate and Alumni Member.";
-    bars($("c-gender"), s.gender);
-    bars($("c-programme"), s.programme);
-    bars($("c-year"), s.byYear);
-    bars($("c-country"), s.country, { limit: 10 });
-    bars($("c-state"), s.state, { limit: 10 });
+    bars($("c-gender"), s.gender, { drill: by("gender") });
+    bars($("c-programme"), s.programme, { drill: by("programme") });
+    bars($("c-year"), s.byYear, { drill: by("year") });
+    bars($("c-country"), s.country, { limit: 10, drill: by("country") });
+    bars($("c-state"), s.state, { limit: 10, drill: by("state") });
 
     var years = Object.keys(s.monthsByYear).sort();
     var sel = $("yearSel");
@@ -244,31 +288,39 @@
     var rows = s.months.slice().reverse().map(function (m) {
       var g = m.growthPct;
       var cell = g == null ? "-" : { node: el("span", g >= 0 ? "up" : "down", (g >= 0 ? "+" : "") + g + "%") };
-      return [label(m.ym), m.new, m.total, cell];
+      return [linkCell(label(m.ym), "month", m.ym), linkCell(m.new, "month", m.ym), linkCell(m.total, "upto", m.ym), cell];
     });
     table($("growthTable"), [{ t: "Month" }, { t: "New students", n: 1 }, { t: "Total", n: 1 }, { t: "Change vs last month", n: 1 }], rows);
     $("undatedNote").textContent = s.undated
       ? s.undated + " student(s) have no joining date and are left out of the month charts."
       : "";
+    $("undatedNote").replaceChildren();
+    if (s.undated) {
+      $("undatedNote").appendChild(document.createTextNode(s.undated + " student(s) have no joining date and are left out of the month charts. "));
+      $("undatedNote").appendChild(linkCell("Show them", "undated", "").node);
+    }
   }
 
   function drawMonthYear() {
     var y = $("yearSel").value;
     var data = (stats.monthsByYear[y] || Array(12).fill(0));
     if (!y) { $("c-monthyear").replaceChildren(el("p", "empty", "No joining dates yet.")); return; }
-    columns($("c-monthyear"), MONTH.map(function (m, i) { return { label: m, value: data[i] }; }));
+    columns($("c-monthyear"), MONTH.map(function (m, i) {
+      return { label: m, value: data[i], drill: { kind: "month", value: y + "-" + String(i + 1).padStart(2, "0") } };
+    }));
   }
 
   // ---------- Quiz ----------
   function renderQuiz() {
     var q = stats.quiz;
     $("quizKpis").replaceChildren(
-      kpi("Students who took the quiz", q.students),
-      kpi("Not yet taken", q.notTaken),
-      kpi("Total attempts", q.attempts),
-      kpi("Average score", q.avgPct == null ? "-" : q.avgPct + "%")
+      kpi("Students who took the quiz", q.students, { kind: "quiz-students" }),
+      kpi("Not yet taken", q.notTaken, { kind: "quiz-not-taken" }),
+      kpi("Total attempts", q.attempts, { kind: "quiz-attempts" }),
+      kpi("Average score", q.avgPct == null ? "-" : q.avgPct + "%", { kind: "quiz-avg" })
     );
-    bars($("c-grades"), q.gradeDist.map(function (g) { return { label: g.grade + " - " + g.label, count: g.count }; }), { total: q.students });
+    bars($("c-grades"), q.gradeDist.map(function (g) { return { label: g.grade + " - " + g.label, count: g.count, grade: g.grade }; }),
+      { total: q.students, drill: function (i) { return { kind: "grade", value: i.grade }; } });
     table($("c-scale"), [{ t: "Grade" }, { t: "Score" }, { t: "Meaning" }],
       scale.map(function (s, i) {
         var hi = i === 0 ? 100 : scale[i - 1].min - 1;
@@ -334,6 +386,101 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
   }
 
+  // ---------- The list behind a statistic ----------
+  var dlg = $("drill");
+  var drillData = null; // { title, type, rows, count, truncated }
+  var drillSeq = 0;
+  var STUDENT_COLS = [{ t: "Reg number" }, { t: "Name" }, { t: "Gender" }, { t: "Status" }, { t: "Country" }, { t: "State" }, { t: "Programme" }, { t: "Joined" }];
+  var QUIZ_COLS = [{ t: "Date" }, { t: "Reg number" }, { t: "Name" }, { t: "Score", n: 1 }, { t: "Percent", n: 1 }, { t: "Grade" }, { t: "Attempt", n: 1 }];
+
+  function openDrill(kind, value, trigger) {
+    var seq = ++drillSeq;
+    drillData = null;
+    $("drillTitle").textContent = "Loading...";
+    $("drillSummary").textContent = "";
+    $("drillNote").textContent = "";
+    $("drillSearch").value = "";
+    $("drillTable").replaceChildren();
+    $("drillCsv").disabled = true;
+    if (!dlg.open) dlg.showModal();
+    api("/api/admin/drill?kind=" + encodeURIComponent(kind) + "&value=" + encodeURIComponent(value || ""))
+      .then(function (d) {
+        if (seq !== drillSeq) return; // a newer click replaced this one
+        drillData = d;
+        $("drillTitle").textContent = d.title;
+        $("drillCsv").disabled = !d.rows.length;
+        renderDrill();
+      })
+      .catch(function (err) {
+        if (seq !== drillSeq) return;
+        if (err.auth) { dlg.close(); showLogin(err.message); return; }
+        $("drillTitle").textContent = "Could not load this list";
+        $("drillSummary").textContent = err.message;
+      });
+  }
+
+  function rowText(r) { return Object.keys(r).map(function (k) { return r[k]; }).join(" ").toLowerCase(); }
+
+  function drillRows() {
+    if (!drillData) return [];
+    var term = $("drillSearch").value.trim().toLowerCase();
+    return term ? drillData.rows.filter(function (r) { return rowText(r).indexOf(term) >= 0; }) : drillData.rows;
+  }
+
+  function renderDrill() {
+    if (!drillData) return;
+    var d = drillData, list = drillRows(), isQuiz = d.type === "quiz";
+    var unit = isQuiz ? "result" : "student";
+    var summary = d.count + " " + unit + (d.count === 1 ? "" : "s");
+    if (!isQuiz && stats && stats.total) summary += " (" + pct(d.count, stats.total) + "% of " + stats.total + " students)";
+    if (isQuiz && d.count && /Average quiz score/.test(d.title)) {
+      summary += ". Average: " + Math.round(d.rows.reduce(function (n, r) { return n + r.pct; }, 0) / d.rows.length) + "%";
+    }
+    $("drillSummary").textContent = summary + ".";
+    if (isQuiz) {
+      table($("drillTable"), QUIZ_COLS, list.slice(0, 500).map(function (r) {
+        return [r.date, r.regNumber, r.fullName, r.score + " / " + r.total, r.pct + "%", gradeBadge(r.grade), r.attempt];
+      }));
+    } else {
+      table($("drillTable"), STUDENT_COLS, list.slice(0, 500).map(function (r) {
+        return [r.regNumber, r.fullName, r.gender, r.status, r.country, r.state, r.programme, r.joined];
+      }));
+    }
+    var note = "";
+    if (!d.rows.length) note = "Nothing to show here yet.";
+    else if (!list.length) note = "No one in this list matches your search.";
+    else if (list.length > 500) note = "Showing the first 500 of " + list.length + ". Download the CSV for the full list.";
+    if (d.truncated) note += (note ? " " : "") + "The list is limited to " + d.rows.length + " rows.";
+    $("drillNote").textContent = note;
+  }
+
+  function downloadDrillCsv() {
+    if (!drillData) return;
+    var isQuiz = drillData.type === "quiz";
+    var head = isQuiz ? ["Date", "Reg Number", "Name", "Score", "Total", "Percent", "Grade", "Attempt"]
+      : ["Reg Number", "Name", "Gender", "Status", "Country", "State", "Programme", "Joined"];
+    var lines = [head.join(",")].concat(drillRows().map(function (r) {
+      var cells = isQuiz ? [r.date, r.regNumber, r.fullName, r.score, r.total, r.pct, r.grade, r.attempt]
+        : [r.regNumber, r.fullName, r.gender, r.status, r.country, r.state, r.programme, r.joined];
+      return cells.map(csvCell).join(",");
+    }));
+    var blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "abecfx-" + drillData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  $("drillClose").addEventListener("click", function () { dlg.close(); });
+  $("drillSearch").addEventListener("input", renderDrill);
+  $("drillCsv").addEventListener("click", downloadDrillCsv);
+  // a click on the dimmed area (the dialog itself, not its content) closes it
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener("close", function () { drillSeq++; drillData = null; });
+
   // ---------- Events ----------
   function setTab(name) {
     ["overview", "quiz"].forEach(function (n) {
@@ -372,6 +519,7 @@
   });
 
   $("logoutBtn").addEventListener("click", function () {
+    if (dlg.open) dlg.close();
     password = "";
     save("");
     stats = null;
