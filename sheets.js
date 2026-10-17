@@ -1,5 +1,6 @@
 // Thin Google Sheets storage layer (service account + REST API).
 const { JWT } = require("google-auth-library");
+const links = require("./links");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -58,6 +59,11 @@ const CODE_LAST_COL = "D";
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
 const PROG_HEADERS = ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"];
 const PROG_LAST_COL = "G";
+
+// Site links (social icons, affiliate link, contact, About text): one row per setting, edited from /admin.
+const LINKS_TAB = process.env.GOOGLE_LINKS_TAB || "Site Links";
+const LINKS_HEADERS = ["Key (do not edit)", "What it is", "Value"];
+const LINKS_LAST_COL = "C";
 
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -141,6 +147,17 @@ async function init() {
 
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
+
+  await ensureTab(LINKS_TAB);
+  await ensureHeaders(LINKS_TAB, LINKS_HEADERS, LINKS_LAST_COL);
+  // First run only: fill the tab with the starting links. After that the sheet / dashboard is the truth.
+  const existing = await call(`/values/${range(`A2:A`, LINKS_TAB)}`);
+  if (!(existing.values && existing.values.length)) {
+    await call(`/values/${range(`A2:${LINKS_LAST_COL}${links.FIELDS.length + 1}`, LINKS_TAB)}?valueInputOption=RAW`, {
+      method: "PUT",
+      data: { values: links.toRows(links.DEFAULTS) },
+    });
+  }
 
   await call(":batchUpdate", {
     method: "POST",
@@ -274,6 +291,24 @@ async function markCodeUsed(sheetRow, reg, usedAt) {
   });
 }
 
+// ---- Site links ----
+let linksCache = { at: 0, values: null };
+async function readLinks(ttlMs = 30000) {
+  if (!linksCache.values || Date.now() - linksCache.at > ttlMs) {
+    const data = await call(`/values/${range(`A2:${LINKS_LAST_COL}`, LINKS_TAB)}`);
+    linksCache = { values: links.fromRows(data.values || []), at: Date.now() };
+  }
+  return linksCache.values;
+}
+
+async function saveLinks(values) {
+  await call(`/values/${range(`A2:${LINKS_LAST_COL}${links.FIELDS.length + 1}`, LINKS_TAB)}?valueInputOption=RAW`, {
+    method: "PUT",
+    data: { values: links.toRows(values) },
+  });
+  linksCache = { at: Date.now(), values };
+}
+
 // ---- Passport photos (kept on their own tab so student reads stay small and fast) ----
 let photoIndex = { at: 0, regs: [] };
 async function photoRegs(ttlMs) {
@@ -318,5 +353,5 @@ async function getPhoto(reg) {
 
 module.exports = {
   init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
-  getProgressCell, saveProgress, HEADERS, STATUSES,
+  getProgressCell, saveProgress, readLinks, saveLinks, HEADERS, STATUSES,
 };

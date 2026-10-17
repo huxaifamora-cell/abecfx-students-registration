@@ -15,6 +15,7 @@ const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
 const pdfLink = require("./pdflink");
+const links = require("./links");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -525,6 +526,18 @@ app.get("/api/config", (_req, res) =>
   })
 );
 
+// Social icons, affiliate link, contact number and About text. Public (they are shown to everyone).
+const linksLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
+app.get("/api/links", linksLimiter, async (_req, res) => {
+  res.set("Cache-Control", "no-cache");
+  try {
+    res.json(await store.readLinks());
+  } catch (err) {
+    console.error("Links read failed:", err.message);
+    res.json(links.DEFAULTS); // the sheet is unreachable: show the starting links rather than none
+  }
+});
+
 // Student portal: open the quiz inside the portal. Returns the quiz address with a short-lived,
 // signed pass for this registration number (in the part after #, which is never sent to a server).
 app.get("/api/quiz/session", lookupLimiter, studentAuth, async (req, res) => {
@@ -655,6 +668,29 @@ app.get("/api/admin/drill", adminLimiter, adminAuth, async (req, res) => {
   } catch (err) {
     console.error("Admin drill failed:", err.message);
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+// The editor reads and changes the site links here.
+app.get("/api/admin/links", adminLimiter, adminAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ fields: links.FIELDS, values: await store.readLinks(0) });
+  } catch (err) {
+    console.error("Admin links read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+app.put("/api/admin/links", adminLimiter, adminAuth, async (req, res) => {
+  const { values, errors } = links.sanitize(req.body);
+  if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
+  try {
+    await store.saveLinks(values);
+    res.json({ ok: true, values });
+  } catch (err) {
+    console.error("Admin links save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
   }
 });
 
