@@ -533,13 +533,66 @@
       .then(function () { b.disabled = false; });
   });
 
+  // ---------- Chapter videos ----------
+  var videoChapters = [];
+  function renderVideos(chapters, values) {
+    videoChapters = chapters;
+    var form = $("videosForm");
+    form.replaceChildren();
+    chapters.forEach(function (c) {
+      var wrap = el("div", "field");
+      wrap.id = "vd-wrap-" + c.id;
+      var label = el("label", null, "Chapter " + c.id + ": " + c.title);
+      label.setAttribute("for", "vd-" + c.id);
+      var input = el("input");
+      input.type = "url"; input.autocomplete = "off"; input.spellcheck = false;
+      input.id = "vd-" + c.id;
+      input.placeholder = "https://youtu.be/...";
+      input.value = values[c.id] || "";
+      var err = el("p", "lk-err");
+      err.id = "vd-err-" + c.id;
+      err.setAttribute("role", "alert");
+      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(err);
+      form.appendChild(wrap);
+    });
+  }
+  function showVideoErrors(errs) {
+    videoChapters.forEach(function (c) {
+      var msg = (errs && errs[c.id]) || "";
+      $("vd-err-" + c.id).textContent = msg;
+      $("vd-wrap-" + c.id).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadVideos() {
+    return api("/api/admin/videos").then(function (r) { renderVideos(r.chapters, r.values); $("videosMsg").textContent = ""; });
+  }
+  $("videosSave").addEventListener("click", function () {
+    var b = this, body = {};
+    videoChapters.forEach(function (c) { body[c.id] = $("vd-" + c.id).value; });
+    b.disabled = true;
+    $("videosMsg").textContent = "Saving...";
+    showVideoErrors(null);
+    api("/api/admin/videos", "PUT", body)
+      .then(function (r) { renderVideos(videoChapters, r.values); $("videosMsg").textContent = "Saved. Students see these videos in the handbook."; })
+      .catch(function (err) {
+        if (err.auth) { showLogin(err.message); return; }
+        showVideoErrors(err.fields);
+        $("videosMsg").textContent = err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz", "links"].forEach(function (n) {
+    ["overview", "quiz", "links", "videos"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links";
+    $("statsHint").hidden = name === "links" || name === "videos";
+    if (name === "videos") {
+      $("videosMsg").textContent = "Loading...";
+      loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
+    }
     if (name === "links") {
       $("linksMsg").textContent = "Loading...";
       loadLinks().catch(function (err) { if (err.auth) showLogin(err.message); else $("linksMsg").textContent = err.message; });
@@ -548,6 +601,7 @@
   $("tab-overview").addEventListener("click", function () { setTab("overview"); });
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
+  $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);

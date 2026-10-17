@@ -42,6 +42,7 @@
         <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
+        <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
       </nav>
 
       <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
@@ -109,6 +110,18 @@
           <div class="lk-bar">
             <button type="button" class="primary" id="linksSave">Save</button>
             <span class="lk-msg" id="linksMsg" role="status"></span>
+          </div>
+        </article>
+      </div>
+
+      <div id="view-videos" role="tabpanel" aria-labelledby="tab-videos" hidden>
+        <article class="adm-card wide">
+          <h3>Chapter video tutorials</h3>
+          <p class="adm-note">Paste the YouTube address of the video for each chapter. Students see it inside that chapter of the Mentorship Handbook. A chapter with no address shows "coming soon". Unlisted videos work too, but they must allow embedding.</p>
+          <form id="videosForm" class="lk-form" novalidate></form>
+          <div class="lk-bar">
+            <button type="button" class="primary" id="videosSave">Save</button>
+            <span class="lk-msg" id="videosMsg" role="status"></span>
           </div>
         </article>
       </div>

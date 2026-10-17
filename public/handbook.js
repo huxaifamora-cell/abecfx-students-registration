@@ -132,6 +132,36 @@
     return box;
   }
 
+  function hasVideo(id) { return !!(data.videos && data.videos[id]); }
+
+  // The video tutorial for a chapter (chapters 01-12). Until the editor adds one it says "coming soon".
+  function videoBlock(id) {
+    if (id === "00") return null;
+    var box = el("section", "hb-video");
+    box.appendChild(el("h3", null, "Video tutorial"));
+    var vid = data.videos && data.videos[id];
+    if (!vid || !/^[A-Za-z0-9_-]{11}$/.test(vid)) {
+      box.appendChild(el("p", "hb-video-soon", "The video for this chapter is coming soon. Check back later."));
+      return box;
+    }
+    var frame = el("div", "hb-video-frame");
+    var f = document.createElement("iframe");
+    f.src = "https://www.youtube-nocookie.com/embed/" + vid + "?rel=0";
+    f.title = "Video tutorial";
+    f.loading = "lazy";
+    f.allow = "accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+    f.setAttribute("allowfullscreen", "");
+    f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    frame.appendChild(f);
+    box.appendChild(frame);
+    var a = el("a", "hb-video-link", "Not playing? Watch on YouTube");
+    a.href = "https://www.youtube.com/watch?v=" + vid;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    box.appendChild(a);
+    return box;
+  }
+
   function renderList() {
     var p = data.progress;
     mount.replaceChildren();
@@ -147,7 +177,7 @@
       a.appendChild(el("span", "hb-num", isRead(c.id) ? "✓" : c.id));
       var txt = el("span", "hb-chapter-txt");
       txt.appendChild(el("strong", null, c.title));
-      txt.appendChild(el("span", null, isRead(c.id) ? "Read" : "Not read yet"));
+      txt.appendChild(el("span", null, (isRead(c.id) ? "Read" : "Not read yet") + (hasVideo(c.id) ? " · Video tutorial" : "")));
       a.appendChild(txt);
       li.appendChild(a);
       list.appendChild(li);
@@ -190,6 +220,8 @@
     art.appendChild(el("p", "hb-kicker", c.id === "00" ? "Introduction" : "Chapter " + c.id));
     art.appendChild(el("h2", null, c.title));
     art.appendChild(el("p", "hb-tagline", c.tagline));
+    var vb = videoBlock(c.id);
+    if (vb) art.appendChild(vb);
     c.blocks.forEach(function (b) { art.appendChild(renderBlock(b)); });
     mount.appendChild(art);
 

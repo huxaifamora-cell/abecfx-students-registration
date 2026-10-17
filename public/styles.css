@@ -627,3 +627,12 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .info-body p { margin: 0; }
 .info-phone { font-family: var(--display); font-weight: 800; font-size: 1.4rem; color: var(--violet-deep); }
 @media print { .social, .info-dlg { display: none; } }
+
+/* ---------- Chapter video tutorials ---------- */
+.hb-video { margin: 0 0 20px; padding: 14px; background: var(--bone); border: 1px solid var(--line); border-radius: 14px; }
+.hb-video h3 { margin: 0 0 10px; font-family: var(--display); font-size: 1rem; color: var(--violet-deep); }
+.hb-video-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000; }
+.hb-video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.hb-video-link { display: inline-block; margin-top: 8px; font-size: .85rem; font-weight: 600; color: var(--violet-deep); }
+.hb-video-soon { margin: 0; color: var(--muted); font-size: .92rem; }
+@media print { .hb-video { display: none; } }
