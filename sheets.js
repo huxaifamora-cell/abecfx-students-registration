@@ -54,6 +54,11 @@ const CODE_TAB = process.env.GOOGLE_CODE_TAB || "Mentorship Codes";
 const CODE_HEADERS = ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"];
 const CODE_LAST_COL = "D";
 
+// Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
+const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
+const PROG_HEADERS = ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"];
+const PROG_LAST_COL = "G";
+
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     const c = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -134,6 +139,9 @@ async function init() {
   await ensureTab(CODE_TAB);
   await ensureHeaders(CODE_TAB, CODE_HEADERS, CODE_LAST_COL);
 
+  await ensureTab(PROG_TAB);
+  await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
+
   await call(":batchUpdate", {
     method: "POST",
     data: {
@@ -205,6 +213,42 @@ async function appendQuiz(row) {
   quizCache.at = 0;
 }
 
+// ---- Handbook progress (one row per student; saved by the portal's "Mark as read" button) ----
+let progCache = { at: 0, rows: [] };
+async function readProgress(ttlMs = 5000) {
+  if (Date.now() - progCache.at > ttlMs) {
+    const data = await call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`);
+    progCache = { rows: data.values || [], at: Date.now() };
+  }
+  return progCache.rows;
+}
+
+// The cell holding the chapters a student has read, or "" if the student has no row yet.
+async function getProgressCell(reg, ttlMs) {
+  const rows = await readProgress(ttlMs);
+  const r = rows.find((x) => (x[0] || "") === reg);
+  return r ? r[2] || "" : "";
+}
+
+// Create or update the student's row. Callers serialise writes so two saves cannot create two rows.
+async function saveProgress(reg, fullName, readIds, total, percent, updatedAt) {
+  const rows = await readProgress(0);
+  const i = rows.findIndex((x) => (x[0] || "") === reg);
+  const row = [reg, fullName, readIds.join(","), readIds.length, total, percent, updatedAt];
+  if (i >= 0) {
+    await call(`/values/${range(`A${i + 2}:${PROG_LAST_COL}${i + 2}`, PROG_TAB)}?valueInputOption=RAW`, {
+      method: "PUT",
+      data: { values: [row] },
+    });
+  } else {
+    await call(
+      `/values/${range(`A:${PROG_LAST_COL}`, PROG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      { method: "POST", data: { values: [row] } }
+    );
+  }
+  progCache.at = 0;
+}
+
 // ---- Mentorship codes (always read fresh: a code must never be accepted twice) ----
 const normCode = (v) => String(v || "").trim().toUpperCase();
 
@@ -273,5 +317,6 @@ async function getPhoto(reg) {
 }
 
 module.exports = {
-  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed, HEADERS, STATUSES,
+  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
+  getProgressCell, saveProgress, HEADERS, STATUSES,
 };

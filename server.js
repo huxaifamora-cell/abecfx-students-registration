@@ -12,6 +12,9 @@ const { buildStats } = require("./stats");
 const crypto = require("crypto");
 const quizToken = require("./quiztoken");
 const session = require("./session");
+const handbook = require("./handbook-content");
+const progress = require("./handbook-progress");
+const pdfLink = require("./pdflink");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -375,6 +378,96 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
   }
+});
+
+// ---- Mentorship Handbook (signed-in students only) ----
+// The handbook text is served from the website and each student's progress is kept in the sheet tab
+// "Handbook Progress". Progress = chapters marked as read / total chapters.
+const handbookLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again in a few minutes." },
+});
+
+// Saves for different students never wait on registrations, only on each other.
+let progressQueue = Promise.resolve();
+function exclusiveProgress(task) {
+  const run = progressQueue.then(task, task);
+  progressQueue = run.catch(() => {});
+  return run;
+}
+
+async function progressFor(reg, ttlMs) {
+  return progress.summary(progress.parseRead(await store.getProgressCell(reg, ttlMs)));
+}
+
+// The student's own progress only (the home page shows it as a small summary).
+app.get("/api/handbook/progress", handbookLimiter, studentAuth, async (req, res) => {
+  try {
+    res.json(await progressFor(req.studentReg));
+  } catch (err) {
+    console.error("Handbook progress read failed:", err.message);
+    res.status(500).json({ error: "We could not load your progress just now. Please try again." });
+  }
+});
+
+// The handbook chapters plus the student's progress.
+app.get("/api/handbook", handbookLimiter, studentAuth, async (req, res) => {
+  try {
+    res.json({ chapters: handbook.CHAPTERS, final: handbook.FINAL, progress: await progressFor(req.studentReg) });
+  } catch (err) {
+    console.error("Handbook read failed:", err.message);
+    res.status(500).json({ error: "We could not load the handbook just now. Please try again." });
+  }
+});
+
+// Mark one chapter as read (or unread). The student comes from the sign-in, never from the page.
+app.post("/api/handbook/progress", handbookLimiter, studentAuth, async (req, res) => {
+  const b = req.body || {};
+  const chapter = clean(b.chapter, 4);
+  if (!handbook.IDS.includes(chapter) || typeof b.read !== "boolean") {
+    return res.status(400).json({ error: "That chapter could not be found." });
+  }
+  const reg = req.studentReg;
+  try {
+    const out = await exclusiveProgress(async () => {
+      const students = await store.readCached(5000);
+      const stu = students.find((r) => (r[0] || "").toUpperCase() === reg);
+      if (!stu) return { status: 401, body: { error: "Please sign in to your student portal." } };
+      const current = progress.parseRead(await store.getProgressCell(reg, 0)); // fresh, so two devices never overwrite each other
+      const next = progress.setRead(current, chapter, b.read);
+      const sum = progress.summary(next);
+      if (next.join(",") !== current.join(",")) {
+        await store.saveProgress(reg, stu[4] || "", sum.read, sum.total, sum.percent, lagosTimestamp());
+      }
+      return { status: 200, body: sum };
+    });
+    res.status(out.status).json(out.body);
+  } catch (err) {
+    console.error("Handbook progress save failed:", err.message);
+    res.status(500).json({ error: "We could not save your progress just now. Please try again." });
+  }
+});
+
+// The full handbook PDF (with the workbook pages). It is not in the public folder: a signed-in student
+// asks for a link that works for 10 minutes, and the PDF is only served for a valid link.
+app.get("/api/handbook/pdf-link", handbookLimiter, studentAuth, (req, res) => {
+  res.json({ url: "/handbook.pdf?t=" + encodeURIComponent(pdfLink.sign(req.studentReg, sessionSecret())) });
+});
+
+app.get("/handbook.pdf", handbookLimiter, (req, res) => {
+  const secret = sessionSecret();
+  const reg = secret ? pdfLink.verify(String(req.query.t || ""), secret) : null;
+  if (!reg) {
+    return res.status(401).type("text/plain").send("This link has expired. Open the Mentorship Handbook in your student portal and try again.");
+  }
+  res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
+  res.type("application/pdf");
+  res.sendFile(path.join(__dirname, "private", "handbook.pdf"), {
+    headers: { "Content-Disposition": 'inline; filename="ABECFX-Edge-Handbook.pdf"' },
+  });
 });
 
 app.get("/api/photo", photoLimiter, async (req, res) => {
