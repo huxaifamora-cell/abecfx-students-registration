@@ -87,7 +87,7 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", videos: "videos", database: "database", team: "team" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   function applyRole() {
     Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
@@ -659,7 +659,10 @@
 
   function renderLinks(fields, values) {
     linkFields = fields;
-    var form = $("linksForm");
+    renderFields($("linksForm"), fields, values);
+  }
+  // Builds the labelled boxes for a list of link fields (used by Site links and Community).
+  function renderFields(form, fields, values) {
     form.replaceChildren();
     fields.forEach(function (f) {
       var wrap = el("div", "field");
@@ -686,6 +689,38 @@
       $("lk-wrap-" + f.key).classList.toggle("invalid", !!msg);
     });
   }
+  // ---------- Student community (WhatsApp and Telegram groups) ----------
+  var communityFields = [];
+  function showCommunityErrors(errs) {
+    communityFields.forEach(function (f) {
+      var msg = (errs && errs[f.key]) || "";
+      $("lk-err-" + f.key).textContent = msg;
+      $("lk-wrap-" + f.key).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadCommunity() {
+    return api("/api/admin/community").then(function (r) {
+      communityFields = r.fields;
+      renderFields($("communityForm"), r.fields, r.values);
+      $("communityMsg").textContent = "";
+    });
+  }
+  $("communitySave").addEventListener("click", function () {
+    var b = this, body = {};
+    communityFields.forEach(function (f) { body[f.key] = $("lk-" + f.key).value; });
+    b.disabled = true;
+    $("communityMsg").textContent = "Saving...";
+    showCommunityErrors(null);
+    api("/api/admin/community", "PUT", body)
+      .then(function (r) { renderFields($("communityForm"), communityFields, r.values); $("communityMsg").textContent = "Saved. Students now see these groups on their Community page."; })
+      .catch(function (err) {
+        if (err.auth) { showLogin(err.message); return; }
+        showCommunityErrors(err.fields);
+        $("communityMsg").textContent = err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+
   function loadLinks() {
     return api("/api/admin/links").then(function (r) { renderLinks(r.fields, r.values); $("linksMsg").textContent = ""; });
   }
@@ -1414,17 +1449,21 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "videos", "database", "team"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team" || name === "quizcodes";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes";
     if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
     if (name === "team") openTeam();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
+    }
+    if (name === "community") {
+      $("communityMsg").textContent = "Loading...";
+      loadCommunity().catch(function (err) { if (err.auth) showLogin(err.message); else $("communityMsg").textContent = err.message; });
     }
     if (name === "links") {
       $("linksMsg").textContent = "Loading...";
@@ -1435,6 +1474,7 @@
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-quizcodes").addEventListener("click", function () { setTab("quizcodes"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
+  $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-team").addEventListener("click", function () { setTab("team"); });

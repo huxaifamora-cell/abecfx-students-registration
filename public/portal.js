@@ -131,7 +131,7 @@
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
-  // ---- Community: the official WhatsApp / Telegram, opened in a new tab ----
+  // ---- Community: the WhatsApp and Telegram groups set on the dashboard, opened in a new tab ----
   function safeHttps(u) {
     try { var x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
   }

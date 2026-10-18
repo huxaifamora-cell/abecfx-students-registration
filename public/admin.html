@@ -49,6 +49,7 @@
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
         <button type="button" role="tab" id="tab-quizcodes" aria-selected="false" aria-controls="view-quizcodes" hidden>Quiz codes</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
+        <button type="button" role="tab" id="tab-community" aria-selected="false" aria-controls="view-community" hidden>Community</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
         <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
@@ -168,6 +169,18 @@
           <div class="lk-bar">
             <button type="button" class="primary" id="linksSave">Save</button>
             <span class="lk-msg" id="linksMsg" role="status"></span>
+          </div>
+        </article>
+      </div>
+
+      <div id="view-community" role="tabpanel" aria-labelledby="tab-community" hidden>
+        <article class="adm-card wide">
+          <h3>Student community</h3>
+          <p class="adm-note">Students see these on the Community page of their portal, as "Open WhatsApp community" and "Open Telegram community". Paste the invite link of your group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
+          <form id="communityForm" class="lk-form" novalidate></form>
+          <div class="lk-bar">
+            <button type="button" class="primary" id="communitySave">Save</button>
+            <span class="lk-msg" id="communityMsg" role="status"></span>
           </div>
         </article>
       </div>
