@@ -1,7 +1,7 @@
 # ABECFX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
-**Last updated:** 18 Oct 2026, 02:23 (Lagos time), after change 10 (Editor role, and roles an admin creates with chosen access). Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 18 Oct 2026, 02:32 (Lagos time), after change 10 (Editor role, and roles an admin creates with chosen access). Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -155,6 +155,8 @@
 
 ## 4. Next steps
 
+**Owner action for the Database buttons fix:** push `public/admin.js` and `public/admin.css`. Open `/admin` > Database: every row should show Edit and Delete. Try Delete on a test record.
+
 **Owner action for change 10:** push the new/changed `team.js`, `server.js`, `sheets.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `test/team.test.js`, `test/support/memory-store.js`, `status/build.js`, `status/STATUS-SOURCE.md`. No new Render variable and no new package. On startup the site creates the **Roles** tab. Then open `/admin`, sign in as owner, open **Team**: you should see a new **Roles and access** card with Admin, Editor and Moderator. Click **Create role**, name it (for example Video team), tick only Chapter videos, Create. Add a team member with that role and one with the Editor role, sign out, and sign in as each: the Video team person should see only Statistics, Quiz results and Chapter videos; the Editor should also see Site links and Database, but not Team. Then tick another access on the Video team role (Edit) and Refresh the first person's screen: the new tab appears without signing in again. Existing admin and moderator accounts are unchanged. **Note:** the old single access "manage" (links, videos and database together) is now three separate accesses; existing Admins keep all of them, so nothing changes for them.
 
 **Owner action for change 9:** push the new `admin-database.js` and the `test/` folder, and the changed `server.js`, `sheets.js`, `package.json`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`, `status/build.js`. No new Render variable and no new package. Then open `/admin`, sign in, open **Database**, change one student's status and check the Google Sheet shows it, add a test mentorship code and delete it again, then add a test student and delete it (check its photo and results rows go too). The service account already has edit access (the site writes to the sheet today).
@@ -232,6 +234,7 @@
 | Date | Change |
 | --- | --- |
 | 2026-10-18 | **Change 10: Editor role and roles with chosen access.** `team.js` (five accesses, built-in Owner/Admin/Editor/Moderator, custom roles with create/change/delete and guard rails); `sheets.js` (new **Roles** tab); `server.js` (per-access checks, `/api/admin/roles` routes, role list with member counts); **Roles and access** card and role dialog on the Team tab (`public/admin.html`, `admin.js`, `admin.css`); 19 new tests. Replaces the single `manage` access by `links`, `videos` and `database`. |
+| 2026-10-18 | **Fix: visible Edit and Delete buttons on every Database row.** Before, editing and deleting were hidden behind clicking the small row number. Each row now has an **Actions** column (right after the row number, so it never scrolls out of view) with **Edit** and **Delete** (tables that cannot be edited show **Open**, tables that cannot be deleted from show no Delete). Delete asks for confirmation, then removes the record. Changed `public/admin.js`, `public/admin.css` only; the server rules are unchanged (the server still decides what each table allows). |
 | 2026-10-18 | **Change 9: Database tab in the editor dashboard (full create, read, update, delete).** New `admin-database.js` (what each table allows, every check); `sheets.js` gains generic table read, cell write, append, row delete and delete-by-registration; five `/api/admin/database...` routes in `server.js`; new **Database** tab (`public/admin.html`, `admin.js`, `admin.css`); `npm test` and `test/`; dashboard tab bar wraps on phones. |
 | 2026-10-17 | **Change 8: date of birth at registration.** Required date field on `register.html`; checked in `server.js` (`validDob`); stored in Students column N (`sheets.js`: header and range now A-N). Not shown publicly. |
 | 2026-10-17 | **Change 7: chapter video tutorials.** New `videos.js`; sheet tab Chapter Videos; `GET`/`PUT /api/admin/videos`; `/api/handbook` now includes `videos`; embedded player and "coming soon" in each chapter (`public/handbook.js`); "Chapter videos" tab on the dashboard; CSP `frame-src` allows youtube-nocookie.com. |
@@ -254,7 +257,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 18 Oct 2026, 02:23 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 18 Oct 2026, 02:32 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -6452,17 +6455,33 @@ _missing_
     if (sh.page >= pages) sh.page = pages - 1;
     var slice = rows.slice(sh.page * SH_PAGE, (sh.page + 1) * SH_PAGE);
     var canOpen = d.editable.length > 0 || d.canDelete;
-    var head = [{ t: "Row", n: 1 }].concat(d.headers.map(function (h) { return { t: h }; }));
+    var head = [{ t: "Row", n: 1 }].concat(canOpen ? [{ t: "Actions" }] : []).concat(d.headers.map(function (h) { return { t: h }; }));
     table($("shTable"), head, slice.map(function (r) {
       var first = r.n;
+      var lead = [];
       if (canOpen) {
         var b = el("button", "linkbtn", String(r.n));
         b.type = "button";
         b.setAttribute("aria-label", (d.editable.length ? "Edit" : "Open") + " row " + r.n);
         b.addEventListener("click", function () { openRow(r); });
         first = { node: b };
+        // visible buttons, right after the row number so they never scroll out of sight
+        var box = el("span", "sh-actions");
+        var eb = el("button", "btn ghost sh-rowbtn", d.editable.length ? "Edit" : "Open");
+        eb.type = "button";
+        eb.setAttribute("aria-label", (d.editable.length ? "Edit" : "Open") + " record " + r.n);
+        eb.addEventListener("click", function () { openRow(r); });
+        box.appendChild(eb);
+        if (d.canDelete) {
+          var db = el("button", "btn ghost sh-rowbtn sh-del", "Delete");
+          db.type = "button";
+          db.setAttribute("aria-label", "Delete record " + r.n);
+          db.addEventListener("click", function () { deleteRow(r, db); });
+          box.appendChild(db);
+        }
+        lead = [{ node: box }];
       }
-      return [first].concat(r.cells.map(function (c) {
+      return [first].concat(lead).concat(r.cells.map(function (c) {
         var s = el("span", "sh-cell", c);
         if (c.length > 30) s.title = c;
         return { node: s };
@@ -6662,21 +6681,29 @@ _missing_
     job.catch(shFail).then(function () { btn.disabled = false; });
   });
 
-  $("shDelete").addEventListener("click", function () {
-    var d = sh.data, row = sh.row, btn = this;
+  // Delete one record (from the row's Delete button or from inside the record's window).
+  function deleteRow(row, btn) {
+    var d = sh.data;
     if (!d || !row) return;
     if (!window.confirm("Delete record " + row.n + " from \"" + d.label + "\"? " + (d.deleteWarning || "This cannot be undone."))) return;
     btn.disabled = true;
     $("shDlgErr").textContent = "Deleting...";
+    $("shNote").textContent = "Deleting...";
     api("/api/admin/database/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
       .then(function () {
         sh.flash = "Deleted record " + row.n + ".";
-        shDlg.close();
+        if (shDlg.open) shDlg.close();
         return loadSheet(d.key);
       })
-      .catch(shFail)
+      .catch(function (err) {
+        if (shDlg.open) return shFail(err);
+        if (err.auth) return showLogin(err.message);
+        if (err.status === 409) { sh.flash = err.message; return loadSheet(sh.key); }
+        $("shNote").textContent = err.message;
+      })
       .then(function () { btn.disabled = false; });
-  });
+  }
+  $("shDelete").addEventListener("click", function () { deleteRow(sh.row, this); });
 
   $("shDlgClose").addEventListener("click", function () { shDlg.close(); });
   shDlg.addEventListener("click", function (e) { if (e.target === shDlg) shDlg.close(); });
@@ -7261,6 +7288,10 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .perm-txt b { font-weight: 600; }
 .perm-txt small { color: var(--muted, #6b6680); line-height: 1.35; }
 #rlDlg .sh-fields { max-height: 68dvh; }
+
+/* Database rows: visible Edit / Delete buttons */
+.sh-actions { display: inline-flex; gap: 6px; white-space: nowrap; }
+.sh-rowbtn { min-height: 0; padding: 6px 12px; font-size: .85rem; }
 ```
 
 #### `public/styles.css`
