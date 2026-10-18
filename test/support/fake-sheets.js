@@ -6,13 +6,15 @@ const { createMemoryStore, student } = require("./memory-store");
 
 const mem = createMemoryStore({ students: [student(1), student(2), student(3)] });
 const strings = (row) => row.map((c) => (c == null ? "" : String(c)));
+let linksNow = { ...require("../../links").DEFAULTS };
 const fake = Object.assign(mem, {
   init: async () => {},
   readAll: async () => mem.data.students.map((r) => r.slice()),
   readCached: async () => mem.data.students.map((r) => r.slice()),
   readQuiz: async () => mem.data.quiz.map((r) => r.slice()),
   appendQuiz: async (row) => { mem.data.quiz.push(strings(row)); },
-  readLinks: async () => require("../../links").DEFAULTS,
+  readLinks: async () => linksNow,
+  saveLinks: async (values) => { linksNow = { ...values }; },
   readVideos: async () => ({}),
   getProgressCell: async () => "",
   getPhoto: async () => null,
