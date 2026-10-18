@@ -110,8 +110,18 @@ test("locked columns cannot be changed, and a change to them is refused rather t
   await rejects(svc.update("students", 2, o, { 8: "SNEAKY" }), 400, 8);
   assert.equal(store.calls.length, 0);
   // sending a locked column unchanged is fine
-  const out = await svc.update("students", 2, o, { 0: o[0], 9: "Team Member" });
+  const out = await svc.update("students", 2, o, { 0: o[0], 9: "Certified" });
   assert.equal(out.changed, true);
+});
+
+test("Team Member needs a role; the role is kept for them and cleared for anyone else", async () => {
+  const { svc } = setup();
+  const o = student(1);
+  await rejects(svc.update("students", 2, o, { 9: "Team Member" }), 400, 14);
+  const a = await svc.update("students", 2, o, { 9: "Team Member", 14: "  Head Mentor " });
+  assert.equal(a.row[14], "Head Mentor");
+  const b = await svc.update("students", 2, a.row, { 9: "Alumni Member" });
+  assert.equal(b.row[14], "");
 });
 
 test("a stale screen is refused: the row changed or moved since it was loaded", async () => {
@@ -223,7 +233,7 @@ test("adding a student fills in number, time, ID date and defaults", async () =>
   assert.equal(row[9], "Uncertified");
   assert.match(row[11], /^\d{4}-\d{2}-\d{2}$/);
   assert.ok(row[1]);
-  assert.equal(row.length, 14);
+  assert.equal(row.length, 15);
 });
 
 test("adding a student is checked like the registration form", async () => {
