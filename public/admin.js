@@ -302,7 +302,7 @@
       kpi("Total students", s.total, { kind: "all" }),
       kpi("Certified graduates", s.graduates, { kind: "graduates" }),
       kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
-      kpi("Mentors, staff and CEO", s.team, { kind: "team" }),
+      kpi("Team members", s.team, { kind: "team" }),
       kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
       kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );

@@ -11,10 +11,8 @@
   var STATUS_CLASS = {
     "Uncertified": "s-uncertified",
     "Certified": "s-certified",
-    "Alumni Member": "s-alumni",
-    "Mentor": "s-mentor",
-    "Staff Member": "s-staff",
-    "CEO": "s-ceo"
+    "Team Member": "s-team",
+    "Alumni Member": "s-alumni"
   };
 
   function el(tag, cls, text) {
@@ -44,14 +42,12 @@
   // What the card calls a status. A Certified student is a certified graduate.
   function statusLabel(status) { return status === "Certified" ? "Certified Graduate" : status; }
 
-  // The team: their card shows the role they hold in the ABECFX organisation, and a stamp with it.
-  var TEAM_ROLE = { "Mentor": "Mentor", "Staff Member": "Staff Member", "CEO": "Chief Executive Officer (CEO)" };
-  var TEAM_STAMP = { "Mentor": "MENTOR", "Staff Member": "STAFF MEMBER", "CEO": "CHIEF EXECUTIVE OFFICER" };
-
-  // Round stamp: "Certified graduate" (Certified students), "Alumni member" (alumni), or the team member's role.
+  // Round stamp: "Certified graduate", "Team member" or "Alumni member".
+  var STAMP_TOP = { "Certified": "CERTIFIED GRADUATE", "Team Member": "TEAM MEMBER", "Alumni Member": "ALUMNI MEMBER" };
+  var STAMP_LABEL = { "Certified": "Certified graduate of ABEC-FX", "Team Member": "Team member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
   function buildStamp(status, dateText) {
-    var top = TEAM_STAMP[status] || (status === "Alumni Member" ? "ALUMNI MEMBER" : "CERTIFIED GRADUATE");
-    var label = TEAM_ROLE[status] ? TEAM_ROLE[status] + " at ABEC-FX" : status === "Alumni Member" ? "Alumni member of ABEC-FX" : "Certified graduate of ABEC-FX";
+    var top = STAMP_TOP[status] || "CERTIFIED GRADUATE";
+    var label = STAMP_LABEL[status] || STAMP_LABEL.Certified;
     var id = "stamp" + ++stampCounter;
 
     var svg = svgEl("svg", { viewBox: "0 0 200 200", "class": "idc-stamp-svg", role: "img", "aria-label": label });
@@ -196,12 +192,11 @@
     var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
     chip.appendChild(el("span", null, statusLabel(status)));
     col.appendChild(chip);
-    if (TEAM_ROLE[status]) col.appendChild(el("span", "idc-role", "Role in ABECFX: " + TEAM_ROLE[status]));
     col.appendChild(el("span", "idc-since",
       status === "Uncertified" ? "Awaiting certification"
         : "Since " + (d.statusDate || "date not recorded")));
     row.appendChild(col);
-    if (status === "Certified" || status === "Alumni Member" || TEAM_ROLE[status]) {
+    if (status === "Certified" || status === "Alumni Member" || status === "Team Member") {
       var stampWrap = el("div", "idc-stamp");
       stampWrap.appendChild(buildStamp(status, d.statusDate));
       row.appendChild(stampWrap);
