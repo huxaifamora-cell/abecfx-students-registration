@@ -10,8 +10,8 @@ const FIELDS = [
   { key: "x", label: "X (Twitter)", kind: "url", hint: "https://x.com/yourname" },
   { key: "telegram", label: "Telegram", kind: "url", hint: "https://t.me/yourname" },
   { key: "youtube", label: "YouTube", kind: "url", hint: "https://youtube.com/@yourchannel" },
-  { key: "communityWhatsapp", label: "Student community: WhatsApp group or community link (students only)", kind: "url", hint: "https://chat.whatsapp.com/..." },
-  { key: "communityTelegram", label: "Student community: Telegram group link (students only)", kind: "url", hint: "https://t.me/+..." },
+  { key: "communityWhatsapp", label: "WhatsApp community group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "communityTelegram", label: "Telegram community group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABECFX", max: 700 },
@@ -24,7 +24,7 @@ const DEFAULTS = {
   x: "",
   telegram: "https://t.me/Abecfx",
   youtube: "https://youtube.com/@adebassbaseedgeconsultfx?si=zMhsWqnN9_9Jnm9f",
-  // Empty on purpose: until an admin sets them, the student Community page uses the official WhatsApp and Telegram above.
+  // Empty on purpose: the student Community page shows a button only once someone with the Community access sets the group.
   communityWhatsapp: "",
   communityTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
@@ -94,13 +94,21 @@ function publicView(values) {
   return out;
 }
 
-// What the student Community page offers: the community links, or the official channel when none is set.
+// Which fields belong to which dashboard tab. The "Site links" tab (links access) has everything without a group;
+// the "Community" tab (community access) has the two student group links. Each tab saves only its own fields.
+const COMMUNITY_KEYS = FIELDS.filter((f) => f.group === "community").map((f) => f.key);
+const siteFields = () => FIELDS.filter((f) => f.group !== "community");
+const communityFields = () => FIELDS.filter((f) => f.group === "community");
+const pick = (values, keys) => Object.fromEntries(keys.map((k) => [k, (values && values[k]) || ""]));
+const siteKeys = () => siteFields().map((f) => f.key);
+
+// What the student Community page offers: only the groups someone set on the dashboard (no fallback).
 function communityFor(values) {
   const v = values || {};
-  return {
-    whatsapp: v.communityWhatsapp || v.whatsapp || "",
-    telegram: v.communityTelegram || v.telegram || "",
-  };
+  return { whatsapp: v.communityWhatsapp || "", telegram: v.communityTelegram || "" };
 }
 
-module.exports = { FIELDS, DEFAULTS, STUDENT_ONLY, sanitize, fromRows, toRows, publicView, communityFor };
+module.exports = {
+  FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
+  siteFields, communityFields, pick, siteKeys,
+};

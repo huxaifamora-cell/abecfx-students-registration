@@ -565,6 +565,7 @@ function requirePerm(perm) {
 }
 const adminAuth = requirePerm("view"); // statistics, student lists and quiz results
 const linksAuth = requirePerm("links"); // site links
+const communityAuth = requirePerm("community"); // the student WhatsApp / Telegram groups
 const videosAuth = requirePerm("videos"); // chapter videos
 const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
 const databaseAuth = requirePerm("database"); // the Database tab
@@ -589,14 +590,14 @@ app.get("/api/links", linksLimiter, async (_req, res) => {
   }
 });
 
-// Student portal: the official community (WhatsApp / Telegram). Only for signed-in students, so the invite
-// links are not public. Uses the community links an admin set, or the official WhatsApp / Telegram when none is set.
+// Student portal: the community WhatsApp and Telegram groups. Only for signed-in students, so the invite
+// links are not public. Only the groups set on the dashboard's Community tab are offered (no fallback).
 app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
   try {
     res.json(links.communityFor(await store.readLinks()));
   } catch (err) {
     console.error("Community links read failed:", err.message);
-    res.json(links.communityFor(links.DEFAULTS));
+    res.json(links.communityFor({}));
   }
 });
 
@@ -883,21 +884,56 @@ app.get("/api/admin/drill", adminLimiter, adminAuth, async (req, res) => {
 app.get("/api/admin/links", adminLimiter, linksAuth, async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    res.json({ fields: links.FIELDS, values: await store.readLinks(0) });
+    res.json({ fields: links.siteFields(), values: links.pick(await store.readLinks(0), links.siteKeys()) });
   } catch (err) {
     console.error("Admin links read failed:", err.message);
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
   }
 });
 
+// Site links never touch the student community groups: those belong to the Community tab and its own access.
 app.put("/api/admin/links", adminLimiter, linksAuth, async (req, res) => {
-  const { values, errors } = links.sanitize(req.body);
+  const body = { ...(req.body && typeof req.body === "object" ? req.body : {}) };
+  links.COMMUNITY_KEYS.forEach((k) => delete body[k]);
+  const { values, errors } = links.sanitize(body);
   if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
   try {
-    await store.saveLinks(values);
-    res.json({ ok: true, values });
+    const current = await store.readLinks(0);
+    const merged = { ...values, ...links.pick(current, links.COMMUNITY_KEYS) };
+    await store.saveLinks(merged);
+    res.json({ ok: true, values: links.pick(merged, links.siteKeys()) });
   } catch (err) {
     console.error("Admin links save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
+  }
+});
+
+// The student community: the WhatsApp and Telegram groups the portal's Community page opens.
+// Anyone whose role has the "community" access can set them; it does not give access to the other site links.
+app.get("/api/admin/community", adminLimiter, communityAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ fields: links.communityFields(), values: links.pick(await store.readLinks(0), links.COMMUNITY_KEYS) });
+  } catch (err) {
+    console.error("Admin community read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+app.put("/api/admin/community", adminLimiter, communityAuth, async (req, res) => {
+  const src = req.body && typeof req.body === "object" ? req.body : {};
+  const body = {};
+  links.COMMUNITY_KEYS.forEach((k) => { body[k] = src[k]; });
+  const { values, errors } = links.sanitize(body);
+  const mine = Object.fromEntries(Object.entries(errors).filter(([k]) => links.COMMUNITY_KEYS.includes(k)));
+  if (Object.keys(mine).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors: mine });
+  try {
+    const current = await store.readLinks(0);
+    const merged = { ...current, ...links.pick(values, links.COMMUNITY_KEYS) };
+    await store.saveLinks(merged);
+    res.json({ ok: true, values: links.pick(merged, links.COMMUNITY_KEYS) });
+  } catch (err) {
+    console.error("Admin community save failed:", err.message);
     res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
   }
 });

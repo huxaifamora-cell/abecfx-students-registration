@@ -3,6 +3,7 @@
 // Access (what a role can open) is a list of permissions:
 //   view      Statistics, student lists and quiz results. Every role has it: it is what signing in needs.
 //   links     Site links (social icons, Deriv link, About, Contact).
+//   community Student community: the WhatsApp and Telegram groups the portal's Community page opens.
 //   videos    Chapter videos.
 //   quizcodes Quiz codes: make and cancel the one-time codes students need to unlock the quiz.
 //   database  The Database tab: add, edit and delete records.
@@ -12,7 +13,7 @@
 //   owner      The person who holds ADMIN_PASSWORD on Render. Always works, is not stored in the sheet and
 //              cannot be removed or locked out by anyone. Signs in with the username "owner".
 //   admin      Everything, including the team and roles.
-//   editor     Statistics, site links, chapter videos and the Database. (Not the team, and not quiz codes: give
+//   editor     Statistics, site links, the student community links, chapter videos and the Database. (Not the team, and not quiz codes: give
 //              someone "quizcodes" through a custom role, e.g. a "Quiz supervisor" role with only that access.)
 //   moderator  Read only: statistics, student lists and quiz results.
 // Custom roles are created by anyone with the "team" permission, who picks the access for each one. They live
@@ -30,6 +31,7 @@ const OWNER = "owner";
 const PERMS = [
   { key: "view", label: "Statistics and quiz results", help: "See statistics, student lists and quiz results. Every role has this; it is needed to sign in." },
   { key: "links", label: "Site links", help: "Change the social icons, Deriv link, About and Contact." },
+  { key: "community", label: "Student community", help: "Set the WhatsApp and Telegram groups students open from the Community page of their portal." },
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
@@ -41,7 +43,7 @@ const ALL = PERM_KEYS.slice();
 const ROLES = {
   owner: { label: "Owner", perms: ALL },
   admin: { label: "Admin", perms: ALL },
-  editor: { label: "Editor", perms: ["view", "links", "videos", "database"] },
+  editor: { label: "Editor", perms: ["view", "links", "community", "videos", "database"] },
   moderator: { label: "Moderator", perms: ["view"] },
 };
 // Built-in roles a person may be given (the owner is never assigned).

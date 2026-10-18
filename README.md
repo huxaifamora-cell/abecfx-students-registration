@@ -186,10 +186,14 @@ The quiz is locked until a student enters a one-time code (like `QZ-7K4M-9PXR`).
 
 ### Community page
 
-Students see a **Community** item in their portal menu with buttons for WhatsApp and Telegram. Set the groups in
-`/admin` > **Site links** (*Student community: WhatsApp* and *Telegram*). Leave one empty and the page uses the
-official WhatsApp or Telegram link on the same tab. These two links are only given to signed-in students, never
-on the public pages.
+Students see a **Community** item in their portal menu with two buttons: **Open WhatsApp community** and
+**Open Telegram community**. Each opens the group an admin set in `/admin` > **Community** (paste the group's
+invite link). A button only shows for a group that has been set; there is no fallback to the official channel. These
+two links are only given to signed-in students, never on the public pages.
+
+- **Who can set them:** the owner, any Admin, any Editor, and any custom role that has the **Student community**
+  access. To put someone else in charge, open **Team**, click **Create role**, tick only **Student community**,
+  and add them with that role. They then see only the **Community** tab (plus Statistics), not Site links.
 
 ### Grading (A to F)
 
