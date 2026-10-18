@@ -1,8 +1,10 @@
 // ID card rules: who gets an expiry date, and the date maths behind it.
+// An ID card is one of four kinds: Uncertified, Certified, Team Member or Alumni Member.
 // Certified students are graduates (their ID card says "Certified Graduate"). Only Uncertified students have IDs
-// that are valid for 2 months from the issue date. Certified, Alumni Member, Mentor, Staff Member and CEO have no expiry.
+// that are valid for 2 months from the issue date. Certified, Team Member and Alumni Member have no expiry.
 // "Graduate" is no longer a status of its own. Rows that still hold it in the sheet are read as Certified.
-const LEGACY_STATUS = { graduate: "Certified" };
+// Old Mentor, Staff Member and CEO rows are read as Team Member.
+const LEGACY_STATUS = { graduate: "Certified", mentor: "Team Member", "staff member": "Team Member", ceo: "Team Member" };
 function normalizeStatus(v) {
   const s = String(v == null ? "" : v).trim();
   return LEGACY_STATUS[s.toLowerCase()] || s;

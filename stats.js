@@ -5,8 +5,8 @@ const idrules = require("./idrules");
 const grading = require("./grading");
 
 const GRADUATE_STATUSES = ["Certified", "Alumni Member"]; // Certified students are the graduates
-const TEAM_STATUSES = ["Mentor", "Staff Member", "CEO"];
-const STATUS_ORDER = ["Uncertified", "Certified", "Alumni Member", "Mentor", "Staff Member", "CEO"];
+const TEAM_STATUSES = ["Team Member"];
+const STATUS_ORDER = ["Uncertified", "Certified", "Team Member", "Alumni Member"];
 
 // The label each student is counted under, for every breakdown. Used by the counts AND by the lists
 // behind them, so a number on the dashboard and the list it opens can never disagree.
@@ -118,7 +118,7 @@ function buildStats(rows, quizRows, todayISO) {
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
     graduates: sum(GRADUATE_STATUSES), // Certified + Alumni Member
     uncertified: statusCounts.Uncertified,
-    team: sum(TEAM_STATUSES), // Mentor + Staff Member + CEO
+    team: sum(TEAM_STATUSES), // Team Member
     byYear,
     months,
     monthsByYear,
@@ -189,7 +189,7 @@ function drill(rows, quizRows, kind, value) {
     case "all": title = "All students"; pick = () => true; break;
     case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
     case "uncertified": title = "Uncertified students"; pick = (r) => statusOf(r) === "Uncertified"; break;
-    case "team": title = "Mentors, staff and CEO"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
+    case "team": title = "Team members"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
       title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;

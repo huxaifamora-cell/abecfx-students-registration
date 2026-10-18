@@ -13,10 +13,8 @@ const API = "https://sheets.googleapis.com/v4/spreadsheets";
 const STATUSES = [
   "Uncertified",
   "Certified",
+  "Team Member",
   "Alumni Member",
-  "Mentor",
-  "Staff Member",
-  "CEO",
 ];
 
 const HEADERS = [

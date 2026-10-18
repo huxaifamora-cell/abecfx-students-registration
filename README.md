@@ -104,7 +104,7 @@ number and see that student's **ID card**:
 - status, and the date they got it (once they are no longer Uncertified)
 - a **QR code**. Scanning it opens `/status?reg=...`, which looks the student up straight away and
   shows the live card
-- a round **stamp**: "Certified Graduate - ABEC-FX" for Certified students, "Alumni Member" for Alumni
+- a round **stamp**: "Certified Graduate - ABEC-FX" for Certified students, "Team Member" for the team, "Alumni Member" for Alumni
 - Print ID card and Copy link buttons (Print can also save as PDF)
 
 Email, WhatsApp number and promo code are never shown publicly.
@@ -115,7 +115,7 @@ New students also see their ID card right after registering.
 
 **Status** is column J of the Students tab. Every new student is saved as **Uncertified**. An editor
 picks a new value from the dropdown:
-`Uncertified`, `Certified`, `Alumni Member`, `Mentor`, `Staff Member`, `CEO`.
+`Uncertified`, `Certified`, `Team Member`, `Alumni Member`. An ID card is always one of these four. (Old rows that say Mentor, Staff Member or CEO are read as Team Member.)
 Then type the date in the **Status Date** column (K), e.g. `13 Oct 2026`.
 The stamp shows that date too. Changes show on the ID card within about 15 seconds.
 
@@ -123,8 +123,8 @@ The stamp shows that date too. Changes show on the ID card within about 15 secon
 
 Certified students are graduates. IDs of students who are **not yet graduates** (status Uncertified)
 are valid for **2 months from the ID Issue Date**. The card shows "Expires 13 Dec 2026", warns in the
-last 14 days, and shows a red **EXPIRED** mark after the expiry date. Certified, Alumni Member,
-Mentor, Staff Member and CEO IDs have no expiry. When an editor changes a student to Certified, the expiry disappears, the ID card shows the status
+last 14 days, and shows a red **EXPIRED** mark after the expiry date. Certified, Alumni Member and
+Team Member IDs have no expiry. When an editor changes a student to Certified, the expiry disappears, the ID card shows the status
 **Certified Graduate** and the graduate stamp appears. (There is no separate "Graduate" status. A row that still has
 "Graduate" in the sheet is treated as Certified; change it to Certified when convenient.)
 
@@ -212,7 +212,7 @@ To change the boundaries edit `grading.js`; the portal, dashboard and bot all fo
 ### Editor dashboard (`/admin`)
 
 Sign in with a username and password. The **owner** signs in as `owner` with `ADMIN_PASSWORD` (it always works and cannot be removed). The owner and any **Admin** can add more people on the **Team** tab (accounts are kept on a `Team` sheet tab, passwords stored only as salted hashes): an **Admin** sees everything, changes the site (links, videos, database) and manages the team; a **Moderator** can only view statistics, student lists and quiz results. A role change or a disable takes effect on the very next click; to cut someone off at once, disable or remove them. Nobody can demote, disable or remove their own account, and team members can change their own password from the top bar. **Statistics** tab: total students, certified/graduates (Certified, Graduate and
-Alumni Member), uncertified, mentors/staff/CEO, gender, country, state, programme, year joined, month joined
+Alumni Member), uncertified, team members, gender, country, state, programme, year joined, month joined
 (pick a year), monthly growth (new students, running total, change vs last month). **Quiz results** tab:
 grade spread, every result with search, grade filter, latest/best per student, and a CSV download.
 No emails or phone numbers appear on the dashboard. If `ADMIN_PASSWORD` is not set the dashboard stays off.
