@@ -178,7 +178,7 @@ To change the boundaries edit `grading.js`; the portal, dashboard and bot all fo
 
 ### Editor dashboard (`/admin`)
 
-Sign in with `ADMIN_PASSWORD`. **Statistics** tab: total students, certified/graduates (Certified, Graduate and
+Sign in with a username and password. The **owner** signs in as `owner` with `ADMIN_PASSWORD` (it always works and cannot be removed). The owner and any **Admin** can add more people on the **Team** tab (accounts are kept on a `Team` sheet tab, passwords stored only as salted hashes): an **Admin** sees everything, changes the site (links, videos, database) and manages the team; a **Moderator** can only view statistics, student lists and quiz results. A role change or a disable takes effect on the very next click; to cut someone off at once, disable or remove them. Nobody can demote, disable or remove their own account, and team members can change their own password from the top bar. **Statistics** tab: total students, certified/graduates (Certified, Graduate and
 Alumni Member), uncertified, mentors/staff/CEO, gender, country, state, programme, year joined, month joined
 (pick a year), monthly growth (new students, running total, change vs last month). **Quiz results** tab:
 grade spread, every result with search, grade filter, latest/best per student, and a CSV download.

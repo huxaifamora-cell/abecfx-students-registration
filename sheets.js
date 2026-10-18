@@ -2,6 +2,7 @@
 const { JWT } = require("google-auth-library");
 const links = require("./links");
 const videos = require("./videos");
+const team = require("./team");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -71,6 +72,11 @@ const LINKS_LAST_COL = "C";
 const VIDEO_TAB = process.env.GOOGLE_VIDEO_TAB || "Chapter Videos";
 const VIDEO_HEADERS = ["Chapter", "Chapter title", "YouTube video address"];
 const VIDEO_LAST_COL = "C";
+
+// Dashboard team (named admin / moderator accounts). Holds password HASHES only; never listed in the Database view.
+const TEAM_TAB = process.env.GOOGLE_TEAM_TAB || "Team";
+const TEAM_HEADERS = team.HEADERS;
+const TEAM_LAST_COL = "G";
 
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -175,6 +181,9 @@ async function init() {
       data: { values: videos.toRows({}) },
     });
   }
+
+  await ensureTab(TEAM_TAB);
+  await ensureHeaders(TEAM_TAB, TEAM_HEADERS, TEAM_LAST_COL);
 
   await call(":batchUpdate", {
     method: "POST",
@@ -397,6 +406,8 @@ const EDITOR_TABS = {
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
   // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
+  // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
+  team: { title: TEAM_TAB, headers: TEAM_HEADERS, lastCol: TEAM_LAST_COL },
 };
 
 function editorTab(key) {
