@@ -39,6 +39,11 @@
     }));
   }
 
+  // The kind of card: only Uncertified and Certified people are students. Team members and alumni are not called students.
+  function cardKind(status) {
+    return status === "Team Member" ? "Team ID card" : status === "Alumni Member" ? "Alumni ID card" : "Student ID card";
+  }
+
   // What the card calls a status. A Certified student is a certified graduate.
   function statusLabel(status) { return status === "Certified" ? "Certified Graduate" : status; }
 
@@ -120,7 +125,7 @@
     var status = d.status || "Uncertified";
     var card = el("article", "idc");
     card.setAttribute("data-status", status.toLowerCase().replace(/\s+/g, "-"));
-    card.setAttribute("aria-label", "Student ID card for " + d.fullName);
+    card.setAttribute("aria-label", cardKind(status) + " for " + d.fullName);
 
     // ---- header
     var top = el("div", "idc-top");
@@ -130,7 +135,7 @@
     brand.appendChild(logo);
     brand.appendChild(el("span", null, "ABECFX"));
     top.appendChild(brand);
-    top.appendChild(el("span", "idc-kind", "Student ID card"));
+    top.appendChild(el("span", "idc-kind", cardKind(status)));
     card.appendChild(top);
 
     // ---- passport photo + national flag + facts
@@ -171,8 +176,12 @@
     fact("Country", d.country);
     if (d.state) fact("State", d.state);
     fact("Gender", d.gender);
-    fact("Programme", d.programme);
-    fact("Admitted", d.admitted ? String(d.admitted) : "");
+    if (status !== "Team Member") { // programme and admission year are student details
+      fact("Programme", d.programme);
+      fact("Admitted", d.admitted ? String(d.admitted) : "");
+    } else {
+      fact("Joined", d.admitted ? String(d.admitted) : "");
+    }
     hero.appendChild(facts);
     card.appendChild(hero);
 

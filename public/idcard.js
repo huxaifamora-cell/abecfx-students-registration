@@ -25,7 +25,8 @@
     var card = el("article", "idcard deal");
     card.setAttribute("data-status", slug(status));
     card.setAttribute("tabindex", "-1");
-    card.setAttribute("aria-label", "Student card for " + d.fullName);
+    var kind = status === "Team Member" ? "Team" : status === "Alumni Member" ? "Alumni" : "Student";
+    card.setAttribute("aria-label", kind + " card for " + d.fullName);
 
     var mark = el("img", "idcard-mark");
     mark.src = "/logo-white.png";
@@ -39,7 +40,7 @@
     logo.width = 29;
     logo.height = 22;
     top.appendChild(logo);
-    top.appendChild(el("span", "idcard-brand", "ABECFX Student"));
+    top.appendChild(el("span", "idcard-brand", "ABECFX " + kind));
 
     var middle = el("div");
     middle.appendChild(el("h3", "idcard-name", d.fullName));
