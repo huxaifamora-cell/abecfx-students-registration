@@ -39,9 +39,8 @@ body.adm { background: var(--bone); min-height: 100vh; }
 .adm-card-head h3 { margin: 0; }
 .adm-note { font-size: .8rem; color: var(--muted); margin: 8px 0 0; }
 .adm-select { font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-.adm-select select, .filters select, .filters input {
-  font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
-}
+/* Field look (border, radius, height, focus ring) comes from styles.css so these match the registration form */
+.adm-select select { width: auto; min-width: 110px; }
 
 .bars { display: grid; gap: 9px; }
 .bar { display: grid; grid-template-columns: minmax(90px, 38%) 1fr auto; gap: 10px; align-items: center; font-size: .88rem; }
@@ -108,7 +107,7 @@ button.bar:hover { background: var(--bone); }
 .drill-summary { margin: 0 0 6px; font-size: .9rem; color: var(--violet-deep); font-weight: 600; }
 .adm-drill .tablewrap { max-height: 56dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
 .adm-drill .adm-table th { position: sticky; top: 0; background: #fff; }
-.adm-drill .filters .btn { height: 42px; }
+.adm-drill .filters .btn { height: 52px; }
 /* the site-wide button style forces a 54px pill; these are content, not pills */
 button.kpi { display: block; height: auto; font-weight: 400; }
 button.bar { display: grid; height: auto; font-weight: 400; justify-content: stretch; }
@@ -117,9 +116,8 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 /* Site links editor */
 .lk-form { display: grid; gap: 4px; max-width: 760px; }
 .lk-form .field { margin-bottom: 12px; }
-.lk-form textarea { min-height: 120px; resize: vertical; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
-.lk-form .field.invalid input, .lk-form .field.invalid textarea { border-color: var(--danger); }
-.lk-err { color: var(--danger); font-size: .82rem; margin: 4px 0 0; min-height: 0; }
+.lk-err { color: var(--danger); font-size: .84rem; font-weight: 500; margin: 6px 0 0; min-height: 0; }
+.lk-err:empty { display: none; }
 .lk-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
 .lk-bar .primary { width: auto; padding-inline: 28px; }
 .lk-msg { font-size: .9rem; font-weight: 600; color: var(--violet-deep); }
@@ -136,15 +134,14 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .sh-wrap { max-height: 62dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
 .sh-table th { position: sticky; top: 0; background: #fff; }
 .sh-cell { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
-.filters #shAdd, .filters #shReload { height: 42px; }
+.filters #shAdd, .filters #shReload { height: 52px; }
 #shOpen { height: 40px; padding: 0 16px; display: inline-flex; align-items: center; text-decoration: none; }
 .sh-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
 .sh-pager .btn { height: 38px; padding: 0 16px; }
 .sh-dlg { width: min(640px, calc(100vw - 24px)); }
 .sh-fields { max-width: none; max-height: 52dvh; overflow: auto; padding-right: 4px; }
 .sh-dlg input:disabled, .sh-dlg select:disabled, .sh-dlg textarea:disabled { background: var(--bone); color: var(--muted); cursor: not-allowed; }
-.sh-dlg textarea { min-height: 96px; resize: vertical; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; width: 100%; }
-.sh-dlg .field.invalid input, .sh-dlg .field.invalid select, .sh-dlg .field.invalid textarea { border-color: var(--danger); }
+.sh-dlg textarea { min-height: 96px; }
 .sh-dlg .lk-bar .btn { height: 48px; padding: 0 22px; }
 .sh-del { color: var(--danger); border-color: rgba(192, 38, 45, .45); }
 .sh-del:hover { background: rgba(192, 38, 45, .08); }
