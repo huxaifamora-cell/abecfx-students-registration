@@ -11,6 +11,7 @@ const HEADERS = {
   links: ["Key (do not edit)", "What it is", "Value"],
   videos: ["Chapter", "Chapter title", "YouTube video address"],
   photos: ["Reg Number", "Photo (base64 JPEG - do not edit)"],
+  team: ["Username", "Full Name", "Role", "Password Hash (do not edit)", "Active", "Created At (Lagos)", "Created By"],
 };
 
 function student(n, over = {}) {
@@ -23,7 +24,7 @@ function student(n, over = {}) {
 
 function createMemoryStore(seed = {}) {
   const fit = (row, w) => { const r = (row || []).map((c) => (c == null ? "" : String(c))); while (r.length < w) r.push(""); return r.slice(0, w); };
-  const data = { students: [], codes: [], quiz: [], progress: [], links: [], videos: [], photos: [] };
+  const data = { students: [], codes: [], quiz: [], progress: [], links: [], videos: [], photos: [], team: [] };
   for (const k of Object.keys(seed)) data[k] = seed[k].map((r) => r.slice());
   const width = (key) => HEADERS[key].length;
   const calls = []; // what was written, for the tests to look at
