@@ -10,6 +10,8 @@ const FIELDS = [
   { key: "x", label: "X (Twitter)", kind: "url", hint: "https://x.com/yourname" },
   { key: "telegram", label: "Telegram", kind: "url", hint: "https://t.me/yourname" },
   { key: "youtube", label: "YouTube", kind: "url", hint: "https://youtube.com/@yourchannel" },
+  { key: "communityWhatsapp", label: "Student community: WhatsApp group or community link (students only)", kind: "url", hint: "https://chat.whatsapp.com/..." },
+  { key: "communityTelegram", label: "Student community: Telegram group link (students only)", kind: "url", hint: "https://t.me/+..." },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABECFX", max: 700 },
@@ -22,6 +24,9 @@ const DEFAULTS = {
   x: "",
   telegram: "https://t.me/Abecfx",
   youtube: "https://youtube.com/@adebassbaseedgeconsultfx?si=zMhsWqnN9_9Jnm9f",
+  // Empty on purpose: until an admin sets them, the student Community page uses the official WhatsApp and Telegram above.
+  communityWhatsapp: "",
+  communityTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   about:
@@ -80,4 +85,22 @@ function toRows(values) {
   return FIELDS.map((f) => [f.key, f.label, values[f.key] || ""]);
 }
 
-module.exports = { FIELDS, DEFAULTS, sanitize, fromRows, toRows };
+// The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
+// handed to anyone who visits the site.
+const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram"];
+function publicView(values) {
+  const out = { ...values };
+  for (const k of STUDENT_ONLY) delete out[k];
+  return out;
+}
+
+// What the student Community page offers: the community links, or the official channel when none is set.
+function communityFor(values) {
+  const v = values || {};
+  return {
+    whatsapp: v.communityWhatsapp || v.whatsapp || "",
+    telegram: v.communityTelegram || v.telegram || "",
+  };
+}
+
+module.exports = { FIELDS, DEFAULTS, STUDENT_ONLY, sanitize, fromRows, toRows, publicView, communityFor };

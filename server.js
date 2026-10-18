@@ -582,10 +582,21 @@ const linksLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 120, standardHea
 app.get("/api/links", linksLimiter, async (_req, res) => {
   res.set("Cache-Control", "no-cache");
   try {
-    res.json(await store.readLinks());
+    res.json(links.publicView(await store.readLinks())); // the student community links are not part of this
   } catch (err) {
     console.error("Links read failed:", err.message);
-    res.json(links.DEFAULTS); // the sheet is unreachable: show the starting links rather than none
+    res.json(links.publicView(links.DEFAULTS)); // the sheet is unreachable: show the starting links rather than none
+  }
+});
+
+// Student portal: the official community (WhatsApp / Telegram). Only for signed-in students, so the invite
+// links are not public. Uses the community links an admin set, or the official WhatsApp / Telegram when none is set.
+app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
+  try {
+    res.json(links.communityFor(await store.readLinks()));
+  } catch (err) {
+    console.error("Community links read failed:", err.message);
+    res.json(links.communityFor(links.DEFAULTS));
   }
 });
 

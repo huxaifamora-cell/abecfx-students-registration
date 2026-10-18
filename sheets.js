@@ -188,6 +188,18 @@ async function init() {
     });
   }
 
+  // Sites set up before a link existed: add the missing rows (empty or default), never touching the others.
+  if (existing.values && existing.values.length) {
+    const have = new Set(existing.values.map((r) => String((r && r[0]) || "").trim().toLowerCase()));
+    const missing = links.toRows(links.DEFAULTS).filter((r) => !have.has(r[0].toLowerCase()));
+    if (missing.length) {
+      await call(`/values/${range(`A:${LINKS_LAST_COL}`, LINKS_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+        method: "POST",
+        data: { values: missing },
+      });
+    }
+  }
+
   await ensureTab(VIDEO_TAB);
   await ensureHeaders(VIDEO_TAB, VIDEO_HEADERS, VIDEO_LAST_COL);
   const vExisting = await call(`/values/${range(`A2:A`, VIDEO_TAB)}`);

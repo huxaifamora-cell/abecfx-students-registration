@@ -184,6 +184,13 @@ The quiz is locked until a student enters a one-time code (like `QZ-7K4M-9PXR`).
   itself is not locked unless you set `QUIZ_CODE_FOR_TELEGRAM=on` (see `env.example`). Turn that on only after
   checking that the bot shows the website's error message when the website answers 403.
 
+### Community page
+
+Students see a **Community** item in their portal menu with buttons for WhatsApp and Telegram. Set the groups in
+`/admin` > **Site links** (*Student community: WhatsApp* and *Telegram*). Leave one empty and the page uses the
+official WhatsApp or Telegram link on the same tab. These two links are only given to signed-in students, never
+on the public pages.
+
 ### Grading (A to F)
 
 | Grade | Score | Meaning |
