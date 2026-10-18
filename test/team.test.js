@@ -29,12 +29,16 @@ test("team columns match the real sheets.js (when its dependencies are installed
   assert.deepEqual(real.EDITOR_TABS.team.headers, team.HEADERS);
 });
 
-test("roles: moderators only view; admins and the owner manage the site and the team", () => {
+test("built-in roles: owner and admin everything, editor everything but the team, moderator only view", () => {
+  const all = ["view", "links", "videos", "database", "team"];
+  assert.deepEqual(team.PERM_KEYS, all);
+  for (const r of ["admin", "owner"]) for (const p of all) assert.equal(team.can(r, p), true, r + " " + p);
+  for (const p of ["view", "links", "videos", "database"]) assert.equal(team.can("editor", p), true, "editor " + p);
+  assert.equal(team.can("editor", "team"), false);
   assert.equal(team.can("moderator", "view"), true);
-  assert.equal(team.can("moderator", "manage"), false);
-  assert.equal(team.can("moderator", "team"), false);
-  for (const r of ["admin", "owner"]) for (const p of ["view", "manage", "team"]) assert.equal(team.can(r, p), true, r + " " + p);
+  for (const p of ["links", "videos", "database", "team"]) assert.equal(team.can("moderator", p), false, "moderator " + p);
   assert.equal(team.can("nobody", "view"), false);
+  assert.deepEqual(team.ASSIGNABLE, ["admin", "editor", "moderator"]);
 });
 
 test("passwords are hashed with a salt and verified", async () => {
@@ -178,4 +182,191 @@ test("changeOwnPassword: needs the current password and a valid new one", async 
   await svc.changeOwnPassword("amaka", "goodpass1", "newpass123");
   await svc.login("amaka", "newpass123", OWNER_PW, safeEqual);
   await rejects(svc.login("amaka", "goodpass1", OWNER_PW, safeEqual), 401);
+});
+
+// ---------- Editor role and custom roles ----------
+const adminOf = async (svc) => { await svc.add(newMod({ username: "boss", role: "admin" }), owner); return svc.lookup("boss"); };
+
+test("editor: can be given to a person and gets exactly the editor access", async () => {
+  const { svc } = setup();
+  await svc.add(newMod({ username: "edna", role: "editor" }), owner);
+  const ed = await svc.lookup("edna");
+  assert.equal(ed.role, "editor");
+  assert.deepEqual(await svc.permsOf("editor"), ["view", "links", "videos", "database"]);
+  assert.equal(await svc.allow("editor", "database"), true);
+  assert.equal(await svc.allow("editor", "team"), false);
+  assert.equal((await svc.login("edna", "goodpass1", OWNER_PW, safeEqual)).role, "editor");
+});
+
+test("roles list: built-in roles plus custom ones, with member counts; the owner is never listed", async () => {
+  const { svc } = setup();
+  await svc.add(newMod({ username: "edna", role: "editor" }), owner);
+  await svc.addRole({ name: "Support", perms: ["links"] }, owner);
+  const list = await svc.roles(owner);
+  assert.deepEqual(list.map((r) => r.key), ["admin", "editor", "moderator", "support"]);
+  assert.equal(list.find((r) => r.key === "editor").members, 1);
+  assert.equal(list.find((r) => r.key === "support").builtin, false);
+  assert.ok(list.every((r) => r.canGrant));
+});
+
+test("addRole: stores a name and the picked access; \"view\" is always included; order is standard", async () => {
+  const { store, svc } = setup();
+  const r = await svc.addRole({ name: "  Video   Team ", perms: ["videos", "links"] }, owner);
+  assert.deepEqual(r, { key: "video-team", label: "Video Team", perms: ["view", "links", "videos"], builtin: false, createdAt: "18 Oct 2026, 10:00:00", createdBy: "owner" });
+  assert.deepEqual(store.data.roles[0].slice(0, 3), ["video-team", "Video Team", "view,links,videos"]);
+  assert.deepEqual(await svc.permsOf("video-team"), ["view", "links", "videos"]);
+  const onlyView = await svc.addRole({ name: "Watcher", perms: [] }, owner);
+  assert.deepEqual(onlyView.perms, ["view"]);
+});
+
+test("addRole: checks the name and the access, refuses built-in names and duplicates", async () => {
+  const { svc } = setup();
+  await rejects(svc.addRole({ name: "  ", perms: ["links"] }, owner), 400, "name");
+  await rejects(svc.addRole({ name: "ab", perms: [] }, owner), 400, "name");
+  await rejects(svc.addRole({ name: "!!!", perms: [] }, owner), 400, "name");
+  for (const n of ["Admin", "EDITOR", "moderator", "Owner"]) await rejects(svc.addRole({ name: n, perms: [] }, owner), 400, "name");
+  await rejects(svc.addRole({ name: "Support", perms: ["links", "sudo"] }, owner), 400, "perms");
+  await svc.addRole({ name: "Support", perms: ["links"] }, owner);
+  await rejects(svc.addRole({ name: "support!", perms: ["videos"] }, owner), 409, "name");
+  assert.deepEqual((await svc.addRole({ name: "Plain", perms: "links" }, owner)).perms, ["view"], "perms that is not a list gives view only");
+});
+
+test("two roles with the same name at once: only one wins", async () => {
+  const { store, svc } = setup();
+  const res = await Promise.allSettled([svc.addRole({ name: "Support", perms: [] }, owner), svc.addRole({ name: "Support", perms: [] }, owner)]);
+  assert.equal(res.filter((r) => r.status === "fulfilled").length, 1);
+  assert.equal(store.data.roles.length, 1);
+});
+
+test("a person can be given a custom role and gets exactly that access", async () => {
+  const { svc } = setup();
+  await svc.addRole({ name: "Video team", perms: ["videos"] }, owner);
+  await svc.add(newMod({ username: "vid", role: "video-team" }), owner);
+  const vid = await svc.lookup("vid");
+  assert.equal(vid.role, "video-team");
+  assert.equal(await svc.allow("video-team", "view"), true);
+  assert.equal(await svc.allow("video-team", "videos"), true);
+  assert.equal(await svc.allow("video-team", "links"), false);
+  assert.equal(await svc.allow("video-team", "database"), false);
+  assert.equal((await svc.roleInfo("video-team")).label, "Video team");
+  await rejects(svc.add(newMod({ username: "xx1", role: "no-such-role" }), owner), 400, "role");
+});
+
+test("changing a role's access applies on the very next check", async () => {
+  const { svc } = setup();
+  await svc.addRole({ name: "Support", perms: ["links"] }, owner);
+  await svc.add(newMod({ username: "sup", role: "support" }), owner);
+  assert.equal(await svc.allow("support", "database"), false);
+  const out = await svc.updateRole("support", { name: "Support desk", perms: ["links", "database"] }, owner);
+  assert.deepEqual(out.perms, ["view", "links", "database"]);
+  assert.equal(await svc.allow("support", "database"), true);
+  assert.equal((await svc.lookup("sup")).role, "support", "the key stays, so the person keeps the role");
+  assert.equal((await svc.roleInfo("support")).label, "Support desk");
+  await svc.updateRole("support", { name: "Support desk", perms: [] }, owner);
+  assert.equal(await svc.allow("support", "database"), false);
+});
+
+test("built-in roles cannot be changed or deleted; missing roles are 404", async () => {
+  const { svc } = setup();
+  for (const k of ["admin", "editor", "moderator", "owner"]) {
+    await rejects(svc.updateRole(k, { name: "Hacked", perms: ["team"] }, owner), 400);
+    await rejects(svc.removeRole(k, owner), 400);
+  }
+  assert.deepEqual(await svc.permsOf("moderator"), ["view"]);
+  await rejects(svc.updateRole("ghost", { name: "Ghost", perms: [] }, owner), 404);
+  await rejects(svc.removeRole("ghost", owner), 404);
+});
+
+test("removeRole: refused while anyone holds it; works once nobody does", async () => {
+  const { store, svc } = setup();
+  await svc.addRole({ name: "Support", perms: ["links"] }, owner);
+  await svc.add(newMod({ username: "sup", role: "support" }), owner);
+  await rejects(svc.removeRole("support", owner), 409);
+  assert.equal(store.data.roles.length, 1);
+  await svc.update("sup", { role: "moderator" }, owner);
+  assert.deepEqual(await svc.removeRole("support", owner), { removed: "support" });
+  assert.equal(store.data.roles.length, 0);
+  assert.equal(await svc.roleInfo("support"), null);
+});
+
+test("a deleted or unknown custom role in the sheet gives no access and no sign-in", async () => {
+  const { store, svc } = setup();
+  store.data.team.push(["lost", "Lost", "ghost-role", await team.hashPassword("goodpass1"), "Yes", "", ""]);
+  assert.equal(await svc.lookup("lost"), null);
+  await rejects(svc.login("lost", "goodpass1", OWNER_PW, safeEqual), 403);
+  assert.deepEqual(await svc.permsOf("ghost-role"), []);
+});
+
+test("roles typed into the sheet cannot raise anyone: unknown access is ignored, built-in keys are ignored, view is forced", async () => {
+  const { store, svc } = setup();
+  store.data.roles.push(["sneaky", "Sneaky", "links,sudo,root", "", ""]);
+  store.data.roles.push(["admin", "Fake admin", "view,team", "", ""]);
+  assert.deepEqual(await svc.permsOf("sneaky"), ["view", "links"]);
+  assert.deepEqual(await svc.permsOf("admin"), team.PERM_KEYS, "the built-in admin wins over a row in the sheet");
+  assert.deepEqual((await svc.roles(owner)).map((r) => r.key), ["admin", "editor", "moderator", "sneaky"]);
+});
+
+test("nobody can give access they do not have: roles, assignments", async () => {
+  const { svc } = setup();
+  // an admin-made custom role that may manage the team and the links, but not the database
+  await svc.addRole({ name: "Team lead", perms: ["team", "links"] }, owner);
+  await svc.add(newMod({ username: "lead", role: "team-lead" }), owner);
+  const lead = await svc.lookup("lead");
+  // cannot create a role with the database, or with an access it lacks
+  await rejects(svc.addRole({ name: "Sneaky", perms: ["database"] }, lead), 400, "perms");
+  const ok = await svc.addRole({ name: "Links only", perms: ["links"] }, lead);
+  assert.deepEqual(ok.perms, ["view", "links"]);
+  // cannot give the built-in admin or editor roles (they allow the database)
+  await rejects(svc.add(newMod({ username: "nn1", role: "admin" }), lead), 400, "role");
+  await rejects(svc.add(newMod({ username: "nn2", role: "editor" }), lead), 400, "role");
+  await svc.add(newMod({ username: "nn3", role: "links-only" }), lead);
+  await svc.add(newMod({ username: "nn4", role: "moderator" }), lead);
+  // and the roles list marks what it may hand out
+  const marks = Object.fromEntries((await svc.roles(lead)).map((r) => [r.key, r.canGrant]));
+  assert.deepEqual(marks, { admin: false, editor: false, moderator: true, "team-lead": true, "links-only": true });
+});
+
+test("a person with less access cannot change, disable, re-role or remove someone with more", async () => {
+  const { svc } = setup();
+  await svc.addRole({ name: "Team lead", perms: ["team"] }, owner);
+  await svc.add(newMod({ username: "lead", role: "team-lead" }), owner);
+  await svc.add(newMod({ username: "edna", role: "editor" }), owner);
+  const lead = await svc.lookup("lead");
+  await rejects(svc.update("edna", { password: "takeover123" }, lead), 403);
+  await rejects(svc.update("edna", { active: false }, lead), 403);
+  await rejects(svc.update("edna", { role: "moderator" }, lead), 403);
+  await rejects(svc.remove("edna", lead), 403);
+  assert.equal((await svc.lookup("edna")).role, "editor");
+  await svc.login("edna", "goodpass1", OWNER_PW, safeEqual);
+  // renaming is fine for someone at or below their own level
+  await svc.add(newMod({ username: "mod", role: "moderator" }), lead);
+  assert.equal((await svc.update("mod", { fullName: "Mod One" }, lead)).name, "Mod One");
+});
+
+test("a person cannot change or delete the role they hold, nor a role that allows more than they have", async () => {
+  const { svc } = setup();
+  await svc.addRole({ name: "Team lead", perms: ["team", "links"] }, owner);
+  await svc.addRole({ name: "Big role", perms: ["team", "links", "database"] }, owner);
+  await svc.add(newMod({ username: "lead", role: "team-lead" }), owner);
+  const lead = await svc.lookup("lead");
+  await rejects(svc.updateRole("team-lead", { name: "Team lead", perms: ["team", "links", "videos"] }, lead), 400);
+  await rejects(svc.removeRole("team-lead", lead), 400);
+  await rejects(svc.updateRole("big-role", { name: "Big role", perms: ["team"] }, lead), 403);
+  await rejects(svc.removeRole("big-role", lead), 403);
+  assert.deepEqual(await svc.permsOf("big-role"), ["view", "links", "database", "team"]);
+});
+
+test("role changes do not touch the sheet when nothing changed", async () => {
+  const { store, svc } = setup();
+  await svc.addRole({ name: "Support", perms: ["links"] }, owner);
+  const before = store.calls.length;
+  await svc.updateRole("support", { name: "Support", perms: ["links"] }, owner);
+  assert.equal(store.calls.length, before);
+});
+
+test("the roles sheet columns match the real sheets.js", (t) => {
+  assert.deepEqual(team.ROLE_HEADERS, HEADERS.roles);
+  let real;
+  try { real = require("../sheets"); } catch (e) { return t.skip("google-auth-library is not installed here"); }
+  assert.deepEqual(real.EDITOR_TABS.roles.headers, team.ROLE_HEADERS);
 });
