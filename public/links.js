@@ -118,10 +118,10 @@
       var href = safeUrl(v[k]);
       if (href) row.appendChild(iconLink(k, href));
     });
-    var about = String(v.about || "").trim();
-    if (about) row.appendChild(iconButton("about", function () { showAbout(about); }));
     var phone = String(v.contact || "").trim();
     if (digits(phone).length >= 7) row.appendChild(iconButton("contact", function () { showContact(phone); }));
+    var about = String(v.about || "").trim();
+    if (about) row.appendChild(iconButton("about", function () { showAbout(about); }));
 
     if (row.children.length) mount.appendChild(row);
     mount.hidden = !mount.children.length;
