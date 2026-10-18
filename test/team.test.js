@@ -29,14 +29,15 @@ test("team columns match the real sheets.js (when its dependencies are installed
   assert.deepEqual(real.EDITOR_TABS.team.headers, team.HEADERS);
 });
 
-test("built-in roles: owner and admin everything, editor everything but the team, moderator only view", () => {
-  const all = ["view", "links", "videos", "database", "team"];
+test("built-in roles: owner and admin everything, editor everything but the team and quiz codes, moderator only view", () => {
+  const all = ["view", "links", "videos", "quizcodes", "database", "team"];
   assert.deepEqual(team.PERM_KEYS, all);
   for (const r of ["admin", "owner"]) for (const p of all) assert.equal(team.can(r, p), true, r + " " + p);
   for (const p of ["view", "links", "videos", "database"]) assert.equal(team.can("editor", p), true, "editor " + p);
   assert.equal(team.can("editor", "team"), false);
+  assert.equal(team.can("editor", "quizcodes"), false, "quiz codes are given through a custom role, not to every editor");
   assert.equal(team.can("moderator", "view"), true);
-  for (const p of ["links", "videos", "database", "team"]) assert.equal(team.can("moderator", p), false, "moderator " + p);
+  for (const p of ["links", "videos", "quizcodes", "database", "team"]) assert.equal(team.can("moderator", p), false, "moderator " + p);
   assert.equal(team.can("nobody", "view"), false);
   assert.deepEqual(team.ASSIGNABLE, ["admin", "editor", "moderator"]);
 });
