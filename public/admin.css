@@ -156,3 +156,7 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .perm-txt b { font-weight: 600; }
 .perm-txt small { color: var(--muted, #6b6680); line-height: 1.35; }
 #rlDlg .sh-fields { max-height: 68dvh; }
+
+/* Database rows: visible Edit / Delete buttons */
+.sh-actions { display: inline-flex; gap: 6px; white-space: nowrap; }
+.sh-rowbtn { min-height: 0; padding: 6px 12px; font-size: .85rem; }

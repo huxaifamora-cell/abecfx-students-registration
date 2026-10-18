@@ -681,17 +681,33 @@
     if (sh.page >= pages) sh.page = pages - 1;
     var slice = rows.slice(sh.page * SH_PAGE, (sh.page + 1) * SH_PAGE);
     var canOpen = d.editable.length > 0 || d.canDelete;
-    var head = [{ t: "Row", n: 1 }].concat(d.headers.map(function (h) { return { t: h }; }));
+    var head = [{ t: "Row", n: 1 }].concat(canOpen ? [{ t: "Actions" }] : []).concat(d.headers.map(function (h) { return { t: h }; }));
     table($("shTable"), head, slice.map(function (r) {
       var first = r.n;
+      var lead = [];
       if (canOpen) {
         var b = el("button", "linkbtn", String(r.n));
         b.type = "button";
         b.setAttribute("aria-label", (d.editable.length ? "Edit" : "Open") + " row " + r.n);
         b.addEventListener("click", function () { openRow(r); });
         first = { node: b };
+        // visible buttons, right after the row number so they never scroll out of sight
+        var box = el("span", "sh-actions");
+        var eb = el("button", "btn ghost sh-rowbtn", d.editable.length ? "Edit" : "Open");
+        eb.type = "button";
+        eb.setAttribute("aria-label", (d.editable.length ? "Edit" : "Open") + " record " + r.n);
+        eb.addEventListener("click", function () { openRow(r); });
+        box.appendChild(eb);
+        if (d.canDelete) {
+          var db = el("button", "btn ghost sh-rowbtn sh-del", "Delete");
+          db.type = "button";
+          db.setAttribute("aria-label", "Delete record " + r.n);
+          db.addEventListener("click", function () { deleteRow(r, db); });
+          box.appendChild(db);
+        }
+        lead = [{ node: box }];
       }
-      return [first].concat(r.cells.map(function (c) {
+      return [first].concat(lead).concat(r.cells.map(function (c) {
         var s = el("span", "sh-cell", c);
         if (c.length > 30) s.title = c;
         return { node: s };
@@ -891,21 +907,29 @@
     job.catch(shFail).then(function () { btn.disabled = false; });
   });
 
-  $("shDelete").addEventListener("click", function () {
-    var d = sh.data, row = sh.row, btn = this;
+  // Delete one record (from the row's Delete button or from inside the record's window).
+  function deleteRow(row, btn) {
+    var d = sh.data;
     if (!d || !row) return;
     if (!window.confirm("Delete record " + row.n + " from \"" + d.label + "\"? " + (d.deleteWarning || "This cannot be undone."))) return;
     btn.disabled = true;
     $("shDlgErr").textContent = "Deleting...";
+    $("shNote").textContent = "Deleting...";
     api("/api/admin/database/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
       .then(function () {
         sh.flash = "Deleted record " + row.n + ".";
-        shDlg.close();
+        if (shDlg.open) shDlg.close();
         return loadSheet(d.key);
       })
-      .catch(shFail)
+      .catch(function (err) {
+        if (shDlg.open) return shFail(err);
+        if (err.auth) return showLogin(err.message);
+        if (err.status === 409) { sh.flash = err.message; return loadSheet(sh.key); }
+        $("shNote").textContent = err.message;
+      })
       .then(function () { btn.disabled = false; });
-  });
+  }
+  $("shDelete").addEventListener("click", function () { deleteRow(sh.row, this); });
 
   $("shDlgClose").addEventListener("click", function () { shDlg.close(); });
   shDlg.addEventListener("click", function (e) { if (e.target === shDlg) shDlg.close(); });
