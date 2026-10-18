@@ -9,7 +9,7 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "server.js", "sheets.js", "admin-sheets.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
   "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
