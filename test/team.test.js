@@ -30,14 +30,14 @@ test("team columns match the real sheets.js (when its dependencies are installed
 });
 
 test("built-in roles: owner and admin everything, editor everything but the team and quiz codes, moderator only view", () => {
-  const all = ["view", "links", "videos", "quizcodes", "database", "team"];
+  const all = ["view", "links", "community", "videos", "quizcodes", "database", "team"];
   assert.deepEqual(team.PERM_KEYS, all);
   for (const r of ["admin", "owner"]) for (const p of all) assert.equal(team.can(r, p), true, r + " " + p);
-  for (const p of ["view", "links", "videos", "database"]) assert.equal(team.can("editor", p), true, "editor " + p);
+  for (const p of ["view", "links", "community", "videos", "database"]) assert.equal(team.can("editor", p), true, "editor " + p);
   assert.equal(team.can("editor", "team"), false);
   assert.equal(team.can("editor", "quizcodes"), false, "quiz codes are given through a custom role, not to every editor");
   assert.equal(team.can("moderator", "view"), true);
-  for (const p of ["links", "videos", "quizcodes", "database", "team"]) assert.equal(team.can("moderator", p), false, "moderator " + p);
+  for (const p of ["links", "community", "videos", "quizcodes", "database", "team"]) assert.equal(team.can("moderator", p), false, "moderator " + p);
   assert.equal(team.can("nobody", "view"), false);
   assert.deepEqual(team.ASSIGNABLE, ["admin", "editor", "moderator"]);
 });
@@ -193,7 +193,7 @@ test("editor: can be given to a person and gets exactly the editor access", asyn
   await svc.add(newMod({ username: "edna", role: "editor" }), owner);
   const ed = await svc.lookup("edna");
   assert.equal(ed.role, "editor");
-  assert.deepEqual(await svc.permsOf("editor"), ["view", "links", "videos", "database"]);
+  assert.deepEqual(await svc.permsOf("editor"), ["view", "links", "community", "videos", "database"]);
   assert.equal(await svc.allow("editor", "database"), true);
   assert.equal(await svc.allow("editor", "team"), false);
   assert.equal((await svc.login("edna", "goodpass1", OWNER_PW, safeEqual)).role, "editor");
