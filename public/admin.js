@@ -14,6 +14,7 @@
   var sh = { meta: null, key: "students", data: null, page: 0, mode: "edit", row: null, flash: "" };
   var shSeq = 0;
   var SH_PAGE = 50;
+  var qc = { codes: [], newCodes: [] }; // the Quiz codes tab: every code, and the ones just made
 
   function getSaved() { try { return sessionStorage.getItem(SS_KEY) || ""; } catch (e) { return ""; } }
   function save(v) { try { if (v) sessionStorage.setItem(SS_KEY, v); else sessionStorage.removeItem(SS_KEY); } catch (e) {} }
@@ -58,6 +59,10 @@
     $("tmTable").replaceChildren();
     if ($("rlDlg").open) $("rlDlg").close();
     $("rlTable").replaceChildren();
+    $("qcTable").replaceChildren();
+    $("qcNew").hidden = true;
+    $("qcNewList").replaceChildren();
+    qc.codes = [];
     $("dash").hidden = true;
     $("topActions").hidden = true;
     $("login").hidden = false;
@@ -82,7 +87,7 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", links: "links", videos: "videos", database: "database", team: "team" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", videos: "videos", database: "database", team: "team" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   function applyRole() {
     Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
@@ -517,6 +522,141 @@
 
   // ---------- Site links ----------
   var linkFields = [];
+  // ---------- Quiz codes: make, list and cancel the one-time codes that unlock the quiz ----------
+  var QC_LABEL = { Unused: "Unused", Unlocked: "In use", Completed: "Completed", Revoked: "Cancelled" };
+
+  function copyText(text, done) {
+    var ok = function () { if (done) done(true); };
+    var fallback = function () {
+      var t = el("textarea");
+      t.value = text;
+      t.setAttribute("readonly", "");
+      t.style.position = "fixed";
+      t.style.opacity = "0";
+      document.body.appendChild(t);
+      t.select();
+      var good = false;
+      try { good = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(t);
+      if (done) done(good);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback);
+    else fallback();
+  }
+
+  function showQcErrors(errs) {
+    $("qc-e-count").textContent = (errs && errs.count) || "";
+    $("qc-e-for").textContent = (errs && errs.forReg) || "";
+  }
+
+  function qcWho(reg, name) { return reg ? (name ? name + " (" + reg + ")" : reg) : ""; }
+
+  function renderQcNew() {
+    var list = $("qcNewList");
+    list.replaceChildren();
+    $("qcNew").hidden = !qc.newCodes.length;
+    qc.newCodes.forEach(function (c) {
+      var li = el("li");
+      var left = el("div");
+      left.appendChild(el("span", "qc-code", c.code));
+      if (c.forReg) { left.appendChild(document.createElement("br")); left.appendChild(el("span", "qc-for", "Only for " + qcWho(c.forReg, c.forName))); }
+      li.appendChild(left);
+      var b = el("button", "btn ghost", "Copy");
+      b.type = "button";
+      b.addEventListener("click", function () {
+        copyText(c.code, function (ok) { b.textContent = ok ? "Copied" : "Copy failed"; setTimeout(function () { b.textContent = "Copy"; }, 1500); });
+      });
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+  }
+
+  function qcVisible() {
+    var term = $("qcSearch").value.trim().toLowerCase();
+    var st = $("qcStatus").value;
+    return qc.codes.filter(function (c) {
+      if (st && c.status !== st) return false;
+      if (!term) return true;
+      return [c.code, c.usedBy, c.usedByName, c.forReg, c.forName, c.createdBy].join(" ").toLowerCase().indexOf(term) >= 0;
+    });
+  }
+
+  function renderQcTable() {
+    var rows = qcVisible();
+    var open = qc.codes.filter(function (c) { return c.status === "Unlocked"; }).length;
+    var unused = qc.codes.filter(function (c) { return c.status === "Unused"; }).length;
+    $("qcNote").textContent = qc.codes.length
+      ? "Showing " + Math.min(rows.length, 500) + " of " + qc.codes.length + " codes. " + unused + " unused, " + open + " in use right now."
+      : "No quiz codes yet. Make some above.";
+    table($("qcTable"), [
+      { t: "Code" }, { t: "Status" }, { t: "For" }, { t: "Used by" }, { t: "Unlocked at" }, { t: "Completed at" }, { t: "Made by" }, { t: "" },
+    ], rows.slice(0, 500).map(function (c) {
+      var badge = el("span", "qc-status qc-" + c.status, QC_LABEL[c.status] || c.status);
+      var action = "";
+      if (c.status === "Unused" || c.status === "Unlocked") {
+        var b = el("button", "btn ghost sh-rowbtn sh-del", "Cancel");
+        b.type = "button";
+        b.addEventListener("click", function () { revokeQc(c, b); });
+        action = { node: b };
+      }
+      var code = el("span", "qc-code", c.code);
+      return [{ node: code }, { node: badge }, qcWho(c.forReg, c.forName) || "Any student", qcWho(c.usedBy, c.usedByName), c.unlockedAt, c.completedAt || (c.revoked ? "Cancelled: " + c.revoked : ""), c.createdBy, action];
+    }));
+  }
+
+  function loadQuizCodes() {
+    return api("/api/admin/quiz-codes").then(function (r) { qc.codes = r.codes; renderQcTable(); });
+  }
+
+  function revokeQc(c, btn) {
+    var msg = c.status === "Unlocked"
+      ? "This code is in use: " + qcWho(c.usedBy, c.usedByName) + " has the quiz open right now. Cancelling locks their quiz straight away, and a quiz they have not finished will not be saved. Cancel it?"
+      : "Cancel code " + c.code + "? Nobody will be able to use it.";
+    if (!window.confirm(msg)) return;
+    btn.disabled = true;
+    api("/api/admin/quiz-codes/revoke", "POST", { code: c.code })
+      .then(function () { $("qcMsg").textContent = "Code " + c.code + " cancelled."; return loadQuizCodes(); })
+      .catch(function (err) {
+        if (err.auth) return showLogin(err.message);
+        btn.disabled = false;
+        $("qcMsg").textContent = err.message;
+        loadQuizCodes().catch(function () {});
+      });
+  }
+
+  function openQuizCodes() {
+    $("qcNote").textContent = "Loading...";
+    loadQuizCodes().catch(function (err) { if (err.auth) showLogin(err.message); else $("qcNote").textContent = err.message; });
+  }
+
+  $("qcForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    showQcErrors(null);
+    $("qcMsg").textContent = "";
+    var b = $("qcMake");
+    b.disabled = true;
+    api("/api/admin/quiz-codes", "POST", { count: Number($("qc-count").value), forReg: $("qc-for").value })
+      .then(function (r) {
+        qc.newCodes = r.codes;
+        renderQcNew();
+        $("qcMsg").textContent = r.codes.length === 1 ? "1 code made." : r.codes.length + " codes made.";
+        return loadQuizCodes();
+      })
+      .catch(function (err) {
+        if (err.auth) return showLogin(err.message);
+        showQcErrors(err.fields);
+        $("qcMsg").textContent = err.fields ? "" : err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+  $("qcCopyAll").addEventListener("click", function () {
+    var b = $("qcCopyAll");
+    copyText(qc.newCodes.map(function (c) { return c.code; }).join("\n"), function (ok) { b.textContent = ok ? "Copied" : "Copy failed"; setTimeout(function () { b.textContent = "Copy all"; }, 1500); });
+  });
+  $("qcReload").addEventListener("click", openQuizCodes);
+  $("qcSearch").addEventListener("input", renderQcTable);
+  $("qcStatus").addEventListener("change", renderQcTable);
+
   function renderLinks(fields, values) {
     linkFields = fields;
     var form = $("linksForm");
@@ -1274,11 +1414,12 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "links", "videos", "database", "team"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "videos", "database", "team"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team";
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team" || name === "quizcodes";
+    if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
     if (name === "team") openTeam();
     if (name === "videos") {
@@ -1292,6 +1433,7 @@
   }
   $("tab-overview").addEventListener("click", function () { setTab("overview"); });
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
+  $("tab-quizcodes").addEventListener("click", function () { setTab("quizcodes"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
@@ -1332,6 +1474,7 @@
     b.disabled = true;
     load()
       .then(function () { if (!$("view-database").hidden) return loadSheet(sh.key); })
+      .then(function () { if (!$("view-quizcodes").hidden) return loadQuizCodes(); })
       .catch(function (err) { if (err.auth) showLogin(err.message); else $("stamp").textContent = err.message; })
       .then(function () { b.disabled = false; });
   });

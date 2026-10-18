@@ -88,9 +88,25 @@
           <div id="viewQuiz" class="view" hidden>
             <h2>Quiz</h2>
             <p class="lead">Test what you have learned in the Mentorship Handbook.</p>
+            <!-- The quiz is locked until the student enters a one-time quiz code -->
+            <section class="quizcard quizgate" id="quizGate" aria-labelledby="quizGateTitle" hidden>
+              <h3 id="quizGateTitle">Unlock the quiz</h3>
+              <p class="quizgate-note" id="quizGateNote"></p>
+              <form id="quizUnlockForm" novalidate>
+                <div class="field">
+                  <label for="quizCode">Quiz code</label>
+                  <input id="quizCode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="QZ-XXXX-XXXX" required />
+                </div>
+                <p class="formErr" id="quizCodeErr" role="alert"></p>
+                <button type="submit" id="quizUnlockBtn" class="primary">Unlock quiz</button>
+              </form>
+              <p class="quizgate-foot">A code works for one quiz. It stays open until you finish the quiz, then you need a new code to take it again.</p>
+            </section>
+
             <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">
               <h3 id="quizTitle">Quiz results</h3>
               <div id="quizBody" class="quizbody"><p class="live" role="status">Loading your results...</p></div>
+              <p class="quiz-open" id="quizOpenNote" hidden>Your quiz is unlocked. It stays open until you finish it.</p>
               <button type="button" id="quizStartBtn" class="btn primary wide" hidden>Take the quiz here</button>
               <a id="quizLink" class="btn ghost wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
             </section>

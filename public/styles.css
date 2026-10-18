@@ -529,7 +529,15 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quizrun-foot { margin: 10px 0 0; text-align: center; font-size: .82rem; }
 .quizrun-foot a { color: var(--muted); }
 .quizcard .btn.wide + .btn.wide { margin-top: 10px; }
-@media print { .quizcard, .quizrun { display: none; } }
+/* One-time quiz code: the box shown while the quiz is locked, and the note shown once it is open */
+.quizgate { border-color: var(--violet); }
+.quizgate-note { margin: 0 0 14px; font-size: .92rem; color: var(--muted); }
+.quizgate .field { margin-bottom: 12px; }
+.quizgate input { text-transform: uppercase; letter-spacing: .08em; }
+.quizgate .primary { width: 100%; }
+.quizgate-foot { margin: 12px 0 0; font-size: .78rem; color: var(--muted); line-height: 1.5; }
+.quiz-open { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: #eef8f0; color: #1f6b3a; font-size: .88rem; font-weight: 600; }
+@media print { .quizcard, .quizrun, .quizgate { display: none; } }
 
 /* ---------- My portal submenu ---------- */
 .sheet-inner.is-wide { max-width: 680px; }

@@ -47,6 +47,7 @@
       <nav class="adm-tabs" role="tablist" aria-label="Dashboard sections">
         <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
+        <button type="button" role="tab" id="tab-quizcodes" aria-selected="false" aria-controls="view-quizcodes" hidden>Quiz codes</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
@@ -107,6 +108,55 @@
           </div>
           <div class="tablewrap"><table class="adm-table" id="resultsTable"></table></div>
           <p class="adm-note" id="resultsNote"></p>
+        </article>
+      </div>
+
+      <div id="view-quizcodes" role="tabpanel" aria-labelledby="tab-quizcodes" hidden>
+        <article class="adm-card wide">
+          <h3>Make quiz codes</h3>
+          <p class="adm-note">Students cannot open the quiz until they enter a one-time code. Make codes here and give them to your students. A code opens the quiz for one student and stays open until they finish it. After that the quiz locks again, and the next attempt needs a new code.</p>
+          <form id="qcForm" class="lk-form" novalidate>
+            <div class="field">
+              <label for="qc-count">How many codes</label>
+              <input id="qc-count" type="number" min="1" max="50" step="1" value="1" inputmode="numeric" />
+              <p class="lk-err" id="qc-e-count" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="qc-for">For one student only (optional)</label>
+              <input id="qc-for" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001. Leave empty for a code any student can use" />
+              <p class="lk-err" id="qc-e-for" role="alert"></p>
+            </div>
+            <div class="lk-bar">
+              <button type="submit" class="primary" id="qcMake">Make codes</button>
+              <span class="lk-msg" id="qcMsg" role="status"></span>
+            </div>
+          </form>
+          <div class="qc-new" id="qcNew" hidden>
+            <div class="adm-card-head">
+              <h3>New codes</h3>
+              <button type="button" class="btn ghost" id="qcCopyAll">Copy all</button>
+            </div>
+            <ul class="qc-list" id="qcNewList"></ul>
+          </div>
+        </article>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>All quiz codes</h3>
+            <button type="button" class="btn ghost" id="qcReload">Reload</button>
+          </div>
+          <div class="filters">
+            <input id="qcSearch" type="search" placeholder="Search code, student name or reg number" aria-label="Search quiz codes" />
+            <select id="qcStatus" aria-label="Filter by status">
+              <option value="">Every status</option>
+              <option value="Unused">Unused</option>
+              <option value="Unlocked">In use (quiz open)</option>
+              <option value="Completed">Completed</option>
+              <option value="Revoked">Cancelled</option>
+            </select>
+          </div>
+          <div class="tablewrap"><table class="adm-table" id="qcTable"></table></div>
+          <p class="adm-note" id="qcNote" role="status"></p>
         </article>
       </div>
 

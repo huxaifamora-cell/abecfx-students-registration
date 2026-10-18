@@ -20,6 +20,19 @@
   var quizMsg = document.getElementById("quizRunMsg");
   var quizStartBtn = document.getElementById("quizStartBtn");
 
+  // The quiz is locked until the student enters a one-time quiz code. The website decides (/api/results says
+  // `unlocked`); the portal only shows the code box or the quiz buttons to match.
+  var quizCfg = null;           // { quizUrl, quizEmbed } from the website, loaded once
+  var quizUnlocked = false;     // does this student have a quiz code that is still open?
+  var quizAccessKnown = false;  // has the website answered yet? Until it has, neither the code box nor the quiz is shown
+  var quizJustFinished = false; // a quiz was saved from the frame on this page
+  var quizGate = document.getElementById("quizGate");
+  var quizGateNote = document.getElementById("quizGateNote");
+  var quizOpenNote = document.getElementById("quizOpenNote");
+  var quizLinkEl = document.getElementById("quizLink");
+  var GATE_NOTE = "The quiz is locked. Enter the one-time quiz code your mentor or ABECFX gave you to open it.";
+  var GATE_NOTE_DONE = "You have finished the quiz. To take it again, enter a new one-time quiz code.";
+
   function remember(reg, token) {
     try { localStorage.setItem(KEY, reg); if (token) localStorage.setItem(TKEY, token); } catch (e) {}
   }
@@ -124,22 +137,43 @@
     return e;
   }
 
+  // Locked: only the code box. Unlocked: the ways to take the quiz. Nothing is offered until we know which.
+  function hideQuizActions() {
+    quizGate.hidden = true;
+    quizOpenNote.hidden = true;
+    quizStartBtn.hidden = true;
+    quizLinkEl.hidden = true;
+  }
+  function applyQuizAccess() {
+    if (!quizAccessKnown) return;
+    var cfg = quizCfg || {};
+    var hasTelegram = !!(cfg.quizUrl && /^https:\/\//.test(cfg.quizUrl));
+    if (hasTelegram) {
+      quizLinkEl.href = cfg.quizUrl;
+      // When the quiz can run inside the portal, Telegram becomes the second choice.
+      quizLinkEl.textContent = cfg.quizEmbed ? "Take it on Telegram instead" : "Take the quiz on Telegram";
+    }
+    quizGate.hidden = quizUnlocked;
+    quizGateNote.textContent = quizJustFinished ? GATE_NOTE_DONE : GATE_NOTE;
+    quizOpenNote.hidden = !quizUnlocked;
+    quizStartBtn.hidden = !(quizUnlocked && cfg.quizEmbed && quizRun.hidden);
+    quizLinkEl.hidden = !(quizUnlocked && hasTelegram);
+  }
+
   function showQuiz(reg) {
     var body = document.getElementById("quizBody");
-    var link = document.getElementById("quizLink");
     body.replaceChildren(el("p", "live", "Loading your results..."));
-    fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) {
-      if (c.quizUrl && /^https:\/\//.test(c.quizUrl)) {
-        link.href = c.quizUrl;
-        link.hidden = false;
-        // When the quiz can run inside the portal, Telegram becomes the second choice.
-        if (c.quizEmbed) link.textContent = "Take it on Telegram instead";
-      }
-      quizStartBtn.hidden = !c.quizEmbed || !quizRun.hidden;
-    }).catch(function () {});
+    quizAccessKnown = false;
+    hideQuizActions();
+    if (!quizCfg) {
+      fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) { quizCfg = c; applyQuizAccess(); }).catch(function () {});
+    }
     authFetch("/api/results")
       .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (d) {
+        quizUnlocked = !!d.unlocked;
+        quizAccessKnown = true;
+        applyQuizAccess();
         body.replaceChildren();
         if (!d.latest) {
           body.appendChild(el("p", "quiz-empty", "You have not taken the quiz yet. Take it from this page and your result will appear here."));
@@ -176,6 +210,9 @@
       })
       .catch(function (e) {
         if (e && e.message === "signed out") return;
+        quizUnlocked = false;
+        quizAccessKnown = true;
+        applyQuizAccess(); // the code box still works: entering a code again is always safe
         body.replaceChildren(el("p", "quiz-empty", "We could not load your quiz results just now. Refresh to try again."));
       });
   }
@@ -186,7 +223,12 @@
     quizFrame.src = "about:blank";
     quizRun.hidden = true;
     quizOrigin = "";
-    quizStartBtn.hidden = true; // showQuiz decides again whether to offer it
+    quizJustFinished = false;
+    quizUnlocked = false; // showQuiz asks the website again; nothing is offered until it answers
+    quizAccessKnown = false;
+    hideQuizActions();
+    quizCodeInput.value = ""; // nothing typed here is left behind for the next person on this device
+    quizCodeErr.textContent = "";
     if (!silent && currentReg) showQuiz(currentReg);
   }
 
@@ -196,7 +238,11 @@
     authFetch("/api/quiz/session")
       .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error(""); } return { ok: r.ok, body: b }; }); })
       .then(function (res) {
-        if (!res.ok || !res.body.url) throw new Error(res.body.error || "We could not open the quiz just now.");
+        if (!res.ok || !res.body.url) {
+          var er = new Error(res.body.error || "We could not open the quiz just now.");
+          er.locked = !!res.body.locked; // the quiz is locked (never unlocked, finished, or cancelled by an admin)
+          throw er;
+        }
         quizOrigin = new URL(res.body.url).origin;
         quizMsg.textContent = "Opening the quiz. The first load can take up to a minute.";
         quizMsg.hidden = false;
@@ -208,7 +254,8 @@
       })
       .catch(function (e) {
         if (!e.message) return; // signed out: the sign-in form is already showing
-        quizStartBtn.hidden = false;
+        if (e.locked) { showQuiz(currentReg); } // back to the code box
+        else quizStartBtn.hidden = false;
         window.alert(e.message || "We could not open the quiz just now.");
       })
       .then(function () { quizStartBtn.disabled = false; });
@@ -222,7 +269,42 @@
   // The quiz page tells the portal when a result has been saved, so the results card refreshes by itself.
   window.addEventListener("message", function (e) {
     if (!quizOrigin || e.origin !== quizOrigin || e.source !== quizFrame.contentWindow) return;
-    if (e.data && e.data.type === "abecfx_quiz_saved" && currentReg) showQuiz(currentReg);
+    if (e.data && e.data.type === "abecfx_quiz_saved" && currentReg) {
+      // The finished quiz is saved and its code is spent, so the quiz locks again. The frame stays open
+      // so the student can read their result there until they close it.
+      quizJustFinished = true;
+      showQuiz(currentReg);
+    }
+  });
+
+  // ---- Enter a one-time quiz code ----
+  var quizUnlockForm = document.getElementById("quizUnlockForm");
+  var quizCodeInput = document.getElementById("quizCode");
+  var quizCodeErr = document.getElementById("quizCodeErr");
+  var quizUnlockBtn = document.getElementById("quizUnlockBtn");
+  quizUnlockForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    quizCodeErr.textContent = "";
+    var code = quizCodeInput.value.trim();
+    if (!code) { quizCodeErr.textContent = "Enter your quiz code."; quizCodeInput.focus(); return; }
+    quizUnlockBtn.disabled = true;
+    quizUnlockBtn.textContent = "Checking...";
+    authFetch("/api/quiz/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code }),
+    })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; }); })
+      .then(function (res) {
+        if (res.status === 401) { signedOut(); return; }
+        // 409 means the quiz is already open (another tab or device): show it as open.
+        if (!res.ok && res.status !== 409) { quizCodeErr.textContent = res.body.error || "Something went wrong. Please try again."; return; }
+        quizCodeInput.value = "";
+        quizJustFinished = false;
+        showQuiz(currentReg);
+      })
+      .catch(function () { quizCodeErr.textContent = "Network problem. Check your connection and try again."; })
+      .then(function () { quizUnlockBtn.disabled = false; quizUnlockBtn.textContent = "Unlock quiz"; });
   });
 
   form.addEventListener("submit", function (e) {
