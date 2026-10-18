@@ -9,7 +9,7 @@
   var stats = null;
   var results = [];
   var scale = [];
-  // The Sheets view: meta = what each sheet allows, data = the sheet being looked at, row = the row open in the form.
+  // The Database view: meta = what each table allows, data = the table being looked at, row = the record open in the form.
   var sh = { meta: null, key: "students", data: null, page: 0, mode: "edit", row: null, flash: "" };
   var shSeq = 0;
   var SH_PAGE = 50;
@@ -592,12 +592,12 @@
       .then(function () { b.disabled = false; });
   });
 
-  // ---------- Sheets: look at and edit the Google Sheet tabs ----------
+  // ---------- Database: browse, add, edit and delete the records ----------
   // The server decides what each sheet allows (sh.data.editable, canDelete, add) and checks every change again.
   var shDlg = $("shDlg");
 
   function loadSheetMeta() {
-    return api("/api/admin/sheets").then(function (m) {
+    return api("/api/admin/database").then(function (m) {
       sh.meta = m;
       var open = $("shOpen");
       var ok = typeof m.sheetUrl === "string" && m.sheetUrl.indexOf("https://docs.google.com/") === 0;
@@ -624,7 +624,7 @@
     renderPicker();
     $("shNote").textContent = "Loading...";
     var seq = ++shSeq;
-    return api("/api/admin/sheets/" + encodeURIComponent(key)).then(function (d) {
+    return api("/api/admin/database/" + encodeURIComponent(key)).then(function (d) {
       if (seq !== shSeq) return; // a newer click replaced this one
       sh.data = d;
       sh.page = 0;
@@ -676,10 +676,10 @@
       }));
     }));
     var term = $("shSearch").value.trim();
-    var note = !d.rows.length ? "This sheet has no rows yet."
-      : term ? rows.length + " of " + d.rows.length + " row(s) match your search."
-      : d.rows.length + " row(s)." + (d.newestFirst ? " Newest first." : "");
-    if (rows.length && !canOpen) note += " This sheet is view only.";
+    var note = !d.rows.length ? "There are no records here yet."
+      : term ? rows.length + " of " + d.rows.length + " record(s) match your search."
+      : d.rows.length + " record(s)." + (d.newestFirst ? " Newest first." : "");
+    if (rows.length && !canOpen) note += " This table is view only.";
     if (sh.flash) { note = sh.flash + " " + note; sh.flash = ""; }
     $("shNote").textContent = note;
     $("shPage").textContent = "Page " + (sh.page + 1) + " of " + pages;
@@ -705,11 +705,12 @@
       .catch(function () {});
   }
 
-  function buildFields(d, cells) {
+  function buildFields(d, cells, only) {
     var box = $("shFields");
     box.replaceChildren();
-    d.headers.forEach(function (h, i) {
-      var editable = d.editable.indexOf(i) >= 0;
+    (only || d.headers.map(function (h, n) { return n; })).forEach(function (i) {
+      var h = d.headers[i];
+      var editable = only ? true : d.editable.indexOf(i) >= 0;
       var wrap = el("div", "field");
       wrap.id = "sh-wrap-" + i;
       var label = el("label", null, h + (editable ? "" : " (locked)"));
@@ -737,6 +738,12 @@
       if (d.placeholders && d.placeholders[i]) input.placeholder = d.placeholders[i];
       if (d.key === "students" && i === 12 && editable) input.setAttribute("list", "shStates");
       if (d.key === "students" && i === 2 && editable) input.addEventListener("change", function () { fillStates(input.value); });
+      if (only && !(d.selects && d.selects[i])) input.autocomplete = "off";
+      input.addEventListener("input", function () {
+        var e = $("sh-err-" + i), w = $("sh-wrap-" + i);
+        if (e) e.textContent = "";
+        if (w) w.classList.remove("invalid");
+      });
       var err = el("p", "lk-err");
       err.id = "sh-err-" + i;
       err.setAttribute("role", "alert");
@@ -768,14 +775,15 @@
     var d = sh.data;
     sh.mode = "edit";
     sh.row = r;
-    $("shDlgTitle").textContent = d.label + ": row " + r.n;
+    $("shDlgTitle").textContent = d.label + ": record " + r.n;
     $("shDlgNote").textContent = d.editable.length
-      ? "Greyed-out fields are locked. Changes are saved straight to the Google Sheet."
-      : "This sheet is view only. You can delete the row if it should not be there.";
+      ? "Greyed-out fields are locked. Changes are saved straight away."
+      : "You can delete this record if it should not be there.";
     buildFields(d, r.cells);
     $("shSave").hidden = !d.editable.length;
     $("shSave").textContent = "Save changes";
     $("shDelete").hidden = !d.canDelete;
+    $("shDelete").textContent = "Delete";
     $("shDlgErr").textContent = "";
     shDlg.showModal();
   }
@@ -783,28 +791,37 @@
   function openAdd() {
     var d = sh.data;
     if (!d || !d.add) return;
-    sh.mode = "add";
     sh.row = null;
     $("shDlgTitle").textContent = d.add.label;
     $("shDlgNote").textContent = d.add.help;
-    var box = $("shFields");
-    box.replaceChildren();
-    var wrap = el("div", "field");
-    var label = el("label", null, d.add.label);
-    label.setAttribute("for", "sh-add-text");
-    var ta = el("textarea");
-    ta.id = "sh-add-text";
-    ta.rows = 6;
-    ta.spellcheck = false;
-    ta.autocomplete = "off";
-    wrap.appendChild(label); wrap.appendChild(ta);
-    box.appendChild(wrap);
+    var focus;
+    if (d.add.mode === "text") {
+      sh.mode = "add";
+      var box = $("shFields");
+      box.replaceChildren();
+      var wrap = el("div", "field");
+      var label = el("label", null, d.add.label);
+      label.setAttribute("for", "sh-add-text");
+      var ta = el("textarea");
+      ta.id = "sh-add-text";
+      ta.rows = 6;
+      ta.spellcheck = false;
+      ta.autocomplete = "off";
+      wrap.appendChild(label); wrap.appendChild(ta);
+      box.appendChild(wrap);
+      focus = ta;
+    } else {
+      sh.mode = "create";
+      var blank = d.headers.map(function (h, i) { return (d.add.defaults && d.add.defaults[i]) || ""; });
+      buildFields(d, blank, d.add.fields);
+      focus = $("sh-f-" + d.add.fields[0]);
+    }
     $("shSave").hidden = false;
     $("shSave").textContent = "Add";
     $("shDelete").hidden = true;
     $("shDlgErr").textContent = "";
     shDlg.showModal();
-    ta.focus();
+    if (focus) focus.focus();
   }
 
   // After a failed change: sign-in problems go to the login, a changed row reloads, anything else shows in the form.
@@ -821,11 +838,19 @@
     if (!d) return;
     btn.disabled = true;
     $("shDlgErr").textContent = "Saving...";
-    var base = "/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows";
+    var base = "/api/admin/database/" + encodeURIComponent(d.key) + "/rows";
     var job;
-    if (sh.mode === "add") {
-      job = api(base, "POST", { text: $("sh-add-text").value }).then(function (r) {
-        sh.flash = "Added " + r.added + " code" + (r.added === 1 ? "" : "s") + ".";
+    if (sh.mode === "add" || sh.mode === "create") {
+      var payload;
+      if (sh.mode === "add") payload = { text: $("sh-add-text").value };
+      else {
+        var vals = {};
+        d.add.fields.forEach(function (i) { vals[i] = $("sh-f-" + i).value; });
+        payload = { values: vals };
+        showShErrors(null);
+      }
+      job = api(base, "POST", payload).then(function (r) {
+        sh.flash = r.reg ? "Added " + r.reg + "." : "Added " + r.added + " record" + (r.added === 1 ? "" : "s") + ".";
         shDlg.close();
         $("shSearch").value = "";
         return loadSheet(d.key);
@@ -836,7 +861,7 @@
       showShErrors(null);
       job = api(base + "/" + row.n, "PUT", { original: row.cells, values: values }).then(function (r) {
         row.cells = r.row;
-        sh.flash = r.changed ? "Saved row " + row.n + "." : "Nothing was changed.";
+        sh.flash = r.changed ? "Saved record " + row.n + "." : "Nothing was changed.";
         shDlg.close();
         renderSheet();
       });
@@ -847,12 +872,12 @@
   $("shDelete").addEventListener("click", function () {
     var d = sh.data, row = sh.row, btn = this;
     if (!d || !row) return;
-    if (!window.confirm("Delete row " + row.n + " from \"" + d.label + "\"? This cannot be undone.")) return;
+    if (!window.confirm("Delete record " + row.n + " from \"" + d.label + "\"? " + (d.deleteWarning || "This cannot be undone."))) return;
     btn.disabled = true;
     $("shDlgErr").textContent = "Deleting...";
-    api("/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
+    api("/api/admin/database/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
       .then(function () {
-        sh.flash = "Deleted row " + row.n + ".";
+        sh.flash = "Deleted record " + row.n + ".";
         shDlg.close();
         return loadSheet(d.key);
       })
@@ -878,12 +903,12 @@
 
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz", "links", "videos", "sheets"].forEach(function (n) {
+    ["overview", "quiz", "links", "videos", "database"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "sheets";
-    if (name === "sheets") openSheets();
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "database";
+    if (name === "database") openSheets();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
@@ -897,7 +922,7 @@
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
-  $("tab-sheets").addEventListener("click", function () { setTab("sheets"); });
+  $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);
@@ -922,7 +947,7 @@
     var b = this;
     b.disabled = true;
     load()
-      .then(function () { if (!$("view-sheets").hidden) return loadSheet(sh.key); })
+      .then(function () { if (!$("view-database").hidden) return loadSheet(sh.key); })
       .catch(function (err) { if (err.auth) showLogin(err.message); else $("stamp").textContent = err.message; })
       .then(function () { b.disabled = false; });
   });
