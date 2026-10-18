@@ -645,6 +645,21 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .soc svg { width: 21px; height: 21px; }
 .soc:hover { background: #fff; color: var(--violet-deep); transform: translateY(-2px); }
 .soc:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+/* The platform icons keep their official brand colours (glyph in the brand colour on a white disc, so every
+   colour, including the black of X and TikTok, reads clearly on the dark panel). About and Contact stay as above. */
+.soc-facebook, .soc-whatsapp, .soc-tiktok, .soc-x, .soc-telegram, .soc-youtube {
+  background: #fff; border-color: #fff; color: var(--brand);
+}
+.soc-facebook { --brand: #1877f2; }
+.soc-whatsapp { --brand: #25d366; }
+.soc-tiktok { --brand: #000; }
+.soc-x { --brand: #000; }
+.soc-telegram { --brand: #26a5e4; }
+.soc-youtube { --brand: #f00; }
+.soc-tiktok svg { filter: drop-shadow(-1px -1px 0 #25f4ee) drop-shadow(1px 1px 0 #fe2c55); } /* TikTok's cyan and red edge */
+.soc-facebook:hover, .soc-whatsapp:hover, .soc-tiktok:hover, .soc-x:hover, .soc-telegram:hover, .soc-youtube:hover {
+  background: #fff; color: var(--brand); box-shadow: 0 8px 18px -6px rgba(0, 0, 0, .5);
+}
 .deriv-cta {
   display: inline-flex; align-items: center; justify-content: center; text-align: center;
   padding: 13px 20px; border-radius: 14px; font-weight: 800; text-decoration: none;
