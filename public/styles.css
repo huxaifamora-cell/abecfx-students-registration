@@ -672,3 +672,35 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .hb-video-link { display: inline-block; margin-top: 8px; font-size: .85rem; font-weight: 600; color: var(--violet-deep); }
 .hb-video-soon { margin: 0; color: var(--muted); font-size: .92rem; }
 @media print { .hb-video { display: none; } }
+
+/* ---- Hover feedback for everything clickable ----
+   One shared layer for every page (admin.css loads after this). The hand-made hover styles above and in admin.css
+   are more specific, so they still win; this only fills the gaps. Zero-specificity :where() keeps it that way. */
+:where(a[href], button, [role="button"], [role="tab"], summary, select, label[for],
+  input[type="checkbox"], input[type="radio"], input[type="file"], input[type="submit"], input[type="date"]) {
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease,
+    opacity .15s ease, filter .15s ease, transform .15s ease;
+}
+:where(button:disabled, [aria-disabled="true"], input:disabled, select:disabled) { cursor: not-allowed; }
+
+@media (hover: hover) {
+  /* logo / brand links */
+  .brandbar:hover, .adm-brand:hover { opacity: .85; }
+  /* text links inside content */
+  .notice-link:hover { color: var(--violet); text-decoration: underline; text-underline-offset: 3px; }
+  :where(p, td, li, .hb-article) a[href]:not([class]):hover { text-decoration: underline; text-underline-offset: 3px; }
+  /* buttons that have no look of their own for hover */
+  .btn:not(.primary):not(.ghost):not(.deriv-cta):not(.soc):hover { filter: brightness(.94); }
+  :where(button:not([class]):not(:disabled), [role="button"]:not([class]), summary):hover { filter: brightness(.9); }
+  /* the photo picker: frame and its button react together */
+  .photo-pick:hover .photo-frame { border-color: var(--violet); background: var(--purple-soft); }
+  /* dropdowns, date boxes, checkboxes, radios, file inputs */
+  select:not(:disabled):hover, input[type="date"]:not(:disabled):hover { border-color: var(--violet); }
+  input[type="checkbox"]:not(:disabled):hover, input[type="radio"]:not(:disabled):hover { box-shadow: 0 0 0 4px rgba(139, 31, 142, .15); }
+  input[type="file"]:not(:disabled):hover { filter: brightness(.94); }
+  label[for]:hover { color: var(--violet-deep); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(a[href], button, [role="button"], [role="tab"], summary, select, label[for]) { transition: none; }
+}
