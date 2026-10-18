@@ -14,6 +14,7 @@ body.adm { background: var(--bone); min-height: 100vh; }
 .adm-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .adm-actions .btn { color: #fff; border-color: rgba(255, 255, 255, .4); background: rgba(255, 255, 255, .08); padding: 8px 14px; }
 .adm-stamp { font-size: .78rem; opacity: .8; }
+.adm-who { font-size: .85rem; font-weight: 600; }
 
 .adm-main { max-width: 1180px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 64px; }
 .adm-login { max-width: 400px; margin: 7vh auto 0; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px; }

@@ -5,7 +5,8 @@
   var NS = "http://www.w3.org/2000/svg";
 
   var $ = function (id) { return document.getElementById(id); };
-  var password = "";
+  var token = "";   // sign-in token (it says who you are; your role is checked by the server on every request)
+  var me = null;    // { username, name, role, roleLabel, perms, canChangePassword }
   var stats = null;
   var results = [];
   var scale = [];
@@ -32,11 +33,11 @@
 
   // ---------- API ----------
   function api(path, method, body) {
-    var opts = { method: method || "GET", headers: { Authorization: "Bearer " + password } };
+    var opts = { method: method || "GET", headers: { Authorization: "Bearer " + token } };
     if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     return fetch(path, opts).then(function (r) {
       return r.json().then(function (b) {
-        if (r.status === 401) { var e = new Error(b.error || "Wrong password."); e.auth = true; throw e; }
+        if (r.status === 401) { var e = new Error(b.error || "Please sign in again."); e.auth = true; throw e; }
         if (!r.ok) { var e2 = new Error(b.error || "Something went wrong."); e2.fields = b.errors; e2.status = r.status; throw e2; }
         return b;
       });
@@ -50,6 +51,11 @@
     if ($("shDlg").open) $("shDlg").close();
     $("shTable").replaceChildren();
     $("shSearch").value = "";
+    me = null;
+    teamData = null;
+    if ($("tmDlg").open) $("tmDlg").close();
+    if ($("pwDlg").open) $("pwDlg").close();
+    $("tmTable").replaceChildren();
     $("dash").hidden = true;
     $("topActions").hidden = true;
     $("login").hidden = false;
@@ -57,11 +63,13 @@
   }
 
   function load() {
-    return Promise.all([api("/api/admin/stats"), api("/api/admin/results")]).then(function (res) {
+    return Promise.all([api("/api/admin/stats"), api("/api/admin/results"), api("/api/admin/me")]).then(function (res) {
       stats = res[0];
       results = res[1].results;
       scale = res[1].scale;
-      save(password);
+      me = res[2];
+      save(token);
+      applyRole();
       $("login").hidden = true;
       $("dash").hidden = false;
       $("topActions").hidden = false;
@@ -69,6 +77,18 @@
       renderOverview();
       renderQuiz();
     });
+  }
+
+  // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
+  var TAB_NEEDS = { overview: "view", quiz: "view", links: "manage", videos: "manage", database: "manage", team: "team" };
+  function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
+  function applyRole() {
+    Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
+    $("who").textContent = me.name + " · " + me.roleLabel;
+    $("acctBtn").hidden = !me.canChangePassword;
+    // if the open tab is no longer allowed (a role was changed), go back to the overview
+    var open = Object.keys(TAB_NEEDS).filter(function (n) { return !$("view-" + n).hidden; })[0];
+    if (open && !allowed(TAB_NEEDS[open])) setTab("overview");
   }
 
   // ---------- Building blocks ----------
@@ -901,14 +921,199 @@
     });
   }
 
+  // ---------- Team ----------
+  var teamData = null; // { members, roles }
+  var tm = { mode: "add", member: null };
+  var tmDlg = $("tmDlg");
+  var TM_FIELDS = ["username", "fullName", "role", "password"];
+
+  function openTeam() {
+    $("tmNote").textContent = "Loading...";
+    return api("/api/admin/team").then(function (r) {
+      teamData = r;
+      $("tmNote").textContent = "";
+      renderTeam();
+    }).catch(function (err) {
+      if (err.auth) showLogin(err.message); else $("tmNote").textContent = err.message;
+    });
+  }
+
+  function roleLabel(key) {
+    var r = teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+    return r ? r.label : key;
+  }
+
+  function renderTeam() {
+    var t = $("tmTable");
+    t.replaceChildren();
+    var head = el("tr");
+    ["Name", "Username", "Role", "Status", "Added by", "Added"].forEach(function (h) { head.appendChild(el("th", null, h)); });
+    head.appendChild(el("th"));
+    var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
+    var body = el("tbody");
+    var list = teamData ? teamData.members : [];
+    if (!list.length) {
+      var tr0 = el("tr"), td0 = el("td", "empty", "No team members yet. Use \"Add team member\" to create the first one.");
+      td0.colSpan = 7; tr0.appendChild(td0); body.appendChild(tr0);
+    }
+    list.forEach(function (m) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, m.name));
+      tr.appendChild(el("td", null, m.username));
+      tr.appendChild(el("td", null, roleLabel(m.role)));
+      tr.appendChild(el("td", null, m.active ? "Active" : "Disabled"));
+      tr.appendChild(el("td", null, m.createdBy));
+      tr.appendChild(el("td", null, m.createdAt));
+      var act = el("td");
+      var b = el("button", "linkbtn", "Edit");
+      b.type = "button";
+      b.setAttribute("aria-label", "Edit " + m.name);
+      b.addEventListener("click", function () { openTeamDlg("edit", m); });
+      act.appendChild(b);
+      tr.appendChild(act);
+      body.appendChild(tr);
+    });
+    t.appendChild(body);
+  }
+
+  function showTeamErrors(errs) {
+    TM_FIELDS.forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("tm-e-" + f).textContent = msg;
+      $("tm-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+
+  function roleHelp() {
+    var r = teamData && teamData.roles.filter(function (x) { return x.key === $("tm-role").value; })[0];
+    $("tm-roleHelp").textContent = !r ? "" : r.key === "admin"
+      ? "Sees everything, changes the site (links, videos, database) and manages the team."
+      : "Can only view statistics, student lists and quiz results.";
+  }
+
+  function openTeamDlg(mode, member) {
+    tm = { mode: mode, member: member || null };
+    var adding = mode === "add";
+    $("tmDlgTitle").textContent = adding ? "Add team member" : member.name;
+    var sel = $("tm-role");
+    sel.replaceChildren();
+    (teamData ? teamData.roles : []).forEach(function (r) { var o = el("option", null, r.label); o.value = r.key; sel.appendChild(o); });
+    $("tm-username").value = adding ? "" : member.username;
+    $("tm-username").disabled = !adding;
+    $("tm-fullName").value = adding ? "" : member.name;
+    sel.value = adding ? "moderator" : member.role;
+    $("tm-password").value = "";
+    $("tm-passwordLabel").textContent = adding ? "Password" : "New password (optional)";
+    $("tm-passwordHelp").textContent = adding
+      ? "At least 8 characters. Share it with them privately; they can change it after signing in."
+      : "Leave empty to keep their current password. Typing one replaces it.";
+    $("tm-active").value = !adding && !member.active ? "no" : "yes";
+    $("tm-w-active").hidden = adding;
+    var self = !adding && me && member.username === me.username;
+    // nobody can demote, disable or remove themselves
+    sel.disabled = self;
+    $("tm-active").disabled = self;
+    $("tmRemove").hidden = adding || self;
+    $("tmSave").textContent = adding ? "Add team member" : "Save changes";
+    $("tmDlgErr").textContent = "";
+    showTeamErrors(null);
+    roleHelp();
+    tmDlg.showModal();
+    (adding ? $("tm-username") : $("tm-fullName")).focus();
+  }
+
+  function teamFail(err) {
+    if (err.auth) { tmDlg.close(); return showLogin(err.message); }
+    showTeamErrors(err.fields);
+    $("tmDlgErr").textContent = err.message;
+  }
+
+  $("tmAdd").addEventListener("click", function () { openTeamDlg("add"); });
+  $("tmDlgClose").addEventListener("click", function () { tmDlg.close(); });
+  tmDlg.addEventListener("click", function (e) { if (e.target === tmDlg) tmDlg.close(); });
+  $("tm-role").addEventListener("change", roleHelp);
+  TM_FIELDS.forEach(function (f) {
+    $("tm-" + f).addEventListener("input", function () { $("tm-e-" + f).textContent = ""; $("tm-w-" + f).classList.remove("invalid"); });
+  });
+
+  $("tmForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("tmSave");
+    btn.disabled = true;
+    $("tmDlgErr").textContent = "Saving...";
+    showTeamErrors(null);
+    var job;
+    if (tm.mode === "add") {
+      job = api("/api/admin/team", "POST", {
+        username: $("tm-username").value, fullName: $("tm-fullName").value, role: $("tm-role").value, password: $("tm-password").value,
+      });
+    } else {
+      var body = { fullName: $("tm-fullName").value, role: $("tm-role").value, active: $("tm-active").value === "yes" };
+      if ($("tm-password").value) body.password = $("tm-password").value;
+      job = api("/api/admin/team/" + encodeURIComponent(tm.member.username), "PUT", body);
+    }
+    job.then(function () {
+      tmDlg.close();
+      return openTeam().then(function () { $("tmNote").textContent = tm.mode === "add" ? "Team member added." : "Changes saved."; });
+    }).catch(teamFail).then(function () { btn.disabled = false; });
+  });
+
+  $("tmRemove").addEventListener("click", function () {
+    var m = tm.member;
+    if (!m) return;
+    if (!window.confirm("Remove " + m.name + " (" + m.username + ") from the team? They will be signed out and cannot sign in again. This cannot be undone.")) return;
+    var btn = this;
+    btn.disabled = true;
+    api("/api/admin/team/" + encodeURIComponent(m.username) + "/delete", "POST", {}).then(function () {
+      tmDlg.close();
+      return openTeam().then(function () { $("tmNote").textContent = m.name + " was removed."; });
+    }).catch(teamFail).then(function () { btn.disabled = false; });
+  });
+
+  // ---------- Your own password ----------
+  var pwDlg = $("pwDlg");
+  function showPwErrors(errs) {
+    ["current", "next"].forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("pw-e-" + f).textContent = msg;
+      $("pw-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+  $("acctBtn").addEventListener("click", function () {
+    $("pw-current").value = ""; $("pw-next").value = "";
+    $("pwDlgErr").textContent = "";
+    showPwErrors(null);
+    pwDlg.showModal();
+    $("pw-current").focus();
+  });
+  $("pwDlgClose").addEventListener("click", function () { pwDlg.close(); });
+  pwDlg.addEventListener("click", function (e) { if (e.target === pwDlg) pwDlg.close(); });
+  $("pwForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("pwSave");
+    btn.disabled = true;
+    $("pwDlgErr").textContent = "Saving...";
+    showPwErrors(null);
+    api("/api/admin/me/password", "POST", { current: $("pw-current").value, next: $("pw-next").value }).then(function () {
+      pwDlg.close();
+      $("stamp").textContent = "Password changed.";
+    }).catch(function (err) {
+      if (err.auth) { pwDlg.close(); return showLogin(err.message); }
+      showPwErrors(err.fields);
+      $("pwDlgErr").textContent = err.message;
+    }).then(function () { btn.disabled = false; });
+  });
+
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz", "links", "videos", "database"].forEach(function (n) {
+    if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
+    ["overview", "quiz", "links", "videos", "database", "team"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "database";
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team";
     if (name === "database") openSheets();
+    if (name === "team") openTeam();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
@@ -923,6 +1128,7 @@
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
+  $("tab-team").addEventListener("click", function () { setTab("team"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);
@@ -931,15 +1137,26 @@
 
   $("loginForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var pw = $("pw").value;
-    if (!pw) { $("loginErr").textContent = "Enter the password."; return; }
-    password = pw;
+    var un = $("un").value.trim(), pw = $("pw").value;
+    if (!un) { $("loginErr").textContent = "Enter your username."; return; }
+    if (!pw) { $("loginErr").textContent = "Enter your password."; return; }
     var b = $("loginBtn");
     b.disabled = true;
     b.textContent = "Checking...";
     $("loginErr").textContent = "";
-    load()
-      .catch(function (err) { password = ""; $("loginErr").textContent = err.message; })
+    fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: un, password: pw }),
+    })
+      .then(function (r) {
+        return r.json().then(function (body) {
+          if (!r.ok) throw new Error(body.error || "Could not sign in.");
+          token = body.token;
+          return load();
+        });
+      })
+      .catch(function (err) { token = ""; $("loginErr").textContent = err.message; })
       .then(function () { b.disabled = false; b.textContent = "Sign in"; $("pw").value = ""; });
   });
 
@@ -954,7 +1171,7 @@
 
   $("logoutBtn").addEventListener("click", function () {
     if (dlg.open) dlg.close();
-    password = "";
+    token = "";
     save("");
     stats = null;
     showLogin("");
@@ -963,7 +1180,7 @@
   // Come back without retyping during the same browser session.
   var remembered = getSaved();
   if (remembered) {
-    password = remembered;
-    load().catch(function () { password = ""; save(""); showLogin(""); });
+    token = remembered;
+    load().catch(function () { token = ""; save(""); showLogin(""); });
   }
 })();

@@ -18,6 +18,8 @@
     </a>
     <div class="adm-actions" id="topActions" hidden>
       <span class="adm-stamp" id="stamp"></span>
+      <span class="adm-who" id="who"></span>
+      <button type="button" class="btn ghost" id="acctBtn" hidden>Change password</button>
       <button type="button" class="btn ghost" id="refreshBtn">Refresh</button>
       <button type="button" class="btn ghost" id="logoutBtn">Sign out</button>
     </div>
@@ -26,8 +28,12 @@
   <main class="adm-main">
     <section id="login" class="adm-login">
       <h1>Editor sign in</h1>
-      <p class="lead">Enter the editor password to see student statistics and quiz results.</p>
+      <p class="lead">Sign in with your dashboard username and password. The owner signs in as <b>owner</b>.</p>
       <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="un">Username</label>
+          <input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+        </div>
         <div class="field">
           <label for="pw">Password</label>
           <input id="pw" type="password" autocomplete="current-password" required />
@@ -44,6 +50,7 @@
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
+        <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
       </nav>
 
       <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
@@ -149,8 +156,94 @@
           <p class="adm-note" id="shNote" role="status"></p>
         </article>
       </div>
+
+      <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Team</h3>
+            <button type="button" class="btn ghost" id="tmAdd">Add team member</button>
+          </div>
+          <p class="adm-note"><b>Admins</b> see everything, change the site (links, videos, database) and manage this team. <b>Moderators</b> can only view statistics, student lists and quiz results. The owner (the ADMIN_PASSWORD holder) always has full access and is not listed here.</p>
+          <div class="tablewrap"><table class="adm-table" id="tmTable"></table></div>
+          <p class="adm-note" id="tmNote" role="status"></p>
+        </article>
+      </div>
     </section>
   </main>
+
+  <!-- A team member: add, change role / password, disable or remove -->
+  <dialog id="tmDlg" class="adm-drill sh-dlg" aria-labelledby="tmDlgTitle">
+    <form id="tmForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="tmDlgTitle">Team member</h2>
+        <button type="button" class="btn ghost" id="tmDlgClose">Close</button>
+      </div>
+      <div class="lk-form sh-fields">
+        <div class="field" id="tm-w-username">
+          <label for="tm-username">Username</label>
+          <input id="tm-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="30" />
+          <span class="hint">3 to 30 letters, numbers, dots, dashes or underscores. It cannot be changed later.</span>
+          <p class="lk-err" id="tm-e-username"></p>
+        </div>
+        <div class="field" id="tm-w-fullName">
+          <label for="tm-fullName">Full name</label>
+          <input id="tm-fullName" type="text" autocomplete="off" maxlength="80" />
+          <p class="lk-err" id="tm-e-fullName"></p>
+        </div>
+        <div class="field" id="tm-w-role">
+          <label for="tm-role">Role</label>
+          <select id="tm-role"></select>
+          <span class="hint" id="tm-roleHelp"></span>
+          <p class="lk-err" id="tm-e-role"></p>
+        </div>
+        <div class="field" id="tm-w-password">
+          <label for="tm-password" id="tm-passwordLabel">Password</label>
+          <input id="tm-password" type="password" autocomplete="new-password" maxlength="100" />
+          <span class="hint" id="tm-passwordHelp">At least 8 characters. Share it with them privately; they can change it after signing in.</span>
+          <p class="lk-err" id="tm-e-password"></p>
+        </div>
+        <div class="field" id="tm-w-active">
+          <label for="tm-active">Account</label>
+          <select id="tm-active">
+            <option value="yes">Active</option>
+            <option value="no">Disabled (cannot sign in)</option>
+          </select>
+        </div>
+      </div>
+      <p class="formErr" id="tmDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="tmSave">Save</button>
+        <button type="button" class="btn ghost sh-del" id="tmRemove" hidden>Remove</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Your own password -->
+  <dialog id="pwDlg" class="adm-drill sh-dlg" aria-labelledby="pwDlgTitle">
+    <form id="pwForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="pwDlgTitle">Change your password</h2>
+        <button type="button" class="btn ghost" id="pwDlgClose">Close</button>
+      </div>
+      <div class="lk-form sh-fields">
+        <div class="field" id="pw-w-current">
+          <label for="pw-current">Current password</label>
+          <input id="pw-current" type="password" autocomplete="current-password" maxlength="100" />
+          <p class="lk-err" id="pw-e-current"></p>
+        </div>
+        <div class="field" id="pw-w-next">
+          <label for="pw-next">New password</label>
+          <input id="pw-next" type="password" autocomplete="new-password" maxlength="100" />
+          <span class="hint">At least 8 characters.</span>
+          <p class="lk-err" id="pw-e-next"></p>
+        </div>
+      </div>
+      <p class="formErr" id="pwDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="pwSave">Save password</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- One record: add, edit or delete -->
   <dialog id="shDlg" class="adm-drill sh-dlg" aria-labelledby="shDlgTitle">
