@@ -78,6 +78,11 @@ const TEAM_TAB = process.env.GOOGLE_TEAM_TAB || "Team";
 const TEAM_HEADERS = team.HEADERS;
 const TEAM_LAST_COL = "G";
 
+// Custom roles (a name and the access it gives). Built-in roles live in team.js. No secrets here.
+const ROLES_TAB = process.env.GOOGLE_ROLES_TAB || "Roles";
+const ROLES_HEADERS = team.ROLE_HEADERS;
+const ROLES_LAST_COL = "E";
+
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     const c = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -184,6 +189,9 @@ async function init() {
 
   await ensureTab(TEAM_TAB);
   await ensureHeaders(TEAM_TAB, TEAM_HEADERS, TEAM_LAST_COL);
+
+  await ensureTab(ROLES_TAB);
+  await ensureHeaders(ROLES_TAB, ROLES_HEADERS, ROLES_LAST_COL);
 
   await call(":batchUpdate", {
     method: "POST",
@@ -408,6 +416,8 @@ const EDITOR_TABS = {
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
   // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
   team: { title: TEAM_TAB, headers: TEAM_HEADERS, lastCol: TEAM_LAST_COL },
+  // Internal only: custom roles. Managed through team.js, never the Database view.
+  roles: { title: ROLES_TAB, headers: ROLES_HEADERS, lastCol: ROLES_LAST_COL },
 };
 
 function editorTab(key) {

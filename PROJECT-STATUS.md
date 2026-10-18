@@ -1,7 +1,7 @@
 # ABECFX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
-**Last updated:** 17 Oct 2026 (Lagos time), after change 9 (Database tab in the editor dashboard: create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 18 Oct 2026, 02:23 (Lagos time), after change 10 (Editor role, and roles an admin creates with chosen access). Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -28,6 +28,8 @@
 12. **Owner's change list of 16 Oct 2026, done one at a time, each approved before the next:** (1) mentorship code at registration [DONE, awaiting live check]; (2) only registered users reach the student portal, while find-a-student stays public [DONE, awaiting live check]; (3) My Portal submenu: Quiz and Mentorship Handbook (the PDF the quiz came from), with a learning-progress bar in percent [DONE, awaiting live check]; (4) every statistic on the admin page clickable and viewable [DONE, awaiting live check]; (5) on computer screens the menu goes to the top left for everyone, not bottom left [DONE, awaiting live check].
 
 13. **Change 9 (owner, 17-18 Oct 2026): a "Database" tab in the admin dashboard to browse, search, add, edit and delete records (full CRUD) without opening Google Sheets** [DONE, awaiting live check].
+
+14. **Change 10 (owner, 18 Oct 2026): an "Editor" role, and when an admin creates a role they choose its access control** [DONE, awaiting live check].
 
 ## 2. Decisions
 
@@ -82,6 +84,12 @@
 | 2026-10-18 | Every add and edit uses the **same rules as the rest of the site**: country from the list, state must belong to the country, email format and no other student with it, phone format, gender, status from the list, real dates (date of birth not in the future), score not above total, chapters must exist, links https only, videos YouTube only. Text starting with `=` is stored as plain text (`valueInputOption=RAW`) | A hand entry in the dashboard must not be able to put in data the registration form would refuse. |
 | 2026-10-18 | **A record is changed or deleted only if it still matches what the editor was looking at** (the browser sends the row as it saw it). If someone changed or removed it meanwhile, the action is refused (409), the table reloads and the editor tries again. Only the cells that changed are written | Row numbers move when rows are deleted; this stops a stale screen touching the wrong student. |
 | 2026-10-18 | Database changes wait in the same queue as registrations (handbook progress uses its own queue), and the website's short-lived caches are cleared after each change | A row number cannot move under a running save, and the public pages show a fix straight away. |
+| 2026-10-18 | **Dashboard accounts and roles (documented now; the Team tab existed before change 10 but was not written up).** People sign in on `/admin` with a username and password. The **owner** signs in as `owner` with `ADMIN_PASSWORD` on Render, always has full access, is not stored in the sheet and cannot be locked out. Everyone else lives on the **Team** sheet tab (password stored only as a salted scrypt hash). A person's access is looked up on every request, so a role change, a change to a role's access, a disable or a removal applies at once, even to someone already signed in | Code: `team.js`. |
+| 2026-10-18 | **Access is now five switches, not two.** `view` (statistics, student lists, quiz results), `links` (Site links tab), `videos` (Chapter videos tab), `database` (Database tab), `team` (Team tab: people and roles). Before, one switch `manage` covered links, videos and database together; it is replaced by three, so a role can have one without the others. **Every role always has `view`**, because the dashboard needs it to load at all. Routes: `/api/admin/links` needs `links`, `/api/admin/videos` needs `videos`, everything under `/api/admin/database` needs `database`, `/api/admin/team` and `/api/admin/roles` need `team` | Owner request ("admin should be able to select access control for the role"). The server enforces every switch; the dashboard only hides tabs a person cannot use. |
+| 2026-10-18 | **Built-in roles: Owner, Admin, Editor, Moderator.** Owner and Admin: all five. **Editor (new): `view`, `links`, `videos`, `database`. No `team`.** Moderator: `view` only. Built-in roles are fixed in `team.js` and cannot be edited or deleted from the dashboard | Owner request ("add the editor role"). **Assumed:** an Editor is someone who looks after the content (links, videos, student records) but cannot manage people or roles. If you want an Editor without the Database, remove `database` from the `editor` line in `team.js`, or create a custom role instead. |
+| 2026-10-18 | **Custom roles.** On the Team tab a new **Roles and access** card lists every role with what it can open and how many people hold it. **Create role** asks for a name and shows a tick box for each of the five accesses ("Statistics and quiz results" is ticked and locked). A custom role can be renamed, have its access changed, or be deleted from its Edit window; the role is then offered in the role list when adding or editing a team member. Custom roles are saved on a new sheet tab **Roles** (A: role key, B: role name, C: access list, D: created at, E: created by). The key is made from the name ("Video team" becomes `video-team`) and never changes | Owner request. A role name cannot be one of the built-in names, and two roles cannot share a name. |
+| 2026-10-18 | **Guard rails.** (1) Nobody can give access they do not have themselves: not when creating or editing a role, and not when giving a role to a person (the role list shows only roles you may hand out). (2) Nobody can change or delete the role they hold. (3) A role that is still held by someone cannot be deleted (the editor is told how many people hold it). (4) Someone cannot change, disable, re-role, reset the password of or remove a person whose access is bigger than their own. (5) Unknown access names in the sheet are ignored, `view` is forced on, and a row in the Roles tab can never override a built-in role | Stops a person with the Team switch from making themselves, or a friend, more powerful than they are. The owner has everything, so none of this limits the owner. |
+| 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
 
 ## 3. Current state
 
@@ -115,9 +123,12 @@
 | `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`). The result route accepts either a Telegram id or `source: "portal"` |
 | `GET /api/admin/stats`, `/api/admin/results` | Editor only (Bearer password) |
 | `GET /api/admin/drill?kind=...&value=...` | Editor only. The list behind one number. `kind` is one of `all`, `graduates`, `uncertified`, `team`, `status`, `gender`, `country`, `state`, `programme`, `year`, `month` (YYYY-MM), `upto` (YYYY-MM, joined by the end of that month), `undated`, `quiz-students`, `quiz-avg`, `quiz-not-taken`, `quiz-attempts`, `grade` (A-F). Anything else is refused (400). At most 5000 rows |
+| `POST /api/admin/login`, `GET /api/admin/me`, `POST /api/admin/me/password` | Dashboard sign-in with username + password; `me` returns the person, their role and the list of access they have |
+| `GET`/`POST /api/admin/team`, `PUT /api/admin/team/:username`, `POST /api/admin/team/:username/delete` | Needs access `team`. People. `GET` also returns every role (with what it allows, how many people hold it, and whether you may hand it out) and the list of the five accesses |
+| `POST /api/admin/roles`, `PUT /api/admin/roles/:key`, `POST /api/admin/roles/:key/delete` | Needs access `team`. Create a custom role `{name, perms: [...]}`, change its name or access, delete it (refused while someone holds it, and for built-in roles) |
 | `GET /api/admin/database`, `GET /api/admin/database/:key`, `POST /api/admin/database/:key/rows`, `PUT /api/admin/database/:key/rows/:n`, `POST /api/admin/database/:key/rows/:n/delete` | Editor only (Bearer password). `:key` is `students`, `codes`, `quiz`, `progress`, `links` or `videos` (anything else is 404). Create takes `{values: {columnIndex: text}}` (codes: `{text}`); update takes `{original, values}`; delete takes `{original}`. 400 with per-column messages for bad values, 403 when that table does not allow the action, 409 when the record changed. Only a wrong password counts toward the lock-out |
 
-**Sheet tabs:** Handbook Progress (A-G, new: reg number, full name, chapters read, count, total, percent, updated at), Mentorship Codes (A-D), Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, mentorship code, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
+**Sheet tabs:** Roles (A-E, new: role key, role name, access list, created at, created by; custom roles only), Handbook Progress (A-G, new: reg number, full name, chapters read, count, total, percent, updated at), Mentorship Codes (A-D), Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, mentorship code, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
 
 **Environment variables:**
 
@@ -131,15 +142,20 @@
 | Website | `QUIZ_APP_URL` | Quiz service's own https address (e.g. `https://abecfx-quiz-bot.onrender.com`); turns on the in-portal quiz |
 | Website | `KEEP_AWAKE=off` | Optional: turn off self-ping |
 | Website | `GOOGLE_PROGRESS_TAB` | Optional: name of the progress tab (default Handbook Progress) |
+| Website | `GOOGLE_ROLES_TAB` | Optional: name of the custom roles tab (default Roles) |
 | Quiz bot | `BOT_TOKEN` | From BotFather |
 | Quiz bot | `REG_SITE_URL` | Website address |
 | Quiz bot | `QUIZ_API_KEY` | Same value as on the website |
 
 **Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy. **Added for the in-portal quiz:** 32 checks on the pass (tampering, other number, expiry, wrong key) and the website routes (including the Telegram-link rules and the security policy), 17 checks on the quiz service (the number comes from the pass, bad passes never reach the website, Telegram login unchanged, limits), and 23 checks in a real Chromium browser over https with the real `server.js`, `bot.js` and `portal.js` (portal opens the quiz in the page, automatic sign-in, save and live refresh, close, "Not you?", Telegram-linked refusal, damaged pass, phone width).
+**Change 10 (roles) checks:** `npm test` now runs 81 tests (77 pass, 4 skipped only because `google-auth-library` is not installed in the build sandbox; the same checks run once `npm install` has been done). 19 new tests in `test/team.test.js`: built-in access per role, Editor given to a person and signing in, the roles list with member counts, creating a role (name to key, `view` forced on, standard order, unknown access refused, built-in names refused, duplicates refused, two at once: one wins), giving a custom role, an access change applying on the next check, built-in roles untouchable, delete refused while in use, a deleted role in the sheet giving no access, sheet rows unable to raise anyone, and every guard rail above. The real `server.js` was then loaded with an in-memory sheet and a stand-in for Express and its routes called in turn: an Editor reaches links, videos and database but not team or roles; a role with only videos reaches videos only; a Moderator reaches none of them; changing a role changes the same signed-in person on the very next request; a removed person is signed out; the owner password as a raw Bearer token still works; no password hash is ever sent to the browser. The dashboard was driven in a real Chromium: create a role with the tick boxes, add a person with it, add an Editor, delete refused while in use, and signing in as each shows exactly the tabs allowed. **Not yet tried on live Render with the real Google Sheet.**
+
 **Change 9 (Database tab) checks:** `npm test` runs 30 unit checks on `admin-database.js` against an in-memory sheet (`test/`): locked columns, every field rule, duplicate email, country and state, stale records (409), adding and deleting students (number never reused, cascade removes photo, quiz results and progress), quiz score recalculation, progress chapters, code adding and refusing, links and video checks, fixed tables refuse add and delete, formulas kept as plain text. The real `server.js` and the dashboard were then run with an in-memory sheet and a stand-in for Express (the build sandbox cannot reach npm): 11 checks over HTTP and **44 checks in a headless browser** (login, paging, search, add, edit, delete with confirmation, errors on the right fields, state list following the country, stale edit refused, quiz and progress add and edit, student delete cascade, unsafe link refused, sign-out clears the table, no console errors, no sideways scroll on a phone). A bug found and fixed in that run: the fifth tab made the page wider than a phone, so the tab bar now wraps. **Not tested:** real Google Sheets (the exact calls `values:batchUpdate`, `deleteDimension` and append were written from the Google Sheets API but never sent, including deleting several rows in one request for the cascade), `npm install`, Render.
 **Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 ## 4. Next steps
+
+**Owner action for change 10:** push the new/changed `team.js`, `server.js`, `sheets.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `test/team.test.js`, `test/support/memory-store.js`, `status/build.js`, `status/STATUS-SOURCE.md`. No new Render variable and no new package. On startup the site creates the **Roles** tab. Then open `/admin`, sign in as owner, open **Team**: you should see a new **Roles and access** card with Admin, Editor and Moderator. Click **Create role**, name it (for example Video team), tick only Chapter videos, Create. Add a team member with that role and one with the Editor role, sign out, and sign in as each: the Video team person should see only Statistics, Quiz results and Chapter videos; the Editor should also see Site links and Database, but not Team. Then tick another access on the Video team role (Edit) and Refresh the first person's screen: the new tab appears without signing in again. Existing admin and moderator accounts are unchanged. **Note:** the old single access "manage" (links, videos and database together) is now three separate accesses; existing Admins keep all of them, so nothing changes for them.
 
 **Owner action for change 9:** push the new `admin-database.js` and the `test/` folder, and the changed `server.js`, `sheets.js`, `package.json`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`, `status/build.js`. No new Render variable and no new package. Then open `/admin`, sign in, open **Database**, change one student's status and check the Google Sheet shows it, add a test mentorship code and delete it again, then add a test student and delete it (check its photo and results rows go too). The service account already has edit access (the site writes to the sheet today).
 
@@ -189,6 +205,8 @@
 
 ## 5. Open questions
 
+0b. **Change 10 assumes an Editor can use the Database tab** (edit and delete students, codes and results) but cannot manage the team. Is that what you want, or should the Editor only manage links and videos?
+
 0. **Change 2 asks for the registered email as the second check at sign-in.** Is email right, or would you prefer WhatsApp number or a one-time code sent to them? (Answered question 6 below in the meantime.)
 
 1. Is the assumed grading scale right?
@@ -213,6 +231,7 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-10-18 | **Change 10: Editor role and roles with chosen access.** `team.js` (five accesses, built-in Owner/Admin/Editor/Moderator, custom roles with create/change/delete and guard rails); `sheets.js` (new **Roles** tab); `server.js` (per-access checks, `/api/admin/roles` routes, role list with member counts); **Roles and access** card and role dialog on the Team tab (`public/admin.html`, `admin.js`, `admin.css`); 19 new tests. Replaces the single `manage` access by `links`, `videos` and `database`. |
 | 2026-10-18 | **Change 9: Database tab in the editor dashboard (full create, read, update, delete).** New `admin-database.js` (what each table allows, every check); `sheets.js` gains generic table read, cell write, append, row delete and delete-by-registration; five `/api/admin/database...` routes in `server.js`; new **Database** tab (`public/admin.html`, `admin.js`, `admin.css`); `npm test` and `test/`; dashboard tab bar wraps on phones. |
 | 2026-10-17 | **Change 8: date of birth at registration.** Required date field on `register.html`; checked in `server.js` (`validDob`); stored in Students column N (`sheets.js`: header and range now A-N). Not shown publicly. |
 | 2026-10-17 | **Change 7: chapter video tutorials.** New `videos.js`; sheet tab Chapter Videos; `GET`/`PUT /api/admin/videos`; `/api/handbook` now includes `videos`; embedded player and "coming soon" in each chapter (`public/handbook.js`); "Chapter videos" tab on the dashboard; CSP `frame-src` allows youtube-nocookie.com. |
@@ -235,7 +254,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 18 Oct 2026, 01:33 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 18 Oct 2026, 02:23 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -264,6 +283,7 @@ const pdfLink = require("./pdflink");
 const links = require("./links");
 const videos = require("./videos");
 const adminDatabase = require("./admin-database");
+const team = require("./team");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -765,23 +785,53 @@ function botAuth(req, res, next) {
   next();
 }
 
-// The editor dashboard is protected by one password (ADMIN_PASSWORD), sent as a Bearer token.
-// Only failed attempts count toward the rate limit.
+// The editor dashboard has named accounts with roles (see team.js):
+//   owner      signs in as "owner" with ADMIN_PASSWORD on Render. Always works; cannot be removed.
+//   admin      everything, including the team and roles.
+//   editor     everything except the team: statistics, site links, chapter videos and the Database.
+//   moderator  statistics, student lists and quiz results only (read only).
+//   custom     roles an admin creates on the dashboard, with the access they pick (see team.js).
+// Signing in returns a token (12 hours). It only says WHO you are; your role is looked up on every request,
+// so a role change, a disable or a removal takes effect straight away. Sending ADMIN_PASSWORD itself as the
+// Bearer token still works and counts as the owner, so existing bookmarks and scripts keep working.
+// Only failed sign-ins (401) count toward the lock-out; a 403 (role not allowed) does not.
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   skipSuccessfulRequests: true,
+  requestWasSuccessful: (_req, res) => res.statusCode !== 401,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many attempts. Try again in a few minutes." },
 });
-function adminAuth(req, res, next) {
-  const pw = process.env.ADMIN_PASSWORD;
-  if (!pw) return res.status(503).json({ error: "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render." });
-  const given = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!safeEqual(given, pw)) return res.status(401).json({ error: "Wrong password." });
-  next();
+const teamService = team.create(store, { now: lagosTimestamp });
+
+function requirePerm(perm) {
+  return async (req, res, next) => {
+    const pw = process.env.ADMIN_PASSWORD;
+    if (!pw) return res.status(503).json({ error: "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render." });
+    const given = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+    try {
+      let who = null;
+      const username = team.verifyToken(given, pw);
+      if (username) who = await teamService.lookup(username);
+      else if (given && safeEqual(given, pw)) who = { username: team.OWNER, name: "Owner", role: "owner" };
+      if (!who) return res.status(401).json({ error: "Please sign in again." });
+      const perms = await teamService.permsOf(who.role);
+      if (!perms.includes(perm)) return res.status(403).json({ error: "Your role does not allow this." });
+      req.admin = { ...who, perms };
+      next();
+    } catch (err) {
+      console.error("Admin sign-in check failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
 }
+const adminAuth = requirePerm("view"); // statistics, student lists and quiz results
+const linksAuth = requirePerm("links"); // site links
+const videosAuth = requirePerm("videos"); // chapter videos
+const databaseAuth = requirePerm("database"); // the Database tab
+const teamAuth = requirePerm("team"); // team accounts and roles
 
 app.get("/api/config", (_req, res) =>
   res.json({
@@ -909,6 +959,80 @@ app.get("/api/results", lookupLimiter, studentAuth, async (req, res) => {
 // Editor dashboard
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 
+// ---- Team accounts ----
+const teamLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Try again in a few minutes." },
+});
+async function meOf(who) {
+  const info = who.role === "owner" ? { label: team.ROLES.owner.label, perms: team.ROLES.owner.perms } : await teamService.roleInfo(who.role);
+  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.role !== "owner" };
+}
+
+function teamRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof team.TeamError) {
+        return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      }
+      console.error("Team request failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
+}
+
+app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
+  const pw = process.env.ADMIN_PASSWORD;
+  if (!pw) throw new team.TeamError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
+  const b = req.body || {};
+  const who = await teamService.login(clean(b.username, 40), typeof b.password === "string" ? b.password.slice(0, 200) : "", pw, safeEqual);
+  res.json({ token: team.signToken(who.username, pw), me: await meOf(who) });
+}));
+
+app.get("/api/admin/me", adminLimiter, adminAuth, teamRoute(async (req, res) => res.json(await meOf(req.admin))));
+
+app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req, res) => {
+  if (req.admin.role === "owner") throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
+  const b = req.body || {};
+  res.json(await teamService.changeOwnPassword(req.admin.username, b.current, b.next));
+}));
+
+app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json({ members: await teamService.members(), roles: await teamService.roles(req.admin), permissions: team.PERMS });
+}));
+
+// Roles: create one and pick its access; change a custom role's name or access; remove a custom role nobody uses.
+app.post("/api/admin/roles", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.addRole(req.body, req.admin));
+}));
+
+app.put("/api/admin/roles/:key", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.updateRole(String(req.params.key).toLowerCase(), req.body, req.admin));
+}));
+
+app.post("/api/admin/roles/:key/delete", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.removeRole(String(req.params.key).toLowerCase(), req.admin));
+}));
+
+app.post("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.add(req.body, req.admin));
+}));
+
+app.put("/api/admin/team/:username", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.update(req.params.username, req.body, req.admin));
+}));
+
+app.post("/api/admin/team/:username/delete", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.remove(req.params.username, req.admin));
+}));
+
 app.get("/api/admin/stats", adminLimiter, adminAuth, async (_req, res) => {
   try {
     const [rows, quiz] = await Promise.all([store.readCached(), store.readQuiz()]);
@@ -936,7 +1060,7 @@ app.get("/api/admin/drill", adminLimiter, adminAuth, async (req, res) => {
 });
 
 // The editor reads and changes the site links here.
-app.get("/api/admin/links", adminLimiter, adminAuth, async (_req, res) => {
+app.get("/api/admin/links", adminLimiter, linksAuth, async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     res.json({ fields: links.FIELDS, values: await store.readLinks(0) });
@@ -946,7 +1070,7 @@ app.get("/api/admin/links", adminLimiter, adminAuth, async (_req, res) => {
   }
 });
 
-app.put("/api/admin/links", adminLimiter, adminAuth, async (req, res) => {
+app.put("/api/admin/links", adminLimiter, linksAuth, async (req, res) => {
   const { values, errors } = links.sanitize(req.body);
   if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
   try {
@@ -959,7 +1083,7 @@ app.put("/api/admin/links", adminLimiter, adminAuth, async (req, res) => {
 });
 
 // The editor reads and changes the chapter video addresses here.
-app.get("/api/admin/videos", adminLimiter, adminAuth, async (_req, res) => {
+app.get("/api/admin/videos", adminLimiter, videosAuth, async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     res.json({ chapters: videos.VIDEO_CHAPTERS, values: await store.readVideos(0) });
@@ -969,7 +1093,7 @@ app.get("/api/admin/videos", adminLimiter, adminAuth, async (_req, res) => {
   }
 });
 
-app.put("/api/admin/videos", adminLimiter, adminAuth, async (req, res) => {
+app.put("/api/admin/videos", adminLimiter, videosAuth, async (req, res) => {
   const { values, errors } = videos.sanitize(req.body);
   if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
   try {
@@ -1008,7 +1132,7 @@ app.use(
     legacyHeaders: false,
     message: { error: "Too many attempts. Try again in a few minutes." },
   }),
-  adminAuth
+  databaseAuth
 );
 
 function databaseRoute(handler) {
@@ -1065,6 +1189,7 @@ app.listen(PORT, async () => {
 const { JWT } = require("google-auth-library");
 const links = require("./links");
 const videos = require("./videos");
+const team = require("./team");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -1134,6 +1259,16 @@ const LINKS_LAST_COL = "C";
 const VIDEO_TAB = process.env.GOOGLE_VIDEO_TAB || "Chapter Videos";
 const VIDEO_HEADERS = ["Chapter", "Chapter title", "YouTube video address"];
 const VIDEO_LAST_COL = "C";
+
+// Dashboard team (named admin / moderator accounts). Holds password HASHES only; never listed in the Database view.
+const TEAM_TAB = process.env.GOOGLE_TEAM_TAB || "Team";
+const TEAM_HEADERS = team.HEADERS;
+const TEAM_LAST_COL = "G";
+
+// Custom roles (a name and the access it gives). Built-in roles live in team.js. No secrets here.
+const ROLES_TAB = process.env.GOOGLE_ROLES_TAB || "Roles";
+const ROLES_HEADERS = team.ROLE_HEADERS;
+const ROLES_LAST_COL = "E";
 
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -1238,6 +1373,12 @@ async function init() {
       data: { values: videos.toRows({}) },
     });
   }
+
+  await ensureTab(TEAM_TAB);
+  await ensureHeaders(TEAM_TAB, TEAM_HEADERS, TEAM_LAST_COL);
+
+  await ensureTab(ROLES_TAB);
+  await ensureHeaders(ROLES_TAB, ROLES_HEADERS, ROLES_LAST_COL);
 
   await call(":batchUpdate", {
     method: "POST",
@@ -1460,6 +1601,10 @@ const EDITOR_TABS = {
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
   // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
+  // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
+  team: { title: TEAM_TAB, headers: TEAM_HEADERS, lastCol: TEAM_LAST_COL },
+  // Internal only: custom roles. Managed through team.js, never the Database view.
+  roles: { title: ROLES_TAB, headers: ROLES_HEADERS, lastCol: ROLES_LAST_COL },
 };
 
 function editorTab(key) {
@@ -1566,6 +1711,483 @@ module.exports = {
   init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
   EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
+};
+```
+
+#### `team.js`
+
+```js
+// Dashboard team: named accounts with roles, and the roles themselves.
+//
+// Access (what a role can open) is a list of permissions:
+//   view      Statistics, student lists and quiz results. Every role has it: it is what signing in needs.
+//   links     Site links (social icons, Deriv link, About, Contact).
+//   videos    Chapter videos.
+//   database  The Database tab: add, edit and delete records.
+//   team      Team accounts and roles.
+//
+// Built-in roles (fixed, cannot be changed or deleted)
+//   owner      The person who holds ADMIN_PASSWORD on Render. Always works, is not stored in the sheet and
+//              cannot be removed or locked out by anyone. Signs in with the username "owner".
+//   admin      Everything, including the team and roles.
+//   editor     Everything except the team: statistics, site links, chapter videos and the Database.
+//   moderator  Read only: statistics, student lists and quiz results.
+// Custom roles are created by anyone with the "team" permission, who picks the access for each one. They live
+// on the "Roles" sheet tab (a name and a list of permissions, no secrets).
+//
+// Accounts live on the "Team" sheet tab. Only a salted scrypt hash of each password is stored, never the
+// password itself. A role change, a change to a role's access, a disable or a removal takes effect on the very
+// next request, because the sign-in token only says WHO you are; your access is looked up each time.
+const crypto = require("crypto");
+const { promisify } = require("util");
+const scrypt = promisify(crypto.scrypt);
+
+const OWNER = "owner";
+
+const PERMS = [
+  { key: "view", label: "Statistics and quiz results", help: "See statistics, student lists and quiz results. Every role has this; it is needed to sign in." },
+  { key: "links", label: "Site links", help: "Change the social icons, Deriv link, About and Contact." },
+  { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
+  { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
+  { key: "team", label: "Team and roles", help: "Add team members, create roles and choose their access." },
+];
+const PERM_KEYS = PERMS.map((p) => p.key);
+const ALL = PERM_KEYS.slice();
+
+const ROLES = {
+  owner: { label: "Owner", perms: ALL },
+  admin: { label: "Admin", perms: ALL },
+  editor: { label: "Editor", perms: ["view", "links", "videos", "database"] },
+  moderator: { label: "Moderator", perms: ["view"] },
+};
+// Built-in roles a person may be given (the owner is never assigned).
+const ASSIGNABLE = ["admin", "editor", "moderator"];
+const RESERVED_ROLE_KEYS = Object.keys(ROLES);
+
+// Sheet columns (also listed in sheets.js, and a test checks they match).
+const HEADERS = ["Username", "Full Name", "Role", "Password Hash (do not edit)", "Active", "Created At (Lagos)", "Created By"];
+const COL = { username: 0, name: 1, role: 2, hash: 3, active: 4, createdAt: 5, createdBy: 6 };
+
+// The "Roles" tab: custom roles only (the built-in ones live in this file).
+const ROLE_HEADERS = ["Role Key (do not edit)", "Role Name", "Access (do not edit)", "Created At (Lagos)", "Created By"];
+const RCOL = { key: 0, name: 1, perms: 2, createdAt: 3, createdBy: 4 };
+
+class TeamError extends Error {
+  constructor(status, message, fields) {
+    super(message);
+    this.status = status;
+    if (fields) this.fields = fields;
+  }
+}
+
+// Built-in roles only. Custom roles are looked up through the service (permsOf).
+const can = (role, perm) => Boolean(ROLES[role] && ROLES[role].perms.includes(perm));
+
+// ---------- Input checks ----------
+function normUsername(v) {
+  return String(v == null ? "" : v).trim().toLowerCase();
+}
+function usernameError(u) {
+  if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(u)) return "Use 3 to 30 letters, numbers, dots, dashes or underscores.";
+  if (u === OWNER) return "That username is reserved.";
+  return "";
+}
+function passwordError(p) {
+  if (typeof p !== "string" || p.length < 8) return "Use at least 8 characters.";
+  if (p.length > 100) return "Use 100 characters or fewer.";
+  return "";
+}
+function roleKeyFrom(name) {
+  return oneLine(name, 40).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30).replace(/-+$/g, "");
+}
+// Keep only known permissions, always include "view", and put them in the standard order.
+function cleanPerms(list) {
+  const set = new Set(Array.isArray(list) ? list.map(String) : []);
+  return PERM_KEYS.filter((k) => k === "view" || set.has(k));
+}
+function oneLine(v, max) {
+  return String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+// ---------- Passwords ----------
+async function hashPassword(pw) {
+  const salt = crypto.randomBytes(16);
+  const key = await scrypt(pw, salt, 64);
+  return "s1$" + salt.toString("base64url") + "$" + key.toString("base64url");
+}
+async function verifyPassword(pw, stored) {
+  const parts = String(stored || "").split("$");
+  if (parts.length !== 3 || parts[0] !== "s1" || typeof pw !== "string") return false;
+  try {
+    const salt = Buffer.from(parts[1], "base64url");
+    const want = Buffer.from(parts[2], "base64url");
+    const got = await scrypt(pw, salt, want.length);
+    return want.length > 0 && crypto.timingSafeEqual(got, want);
+  } catch (e) {
+    return false;
+  }
+}
+// Spent on unknown usernames, so "no such user" and "wrong password" take about as long.
+const DUMMY_HASH_PROMISE = hashPassword("not-a-real-password");
+
+// ---------- Sign-in tokens ----------
+const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+const TOKEN_PREFIX = "t1.";
+
+function mac(payload, secret) {
+  return crypto.createHmac("sha256", secret).update("admin." + payload).digest("base64url");
+}
+function signToken(username, secret, now = Date.now()) {
+  const payload = Buffer.from(JSON.stringify({ u: username, e: now + TOKEN_TTL_MS })).toString("base64url");
+  return TOKEN_PREFIX + payload + "." + mac(payload, secret);
+}
+// Returns the username, or null when the token is wrong, tampered with or expired.
+function verifyToken(token, secret, now = Date.now()) {
+  if (typeof token !== "string" || !token.startsWith(TOKEN_PREFIX) || token.length > 600 || !secret) return null;
+  const [payload, sig, extra] = token.slice(TOKEN_PREFIX.length).split(".");
+  if (!payload || !sig || extra !== undefined) return null;
+  const a = Buffer.from(mac(payload, secret));
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (typeof d.u !== "string" || !(d.e > now)) return null;
+    return d.u;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ---------- Rows <-> people ----------
+function fromRows(rows) {
+  return rows
+    .map(({ n, cells }) => ({
+      n,
+      username: normUsername(cells[COL.username]),
+      name: cells[COL.name] || "",
+      role: String(cells[COL.role] || "").trim().toLowerCase(),
+      hash: cells[COL.hash] || "",
+      active: String(cells[COL.active] || "").trim().toLowerCase() !== "no",
+      createdAt: cells[COL.createdAt] || "",
+      createdBy: cells[COL.createdBy] || "",
+    }))
+    .filter((u) => u.username);
+}
+// What the dashboard may see: everything except the hash.
+function publicUser(u) {
+  return { username: u.username, name: u.name, role: u.role, active: u.active, createdAt: u.createdAt, createdBy: u.createdBy };
+}
+
+function roleFromRows(rows) {
+  return rows
+    .map(({ n, cells }) => ({
+      n,
+      key: String(cells[RCOL.key] || "").trim().toLowerCase(),
+      label: cells[RCOL.name] || "",
+      // only permissions that exist; "view" is always there
+      perms: cleanPerms(String(cells[RCOL.perms] || "").split(",").map((x) => x.trim())),
+      createdAt: cells[RCOL.createdAt] || "",
+      createdBy: cells[RCOL.createdBy] || "",
+    }))
+    .filter((r) => r.key && !ROLES[r.key]);
+}
+
+// ---------- The service ----------
+// `store` needs tabRows / appendTabRows / writeTabCells / deleteTabRow for the "team" and "roles" tabs (sheets.js,
+// or the in-memory stand-in the tests use). `now` gives the "Created At" text.
+function create(store, opts = {}) {
+  const stamp = opts.now || (() => new Date().toISOString());
+  const cacheMs = opts.cacheMs == null ? 10000 : opts.cacheMs;
+  let cache = { at: 0, users: [] };
+  let roleCache = { at: 0, roles: [] };
+  let chain = Promise.resolve();
+  // Changes go one at a time, so two admins adding the same username (or role) cannot both succeed.
+  const queued = (task) => {
+    const run = chain.then(task, task);
+    chain = run.catch(() => {});
+    return run;
+  };
+  const forget = () => { cache = { at: 0, users: [] }; roleCache = { at: 0, roles: [] }; };
+
+  async function listFresh() {
+    const users = fromRows(await store.tabRows("team"));
+    cache = { at: Date.now(), users };
+    return users;
+  }
+  async function list() {
+    if (cache.at && Date.now() - cache.at < cacheMs) return cache.users;
+    return listFresh();
+  }
+
+  // ----- roles -----
+  async function customFresh() {
+    const roles = roleFromRows(await store.tabRows("roles"));
+    roleCache = { at: Date.now(), roles };
+    return roles;
+  }
+  async function customList() {
+    if (roleCache.at && Date.now() - roleCache.at < cacheMs) return roleCache.roles;
+    return customFresh();
+  }
+  // { key, label, perms, builtin } for a role key, or null when there is no such role.
+  async function roleInfo(key) {
+    if (ROLES[key]) return { key, label: ROLES[key].label, perms: ROLES[key].perms.slice(), builtin: true };
+    const r = (await customList()).find((x) => x.key === key);
+    return r ? { key: r.key, label: r.label, perms: r.perms.slice(), builtin: false } : null;
+  }
+  async function permsOf(key) {
+    // The owner never depends on the sheet.
+    if (key === "owner") return ALL.slice();
+    const r = await roleInfo(key);
+    return r ? r.perms : [];
+  }
+  async function allow(role, perm) {
+    return (await permsOf(role)).includes(perm);
+  }
+  const subsetOf = (perms, have) => perms.every((p) => have.includes(p));
+  async function permsOfActor(actor) {
+    return permsOf(actor.role);
+  }
+
+  // Roles a person can be given, with what each allows and whether the signed-in person may hand it out.
+  // `actor` is optional; without it every role is marked as grantable.
+  async function roles(actor) {
+    const users = await listFresh();
+    const have = actor ? await permsOfActor(actor) : ALL;
+    const custom = await customFresh();
+    const count = (key) => users.filter((u) => u.role === key).length;
+    const out = ASSIGNABLE.map((k) => ({ key: k, label: ROLES[k].label, perms: ROLES[k].perms.slice(), builtin: true }));
+    custom.forEach((r) => out.push({ key: r.key, label: r.label, perms: r.perms.slice(), builtin: false, createdAt: r.createdAt, createdBy: r.createdBy }));
+    return out.map((r) => ({ ...r, members: count(r.key), canGrant: subsetOf(r.perms, have) }));
+  }
+
+  // Who is this username right now? { username, name, role } or null (unknown, disabled or an unknown role).
+  async function lookup(username) {
+    if (username === OWNER) return { username: OWNER, name: "Owner", role: "owner" };
+    const u = (await list()).find((x) => x.username === username);
+    if (!u || !u.active || u.role === "owner" || !(await roleInfo(u.role))) return null;
+    return { username: u.username, name: u.name, role: u.role };
+  }
+
+  async function login(username, password, ownerPassword, safeEqual) {
+    const name = normUsername(username);
+    if (name === OWNER) {
+      if (!ownerPassword) throw new TeamError(503, "The dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
+      if (!safeEqual(String(password || ""), ownerPassword)) throw new TeamError(401, "Wrong username or password.");
+      return { username: OWNER, name: "Owner", role: "owner" };
+    }
+    const u = (await list()).find((x) => x.username === name);
+    const ok = await verifyPassword(String(password || ""), u ? u.hash : await DUMMY_HASH_PROMISE);
+    if (!u || !ok) throw new TeamError(401, "Wrong username or password.");
+    if (!u.active) throw new TeamError(403, "This account has been disabled. Ask an admin.");
+    if (u.role === "owner" || !(await roleInfo(u.role))) throw new TeamError(403, "This account has no valid role. Ask an admin.");
+    return { username: u.username, name: u.name, role: u.role };
+  }
+
+  async function members() {
+    return (await listFresh()).map(publicUser);
+  }
+
+  // A role the actor may give to someone: it must exist, must not be the owner, and may not allow more than the actor has.
+  async function checkAssignable(role, actor, errors) {
+    if (!role || role === "owner") { errors.role = "Choose a role."; return false; }
+    const info = await roleInfo(role);
+    if (!info) { errors.role = "That role does not exist."; return false; }
+    if (actor && !subsetOf(info.perms, await permsOfActor(actor))) {
+      errors.role = "You cannot give a role that allows more than you can do yourself.";
+      return false;
+    }
+    return true;
+  }
+
+  function add(input, actor) {
+    return queued(async () => {
+      const b = input || {};
+      const username = normUsername(b.username);
+      const name = oneLine(b.fullName, 80);
+      const errors = {};
+      const ue = usernameError(username);
+      if (ue) errors.username = ue;
+      if (!name) errors.fullName = "Enter their full name.";
+      await checkAssignable(b.role, actor, errors);
+      const pe = passwordError(b.password);
+      if (pe) errors.password = pe;
+      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      const users = await listFresh();
+      if (users.some((u) => u.username === username)) {
+        throw new TeamError(409, "That username is already taken.", { username: "That username is already taken." });
+      }
+      const hash = await hashPassword(b.password);
+      const row = [];
+      row[COL.username] = username; row[COL.name] = name; row[COL.role] = b.role; row[COL.hash] = hash;
+      row[COL.active] = "Yes"; row[COL.createdAt] = stamp(); row[COL.createdBy] = actor.username;
+      await store.appendTabRows("team", [row]);
+      forget();
+      return publicUser({ username, name, role: b.role, active: true, createdAt: row[COL.createdAt], createdBy: actor.username });
+    });
+  }
+
+  // changes: any of { fullName, role, active, password }. Nobody can demote, disable or remove themselves.
+  function update(username, changes, actor) {
+    return queued(async () => {
+      const target = normUsername(username);
+      const c = changes || {};
+      const u = (await listFresh()).find((x) => x.username === target);
+      if (!u) throw new TeamError(404, "That account no longer exists.");
+      const self = target === actor.username;
+      const errors = {};
+      const write = {};
+      if (c.fullName !== undefined) {
+        const name = oneLine(c.fullName, 80);
+        if (!name) errors.fullName = "Enter their full name."; else write[COL.name] = name;
+      }
+      if (c.role !== undefined && c.role !== u.role) {
+        if (self) throw new TeamError(400, "You cannot change your own role.");
+        if (await checkAssignable(c.role, actor, errors)) write[COL.role] = c.role;
+      }
+      // Someone whose current role allows more than the actor can do is out of the actor's reach.
+      if (!self && (write[COL.role] !== undefined || c.active !== undefined || (c.password !== undefined && c.password !== ""))) {
+        const theirs = await permsOf(u.role);
+        if (!subsetOf(theirs, await permsOfActor(actor))) {
+          throw new TeamError(403, "This person can do more than you can, so you cannot change their account.");
+        }
+      }
+      if (c.active !== undefined && Boolean(c.active) !== u.active) {
+        if (self) throw new TeamError(400, "You cannot disable your own account.");
+        write[COL.active] = c.active ? "Yes" : "No";
+      }
+      if (c.password !== undefined && c.password !== "") {
+        const pe = passwordError(c.password);
+        if (pe) errors.password = pe; else write[COL.hash] = await hashPassword(c.password);
+      }
+      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      if (Object.keys(write).length) {
+        await store.writeTabCells("team", u.n, write);
+        forget();
+      }
+      return publicUser((await listFresh()).find((x) => x.username === target));
+    });
+  }
+
+  function remove(username, actor) {
+    return queued(async () => {
+      const target = normUsername(username);
+      if (target === actor.username) throw new TeamError(400, "You cannot remove your own account.");
+      const u = (await listFresh()).find((x) => x.username === target);
+      if (!u) throw new TeamError(404, "That account no longer exists.");
+      if (!subsetOf(await permsOf(u.role), await permsOfActor(actor))) {
+        throw new TeamError(403, "This person can do more than you can, so you cannot remove them.");
+      }
+      await store.deleteTabRow("team", u.n);
+      forget();
+      return { removed: target };
+    });
+  }
+
+  // A team member changes their own password (the owner's lives on Render, not here).
+  function changeOwnPassword(username, current, next) {
+    return queued(async () => {
+      const target = normUsername(username);
+      const u = (await listFresh()).find((x) => x.username === target);
+      if (!u) throw new TeamError(404, "Account not found.");
+      if (!(await verifyPassword(String(current || ""), u.hash))) {
+        throw new TeamError(400, "Your current password is not right.", { current: "Your current password is not right." });
+      }
+      const pe = passwordError(next);
+      if (pe) throw new TeamError(400, pe, { next: pe });
+      await store.writeTabCells("team", u.n, { [COL.hash]: await hashPassword(next) });
+      forget();
+      return { ok: true };
+    });
+  }
+
+  // ----- creating and changing roles -----
+  // input: { name, perms: [permission keys] }. "view" is always included.
+  // Nobody can give a role access they do not have themselves, and nobody changes the role they hold.
+  function checkRoleInput(input, actorPerms, errors) {
+    const b = input || {};
+    const label = oneLine(b.name, 40);
+    if (!label) errors.name = "Enter a name for the role.";
+    const asked = Array.isArray(b.perms) ? b.perms.map(String) : [];
+    const unknown = asked.filter((k) => !PERM_KEYS.includes(k));
+    if (unknown.length) errors.perms = "Unknown access: " + unknown.join(", ") + ".";
+    const perms = cleanPerms(asked);
+    if (!errors.perms && !subsetOf(perms, actorPerms)) errors.perms = "You can only give access that you have yourself.";
+    return { label, perms };
+  }
+
+  function addRole(input, actor) {
+    return queued(async () => {
+      const errors = {};
+      const { label, perms } = checkRoleInput(input, await permsOfActor(actor), errors);
+      const key = roleKeyFrom(label);
+      if (label && key.length < 3) errors.name = "Use at least 3 letters or numbers in the name.";
+      else if (label && RESERVED_ROLE_KEYS.includes(key)) errors.name = "That name is taken by a built-in role. Choose another.";
+      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      if ((await customFresh()).some((r) => r.key === key)) {
+        throw new TeamError(409, "A role with that name already exists.", { name: "A role with that name already exists." });
+      }
+      const row = [];
+      row[RCOL.key] = key; row[RCOL.name] = label; row[RCOL.perms] = perms.join(",");
+      row[RCOL.createdAt] = stamp(); row[RCOL.createdBy] = actor.username;
+      await store.appendTabRows("roles", [row]);
+      forget();
+      return { key, label, perms, builtin: false, createdAt: row[RCOL.createdAt], createdBy: actor.username };
+    });
+  }
+
+  function updateRole(key, input, actor) {
+    return queued(async () => {
+      if (ROLES[key]) throw new TeamError(400, "Built-in roles cannot be changed.");
+      const r = (await customFresh()).find((x) => x.key === key);
+      if (!r) throw new TeamError(404, "That role no longer exists.");
+      if (actor.role === key) throw new TeamError(400, "You cannot change the role you hold. Ask someone else with access to the team.");
+      const have = await permsOfActor(actor);
+      // A role that allows more than the actor cannot be reduced or renamed by the actor either.
+      if (!subsetOf(r.perms, have)) throw new TeamError(403, "This role allows more than you can do, so you cannot change it.");
+      const errors = {};
+      const { label, perms } = checkRoleInput(input, have, errors);
+      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      const write = {};
+      if (label !== r.label) write[RCOL.name] = label;
+      if (perms.join(",") !== r.perms.join(",")) write[RCOL.perms] = perms.join(",");
+      if (Object.keys(write).length) {
+        await store.writeTabCells("roles", r.n, write);
+        forget();
+      }
+      return { key, label, perms, builtin: false, createdAt: r.createdAt, createdBy: r.createdBy };
+    });
+  }
+
+  function removeRole(key, actor) {
+    return queued(async () => {
+      if (ROLES[key]) throw new TeamError(400, "Built-in roles cannot be removed.");
+      const r = (await customFresh()).find((x) => x.key === key);
+      if (!r) throw new TeamError(404, "That role no longer exists.");
+      if (actor.role === key) throw new TeamError(400, "You cannot remove the role you hold.");
+      if (!subsetOf(r.perms, await permsOfActor(actor))) throw new TeamError(403, "This role allows more than you can do, so you cannot remove it.");
+      const using = (await listFresh()).filter((u) => u.role === key).length;
+      if (using) {
+        throw new TeamError(409, using === 1
+          ? "One team member still has this role. Give them another role first."
+          : using + " team members still have this role. Give them another role first.");
+      }
+      await store.deleteTabRow("roles", r.n);
+      forget();
+      return { removed: key };
+    });
+  }
+
+  return {
+    lookup, login, members, add, update, remove, changeOwnPassword,
+    roles, roleInfo, permsOf, allow, addRole, updateRole, removeRole,
+  };
+}
+
+module.exports = {
+  OWNER, ROLES, ASSIGNABLE, PERMS, PERM_KEYS, RESERVED_ROLE_KEYS, HEADERS, COL, ROLE_HEADERS, RCOL, TeamError, can, create,
+  hashPassword, verifyPassword, signToken, verifyToken, normUsername, usernameError, passwordError, fromRows, publicUser,
+  roleKeyFrom, cleanPerms, roleFromRows,
 };
 ```
 
@@ -4840,6 +5462,8 @@ _missing_
     </a>
     <div class="adm-actions" id="topActions" hidden>
       <span class="adm-stamp" id="stamp"></span>
+      <span class="adm-who" id="who"></span>
+      <button type="button" class="btn ghost" id="acctBtn" hidden>Change password</button>
       <button type="button" class="btn ghost" id="refreshBtn">Refresh</button>
       <button type="button" class="btn ghost" id="logoutBtn">Sign out</button>
     </div>
@@ -4848,8 +5472,12 @@ _missing_
   <main class="adm-main">
     <section id="login" class="adm-login">
       <h1>Editor sign in</h1>
-      <p class="lead">Enter the editor password to see student statistics and quiz results.</p>
+      <p class="lead">Sign in with your dashboard username and password. The owner signs in as <b>owner</b>.</p>
       <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="un">Username</label>
+          <input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+        </div>
         <div class="field">
           <label for="pw">Password</label>
           <input id="pw" type="password" autocomplete="current-password" required />
@@ -4866,6 +5494,7 @@ _missing_
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
+        <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
       </nav>
 
       <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
@@ -4971,8 +5600,132 @@ _missing_
           <p class="adm-note" id="shNote" role="status"></p>
         </article>
       </div>
+
+      <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Team</h3>
+            <button type="button" class="btn ghost" id="tmAdd">Add team member</button>
+          </div>
+          <p class="adm-note">Each person has a <b>role</b>, and each role decides what they can open. The owner (the ADMIN_PASSWORD holder) always has full access and is not listed here.</p>
+          <div class="tablewrap"><table class="adm-table" id="tmTable"></table></div>
+          <p class="adm-note" id="tmNote" role="status"></p>
+        </article>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Roles and access</h3>
+            <button type="button" class="btn ghost" id="rlAdd">Create role</button>
+          </div>
+          <p class="adm-note">Admin, Editor and Moderator are built in and cannot be changed. Create your own role and tick exactly what it may open. You can only give access that you have yourself.</p>
+          <div class="tablewrap"><table class="adm-table" id="rlTable"></table></div>
+          <p class="adm-note" id="rlNote" role="status"></p>
+        </article>
+      </div>
     </section>
   </main>
+
+  <!-- A team member: add, change role / password, disable or remove -->
+  <dialog id="tmDlg" class="adm-drill sh-dlg" aria-labelledby="tmDlgTitle">
+    <form id="tmForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="tmDlgTitle">Team member</h2>
+        <button type="button" class="btn ghost" id="tmDlgClose">Close</button>
+      </div>
+      <div class="lk-form sh-fields">
+        <div class="field" id="tm-w-username">
+          <label for="tm-username">Username</label>
+          <input id="tm-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="30" />
+          <span class="hint">3 to 30 letters, numbers, dots, dashes or underscores. It cannot be changed later.</span>
+          <p class="lk-err" id="tm-e-username"></p>
+        </div>
+        <div class="field" id="tm-w-fullName">
+          <label for="tm-fullName">Full name</label>
+          <input id="tm-fullName" type="text" autocomplete="off" maxlength="80" />
+          <p class="lk-err" id="tm-e-fullName"></p>
+        </div>
+        <div class="field" id="tm-w-role">
+          <label for="tm-role">Role</label>
+          <select id="tm-role"></select>
+          <span class="hint" id="tm-roleHelp"></span>
+          <p class="lk-err" id="tm-e-role"></p>
+        </div>
+        <div class="field" id="tm-w-password">
+          <label for="tm-password" id="tm-passwordLabel">Password</label>
+          <input id="tm-password" type="password" autocomplete="new-password" maxlength="100" />
+          <span class="hint" id="tm-passwordHelp">At least 8 characters. Share it with them privately; they can change it after signing in.</span>
+          <p class="lk-err" id="tm-e-password"></p>
+        </div>
+        <div class="field" id="tm-w-active">
+          <label for="tm-active">Account</label>
+          <select id="tm-active">
+            <option value="yes">Active</option>
+            <option value="no">Disabled (cannot sign in)</option>
+          </select>
+        </div>
+      </div>
+      <p class="formErr" id="tmDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="tmSave">Save</button>
+        <button type="button" class="btn ghost sh-del" id="tmRemove" hidden>Remove</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- A role: name and access -->
+  <dialog id="rlDlg" class="adm-drill sh-dlg" aria-labelledby="rlDlgTitle">
+    <form id="rlForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="rlDlgTitle">Role</h2>
+        <button type="button" class="btn ghost" id="rlDlgClose">Close</button>
+      </div>
+      <div class="lk-form sh-fields">
+        <div class="field" id="rl-w-name">
+          <label for="rl-name">Role name</label>
+          <input id="rl-name" type="text" autocomplete="off" maxlength="40" />
+          <span class="hint">For example Support or Video team.</span>
+          <p class="lk-err" id="rl-e-name"></p>
+        </div>
+        <div class="field" id="rl-w-perms">
+          <span class="label" id="rl-permsLabel">Access: tick what this role may open</span>
+          <div class="perm-list" id="rl-perms" role="group" aria-labelledby="rl-permsLabel"></div>
+          <p class="lk-err" id="rl-e-perms"></p>
+        </div>
+      </div>
+      <p class="formErr" id="rlDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="rlSave">Save</button>
+        <button type="button" class="btn ghost sh-del" id="rlRemove" hidden>Delete role</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Your own password -->
+  <dialog id="pwDlg" class="adm-drill sh-dlg" aria-labelledby="pwDlgTitle">
+    <form id="pwForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="pwDlgTitle">Change your password</h2>
+        <button type="button" class="btn ghost" id="pwDlgClose">Close</button>
+      </div>
+      <div class="lk-form sh-fields">
+        <div class="field" id="pw-w-current">
+          <label for="pw-current">Current password</label>
+          <input id="pw-current" type="password" autocomplete="current-password" maxlength="100" />
+          <p class="lk-err" id="pw-e-current"></p>
+        </div>
+        <div class="field" id="pw-w-next">
+          <label for="pw-next">New password</label>
+          <input id="pw-next" type="password" autocomplete="new-password" maxlength="100" />
+          <span class="hint">At least 8 characters.</span>
+          <p class="lk-err" id="pw-e-next"></p>
+        </div>
+      </div>
+      <p class="formErr" id="pwDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="pwSave">Save password</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- One record: add, edit or delete -->
   <dialog id="shDlg" class="adm-drill sh-dlg" aria-labelledby="shDlgTitle">
@@ -5023,7 +5776,8 @@ _missing_
   var NS = "http://www.w3.org/2000/svg";
 
   var $ = function (id) { return document.getElementById(id); };
-  var password = "";
+  var token = "";   // sign-in token (it says who you are; your role is checked by the server on every request)
+  var me = null;    // { username, name, role, roleLabel, perms, canChangePassword }
   var stats = null;
   var results = [];
   var scale = [];
@@ -5050,11 +5804,11 @@ _missing_
 
   // ---------- API ----------
   function api(path, method, body) {
-    var opts = { method: method || "GET", headers: { Authorization: "Bearer " + password } };
+    var opts = { method: method || "GET", headers: { Authorization: "Bearer " + token } };
     if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     return fetch(path, opts).then(function (r) {
       return r.json().then(function (b) {
-        if (r.status === 401) { var e = new Error(b.error || "Wrong password."); e.auth = true; throw e; }
+        if (r.status === 401) { var e = new Error(b.error || "Please sign in again."); e.auth = true; throw e; }
         if (!r.ok) { var e2 = new Error(b.error || "Something went wrong."); e2.fields = b.errors; e2.status = r.status; throw e2; }
         return b;
       });
@@ -5068,6 +5822,13 @@ _missing_
     if ($("shDlg").open) $("shDlg").close();
     $("shTable").replaceChildren();
     $("shSearch").value = "";
+    me = null;
+    teamData = null;
+    if ($("tmDlg").open) $("tmDlg").close();
+    if ($("pwDlg").open) $("pwDlg").close();
+    $("tmTable").replaceChildren();
+    if ($("rlDlg").open) $("rlDlg").close();
+    $("rlTable").replaceChildren();
     $("dash").hidden = true;
     $("topActions").hidden = true;
     $("login").hidden = false;
@@ -5075,11 +5836,13 @@ _missing_
   }
 
   function load() {
-    return Promise.all([api("/api/admin/stats"), api("/api/admin/results")]).then(function (res) {
+    return Promise.all([api("/api/admin/stats"), api("/api/admin/results"), api("/api/admin/me")]).then(function (res) {
       stats = res[0];
       results = res[1].results;
       scale = res[1].scale;
-      save(password);
+      me = res[2];
+      save(token);
+      applyRole();
       $("login").hidden = true;
       $("dash").hidden = false;
       $("topActions").hidden = false;
@@ -5087,6 +5850,18 @@ _missing_
       renderOverview();
       renderQuiz();
     });
+  }
+
+  // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
+  var TAB_NEEDS = { overview: "view", quiz: "view", links: "links", videos: "videos", database: "database", team: "team" };
+  function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
+  function applyRole() {
+    Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
+    $("who").textContent = me.name + " · " + me.roleLabel;
+    $("acctBtn").hidden = !me.canChangePassword;
+    // if the open tab is no longer allowed (a role was changed), go back to the overview
+    var open = Object.keys(TAB_NEEDS).filter(function (n) { return !$("view-" + n).hidden; })[0];
+    if (open && !allowed(TAB_NEEDS[open])) setTab("overview");
   }
 
   // ---------- Building blocks ----------
@@ -5919,14 +6694,340 @@ _missing_
     });
   }
 
+  // ---------- Team ----------
+  var teamData = null; // { members, roles }
+  var tm = { mode: "add", member: null };
+  var tmDlg = $("tmDlg");
+  var TM_FIELDS = ["username", "fullName", "role", "password"];
+
+  function openTeam() {
+    $("tmNote").textContent = "Loading...";
+    return api("/api/admin/team").then(function (r) {
+      teamData = r;
+      $("tmNote").textContent = "";
+      renderTeam();
+      renderRoles();
+    }).catch(function (err) {
+      if (err.auth) showLogin(err.message); else $("tmNote").textContent = err.message;
+    });
+  }
+
+  function roleLabel(key) {
+    var r = teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+    return r ? r.label : key;
+  }
+
+  function renderTeam() {
+    var t = $("tmTable");
+    t.replaceChildren();
+    var head = el("tr");
+    ["Name", "Username", "Role", "Status", "Added by", "Added"].forEach(function (h) { head.appendChild(el("th", null, h)); });
+    head.appendChild(el("th"));
+    var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
+    var body = el("tbody");
+    var list = teamData ? teamData.members : [];
+    if (!list.length) {
+      var tr0 = el("tr"), td0 = el("td", "empty", "No team members yet. Use \"Add team member\" to create the first one.");
+      td0.colSpan = 7; tr0.appendChild(td0); body.appendChild(tr0);
+    }
+    list.forEach(function (m) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, m.name));
+      tr.appendChild(el("td", null, m.username));
+      tr.appendChild(el("td", null, roleLabel(m.role)));
+      tr.appendChild(el("td", null, m.active ? "Active" : "Disabled"));
+      tr.appendChild(el("td", null, m.createdBy));
+      tr.appendChild(el("td", null, m.createdAt));
+      var act = el("td");
+      var b = el("button", "linkbtn", "Edit");
+      b.type = "button";
+      b.setAttribute("aria-label", "Edit " + m.name);
+      b.addEventListener("click", function () { openTeamDlg("edit", m); });
+      act.appendChild(b);
+      tr.appendChild(act);
+      body.appendChild(tr);
+    });
+    t.appendChild(body);
+  }
+
+  function showTeamErrors(errs) {
+    TM_FIELDS.forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("tm-e-" + f).textContent = msg;
+      $("tm-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+
+  function permLabel(key) {
+    var p = teamData && teamData.permissions.filter(function (x) { return x.key === key; })[0];
+    return p ? p.label : key;
+  }
+  function roleFor(key) {
+    return teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+  }
+  function accessText(r) {
+    return r ? r.perms.map(permLabel).join(", ") : "";
+  }
+  function roleHelp() {
+    var r = roleFor($("tm-role").value);
+    $("tm-roleHelp").textContent = r ? "Can open: " + accessText(r) + "." : "";
+  }
+
+  function openTeamDlg(mode, member) {
+    tm = { mode: mode, member: member || null };
+    var adding = mode === "add";
+    $("tmDlgTitle").textContent = adding ? "Add team member" : member.name;
+    var sel = $("tm-role");
+    sel.replaceChildren();
+    (teamData ? teamData.roles : []).forEach(function (r) {
+      // hide roles that allow more than the signed-in person has, except the one this member already holds
+      if (!r.canGrant && !(member && member.role === r.key)) return;
+      var o = el("option", null, r.label + (r.builtin ? "" : " (custom)")); o.value = r.key;
+      if (!r.canGrant) o.disabled = true;
+      sel.appendChild(o);
+    });
+    $("tm-username").value = adding ? "" : member.username;
+    $("tm-username").disabled = !adding;
+    $("tm-fullName").value = adding ? "" : member.name;
+    sel.value = adding ? "moderator" : member.role;
+    if (adding && sel.value !== "moderator" && sel.options.length) sel.selectedIndex = 0;
+    $("tm-password").value = "";
+    $("tm-passwordLabel").textContent = adding ? "Password" : "New password (optional)";
+    $("tm-passwordHelp").textContent = adding
+      ? "At least 8 characters. Share it with them privately; they can change it after signing in."
+      : "Leave empty to keep their current password. Typing one replaces it.";
+    $("tm-active").value = !adding && !member.active ? "no" : "yes";
+    $("tm-w-active").hidden = adding;
+    var self = !adding && me && member.username === me.username;
+    // nobody can demote, disable or remove themselves
+    sel.disabled = self;
+    $("tm-active").disabled = self;
+    $("tmRemove").hidden = adding || self;
+    $("tmSave").textContent = adding ? "Add team member" : "Save changes";
+    $("tmDlgErr").textContent = "";
+    showTeamErrors(null);
+    roleHelp();
+    tmDlg.showModal();
+    (adding ? $("tm-username") : $("tm-fullName")).focus();
+  }
+
+  function teamFail(err) {
+    if (err.auth) { tmDlg.close(); return showLogin(err.message); }
+    showTeamErrors(err.fields);
+    $("tmDlgErr").textContent = err.message;
+  }
+
+  $("tmAdd").addEventListener("click", function () { openTeamDlg("add"); });
+  $("tmDlgClose").addEventListener("click", function () { tmDlg.close(); });
+  tmDlg.addEventListener("click", function (e) { if (e.target === tmDlg) tmDlg.close(); });
+  $("tm-role").addEventListener("change", roleHelp);
+  TM_FIELDS.forEach(function (f) {
+    $("tm-" + f).addEventListener("input", function () { $("tm-e-" + f).textContent = ""; $("tm-w-" + f).classList.remove("invalid"); });
+  });
+
+  $("tmForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("tmSave");
+    btn.disabled = true;
+    $("tmDlgErr").textContent = "Saving...";
+    showTeamErrors(null);
+    var job;
+    if (tm.mode === "add") {
+      job = api("/api/admin/team", "POST", {
+        username: $("tm-username").value, fullName: $("tm-fullName").value, role: $("tm-role").value, password: $("tm-password").value,
+      });
+    } else {
+      var body = { fullName: $("tm-fullName").value, role: $("tm-role").value, active: $("tm-active").value === "yes" };
+      if ($("tm-password").value) body.password = $("tm-password").value;
+      job = api("/api/admin/team/" + encodeURIComponent(tm.member.username), "PUT", body);
+    }
+    job.then(function () {
+      tmDlg.close();
+      return openTeam().then(function () { $("tmNote").textContent = tm.mode === "add" ? "Team member added." : "Changes saved."; });
+    }).catch(teamFail).then(function () { btn.disabled = false; });
+  });
+
+  $("tmRemove").addEventListener("click", function () {
+    var m = tm.member;
+    if (!m) return;
+    if (!window.confirm("Remove " + m.name + " (" + m.username + ") from the team? They will be signed out and cannot sign in again. This cannot be undone.")) return;
+    var btn = this;
+    btn.disabled = true;
+    api("/api/admin/team/" + encodeURIComponent(m.username) + "/delete", "POST", {}).then(function () {
+      tmDlg.close();
+      return openTeam().then(function () { $("tmNote").textContent = m.name + " was removed."; });
+    }).catch(teamFail).then(function () { btn.disabled = false; });
+  });
+
+
+  // ---------- Roles and access ----------
+  var rl = { mode: "add", role: null };
+  var rlDlg = $("rlDlg");
+  var RL_FIELDS = ["name", "perms"];
+
+  function renderRoles() {
+    var t = $("rlTable");
+    t.replaceChildren();
+    var head = el("tr");
+    ["Role", "Type", "Can open", "People"].forEach(function (h) { head.appendChild(el("th", null, h)); });
+    head.appendChild(el("th"));
+    var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
+    var body = el("tbody");
+    var list = teamData ? teamData.roles : [];
+    list.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, r.label));
+      tr.appendChild(el("td", null, r.builtin ? "Built in" : "Custom"));
+      tr.appendChild(el("td", null, accessText(r)));
+      tr.appendChild(el("td", null, String(r.members)));
+      var act = el("td");
+      if (!r.builtin) {
+        var b = el("button", "linkbtn", "Edit");
+        b.type = "button";
+        b.setAttribute("aria-label", "Edit role " + r.label);
+        b.addEventListener("click", function () { openRoleDlg("edit", r); });
+        act.appendChild(b);
+      }
+      tr.appendChild(act);
+      body.appendChild(tr);
+    });
+    t.appendChild(body);
+  }
+
+  function showRoleErrors(errs) {
+    RL_FIELDS.forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("rl-e-" + f).textContent = msg;
+      $("rl-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+
+  function openRoleDlg(mode, role) {
+    rl = { mode: mode, role: role || null };
+    var adding = mode === "add";
+    var mine = me ? me.perms : [];
+    $("rlDlgTitle").textContent = adding ? "Create role" : role.label;
+    $("rl-name").value = adding ? "" : role.label;
+    var box = $("rl-perms");
+    box.replaceChildren();
+    (teamData ? teamData.permissions : []).forEach(function (p) {
+      var row = el("label", "perm-row");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = p.key;
+      var always = p.key === "view";
+      var have = mine.indexOf(p.key) >= 0;
+      cb.checked = always || (!adding && role.perms.indexOf(p.key) >= 0);
+      // "view" is always on (signing in needs it); access you do not have yourself cannot be given
+      cb.disabled = always || !have;
+      var txt = el("span", "perm-txt");
+      txt.appendChild(el("b", null, p.label));
+      txt.appendChild(el("small", null, always ? p.help : (have ? p.help : "You do not have this access, so you cannot give it.")));
+      row.appendChild(cb);
+      row.appendChild(txt);
+      box.appendChild(row);
+    });
+    $("rlRemove").hidden = adding;
+    $("rlSave").textContent = adding ? "Create role" : "Save changes";
+    $("rlDlgErr").textContent = "";
+    showRoleErrors(null);
+    rlDlg.showModal();
+    $("rl-name").focus();
+  }
+
+  function roleFail(err) {
+    if (err.auth) { rlDlg.close(); return showLogin(err.message); }
+    showRoleErrors(err.fields);
+    $("rlDlgErr").textContent = err.message;
+  }
+
+  function pickedPerms() {
+    return Array.prototype.filter.call($("rl-perms").querySelectorAll("input[type=checkbox]"), function (c) { return c.checked; })
+      .map(function (c) { return c.value; });
+  }
+
+  $("rlAdd").addEventListener("click", function () { openRoleDlg("add"); });
+  $("rlDlgClose").addEventListener("click", function () { rlDlg.close(); });
+  rlDlg.addEventListener("click", function (e) { if (e.target === rlDlg) rlDlg.close(); });
+  RL_FIELDS.forEach(function (f) {
+    ["input", "change"].forEach(function (ev) {
+      $("rl-w-" + f).addEventListener(ev, function () { $("rl-e-" + f).textContent = ""; $("rl-w-" + f).classList.remove("invalid"); $("rlDlgErr").textContent = ""; });
+    });
+  });
+
+  $("rlForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("rlSave");
+    btn.disabled = true;
+    $("rlDlgErr").textContent = "Saving...";
+    showRoleErrors(null);
+    var body = { name: $("rl-name").value, perms: pickedPerms() };
+    var job = rl.mode === "add"
+      ? api("/api/admin/roles", "POST", body)
+      : api("/api/admin/roles/" + encodeURIComponent(rl.role.key), "PUT", body);
+    job.then(function () {
+      rlDlg.close();
+      var msg = rl.mode === "add" ? "Role created." : "Role saved. People with this role get the new access straight away.";
+      return openTeam().then(function () { $("rlNote").textContent = msg; });
+    }).catch(roleFail).then(function () { btn.disabled = false; });
+  });
+
+  $("rlRemove").addEventListener("click", function () {
+    var r = rl.role;
+    if (!r) return;
+    if (!window.confirm("Delete the role " + r.label + "? This cannot be undone.")) return;
+    var btn = this;
+    btn.disabled = true;
+    api("/api/admin/roles/" + encodeURIComponent(r.key) + "/delete", "POST", {}).then(function () {
+      rlDlg.close();
+      return openTeam().then(function () { $("rlNote").textContent = "The role " + r.label + " was deleted."; });
+    }).catch(roleFail).then(function () { btn.disabled = false; });
+  });
+
+  // ---------- Your own password ----------
+  var pwDlg = $("pwDlg");
+  function showPwErrors(errs) {
+    ["current", "next"].forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("pw-e-" + f).textContent = msg;
+      $("pw-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+  $("acctBtn").addEventListener("click", function () {
+    $("pw-current").value = ""; $("pw-next").value = "";
+    $("pwDlgErr").textContent = "";
+    showPwErrors(null);
+    pwDlg.showModal();
+    $("pw-current").focus();
+  });
+  $("pwDlgClose").addEventListener("click", function () { pwDlg.close(); });
+  pwDlg.addEventListener("click", function (e) { if (e.target === pwDlg) pwDlg.close(); });
+  $("pwForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("pwSave");
+    btn.disabled = true;
+    $("pwDlgErr").textContent = "Saving...";
+    showPwErrors(null);
+    api("/api/admin/me/password", "POST", { current: $("pw-current").value, next: $("pw-next").value }).then(function () {
+      pwDlg.close();
+      $("stamp").textContent = "Password changed.";
+    }).catch(function (err) {
+      if (err.auth) { pwDlg.close(); return showLogin(err.message); }
+      showPwErrors(err.fields);
+      $("pwDlgErr").textContent = err.message;
+    }).then(function () { btn.disabled = false; });
+  });
+
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz", "links", "videos", "database"].forEach(function (n) {
+    if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
+    ["overview", "quiz", "links", "videos", "database", "team"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "database";
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team";
     if (name === "database") openSheets();
+    if (name === "team") openTeam();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
@@ -5941,6 +7042,7 @@ _missing_
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
+  $("tab-team").addEventListener("click", function () { setTab("team"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);
@@ -5949,15 +7051,26 @@ _missing_
 
   $("loginForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var pw = $("pw").value;
-    if (!pw) { $("loginErr").textContent = "Enter the password."; return; }
-    password = pw;
+    var un = $("un").value.trim(), pw = $("pw").value;
+    if (!un) { $("loginErr").textContent = "Enter your username."; return; }
+    if (!pw) { $("loginErr").textContent = "Enter your password."; return; }
     var b = $("loginBtn");
     b.disabled = true;
     b.textContent = "Checking...";
     $("loginErr").textContent = "";
-    load()
-      .catch(function (err) { password = ""; $("loginErr").textContent = err.message; })
+    fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: un, password: pw }),
+    })
+      .then(function (r) {
+        return r.json().then(function (body) {
+          if (!r.ok) throw new Error(body.error || "Could not sign in.");
+          token = body.token;
+          return load();
+        });
+      })
+      .catch(function (err) { token = ""; $("loginErr").textContent = err.message; })
       .then(function () { b.disabled = false; b.textContent = "Sign in"; $("pw").value = ""; });
   });
 
@@ -5972,7 +7085,7 @@ _missing_
 
   $("logoutBtn").addEventListener("click", function () {
     if (dlg.open) dlg.close();
-    password = "";
+    token = "";
     save("");
     stats = null;
     showLogin("");
@@ -5981,8 +7094,8 @@ _missing_
   // Come back without retyping during the same browser session.
   var remembered = getSaved();
   if (remembered) {
-    password = remembered;
-    load().catch(function () { password = ""; save(""); showLogin(""); });
+    token = remembered;
+    load().catch(function () { token = ""; save(""); showLogin(""); });
   }
 })();
 ```
@@ -6006,6 +7119,7 @@ body.adm { background: var(--bone); min-height: 100vh; }
 .adm-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .adm-actions .btn { color: #fff; border-color: rgba(255, 255, 255, .4); background: rgba(255, 255, 255, .08); padding: 8px 14px; }
 .adm-stamp { font-size: .78rem; opacity: .8; }
+.adm-who { font-size: .85rem; font-weight: 600; }
 
 .adm-main { max-width: 1180px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 64px; }
 .adm-login { max-width: 400px; margin: 7vh auto 0; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
@@ -6031,9 +7145,8 @@ body.adm { background: var(--bone); min-height: 100vh; }
 .adm-card-head h3 { margin: 0; }
 .adm-note { font-size: .8rem; color: var(--muted); margin: 8px 0 0; }
 .adm-select { font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-.adm-select select, .filters select, .filters input {
-  font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
-}
+/* Field look (border, radius, height, focus ring) comes from styles.css so these match the registration form */
+.adm-select select { width: auto; min-width: 110px; }
 
 .bars { display: grid; gap: 9px; }
 .bar { display: grid; grid-template-columns: minmax(90px, 38%) 1fr auto; gap: 10px; align-items: center; font-size: .88rem; }
@@ -6100,7 +7213,7 @@ button.bar:hover { background: var(--bone); }
 .drill-summary { margin: 0 0 6px; font-size: .9rem; color: var(--violet-deep); font-weight: 600; }
 .adm-drill .tablewrap { max-height: 56dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
 .adm-drill .adm-table th { position: sticky; top: 0; background: #fff; }
-.adm-drill .filters .btn { height: 42px; }
+.adm-drill .filters .btn { height: 52px; }
 /* the site-wide button style forces a 54px pill; these are content, not pills */
 button.kpi { display: block; height: auto; font-weight: 400; }
 button.bar { display: grid; height: auto; font-weight: 400; justify-content: stretch; }
@@ -6109,9 +7222,8 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 /* Site links editor */
 .lk-form { display: grid; gap: 4px; max-width: 760px; }
 .lk-form .field { margin-bottom: 12px; }
-.lk-form textarea { min-height: 120px; resize: vertical; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
-.lk-form .field.invalid input, .lk-form .field.invalid textarea { border-color: var(--danger); }
-.lk-err { color: var(--danger); font-size: .82rem; margin: 4px 0 0; min-height: 0; }
+.lk-err { color: var(--danger); font-size: .84rem; font-weight: 500; margin: 6px 0 0; min-height: 0; }
+.lk-err:empty { display: none; }
 .lk-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
 .lk-bar .primary { width: auto; padding-inline: 28px; }
 .lk-msg { font-size: .9rem; font-weight: 600; color: var(--violet-deep); }
@@ -6128,18 +7240,27 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .sh-wrap { max-height: 62dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
 .sh-table th { position: sticky; top: 0; background: #fff; }
 .sh-cell { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
-.filters #shAdd, .filters #shReload { height: 42px; }
+.filters #shAdd, .filters #shReload { height: 52px; }
 #shOpen { height: 40px; padding: 0 16px; display: inline-flex; align-items: center; text-decoration: none; }
 .sh-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
 .sh-pager .btn { height: 38px; padding: 0 16px; }
 .sh-dlg { width: min(640px, calc(100vw - 24px)); }
 .sh-fields { max-width: none; max-height: 52dvh; overflow: auto; padding-right: 4px; }
 .sh-dlg input:disabled, .sh-dlg select:disabled, .sh-dlg textarea:disabled { background: var(--bone); color: var(--muted); cursor: not-allowed; }
-.sh-dlg textarea { min-height: 96px; resize: vertical; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; width: 100%; }
-.sh-dlg .field.invalid input, .sh-dlg .field.invalid select, .sh-dlg .field.invalid textarea { border-color: var(--danger); }
+.sh-dlg textarea { min-height: 96px; }
 .sh-dlg .lk-bar .btn { height: 48px; padding: 0 22px; }
 .sh-del { color: var(--danger); border-color: rgba(192, 38, 45, .45); }
 .sh-del:hover { background: rgba(192, 38, 45, .08); }
+
+/* Roles: the access checklist in the role dialog */
+.perm-list { display: grid; gap: 8px; margin-top: 6px; }
+.perm-row { font-weight: 400; margin: 0; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line, #e3dff0); border-radius: 12px; cursor: pointer; }
+.perm-row input[type=checkbox] { margin: 3px 0 0; padding: 0; width: 18px; height: 18px; flex: none; }
+.perm-row input:disabled { cursor: not-allowed; }
+.perm-txt { display: grid; gap: 2px; min-width: 0; }
+.perm-txt b { font-weight: 600; }
+.perm-txt small { color: var(--muted, #6b6680); line-height: 1.35; }
+#rlDlg .sh-fields { max-height: 68dvh; }
 ```
 
 #### `public/styles.css`
@@ -6281,7 +7402,8 @@ a { color: inherit; }
 label, .label { font-weight: 600; font-size: .9rem; margin-bottom: 7px; }
 label em { font-weight: 400; color: var(--muted); font-style: normal; }
 
-input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select {
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"],
+input[type="password"], input[type="search"], input[type="url"], input[type="number"], select {
   font: inherit;
   height: 52px;
   padding: 0 16px;
@@ -6300,13 +7422,28 @@ select {
   background-repeat: no-repeat;
   background-position: right 18px center;
 }
-input::placeholder { color: #a99fb0; }
-input:focus-visible, select:focus-visible, input[type="date"]:focus-visible {
+/* Multi-line box: same border, radius and focus ring as the single-line fields */
+textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 120px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  resize: vertical;
+  transition: border-color .15s, box-shadow .15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+input::placeholder, textarea::placeholder { color: #a99fb0; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, input[type="date"]:focus-visible {
   outline: none;
   border-color: var(--violet);
   box-shadow: 0 0 0 4px rgba(139, 31, 142, .15);
 }
-.field.invalid input, .field.invalid select { border-color: var(--danger); }
+.field.invalid input, .field.invalid select, .field.invalid textarea { border-color: var(--danger); }
 /* Date picker: same rounded look as the other fields; Safari/Chrome add their own inner box and icon */
 input[type="date"] { min-height: 52px; text-align: left; display: block; }
 input[type="date"]::-webkit-date-and-time-value { text-align: left; }
@@ -7101,7 +8238,7 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "server.js", "sheets.js", "team.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
   "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",

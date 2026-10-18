@@ -522,8 +522,10 @@ function botAuth(req, res, next) {
 
 // The editor dashboard has named accounts with roles (see team.js):
 //   owner      signs in as "owner" with ADMIN_PASSWORD on Render. Always works; cannot be removed.
-//   admin      statistics + site changes (links, videos, database) + manages the team.
+//   admin      everything, including the team and roles.
+//   editor     everything except the team: statistics, site links, chapter videos and the Database.
 //   moderator  statistics, student lists and quiz results only (read only).
+//   custom     roles an admin creates on the dashboard, with the access they pick (see team.js).
 // Signing in returns a token (12 hours). It only says WHO you are; your role is looked up on every request,
 // so a role change, a disable or a removal takes effect straight away. Sending ADMIN_PASSWORD itself as the
 // Bearer token still works and counts as the owner, so existing bookmarks and scripts keep working.
@@ -550,8 +552,9 @@ function requirePerm(perm) {
       if (username) who = await teamService.lookup(username);
       else if (given && safeEqual(given, pw)) who = { username: team.OWNER, name: "Owner", role: "owner" };
       if (!who) return res.status(401).json({ error: "Please sign in again." });
-      if (!team.can(who.role, perm)) return res.status(403).json({ error: "Your role does not allow this." });
-      req.admin = who;
+      const perms = await teamService.permsOf(who.role);
+      if (!perms.includes(perm)) return res.status(403).json({ error: "Your role does not allow this." });
+      req.admin = { ...who, perms };
       next();
     } catch (err) {
       console.error("Admin sign-in check failed:", err.message);
@@ -560,8 +563,10 @@ function requirePerm(perm) {
   };
 }
 const adminAuth = requirePerm("view"); // statistics, student lists and quiz results
-const manageAuth = requirePerm("manage"); // site links, chapter videos, database
-const teamAuth = requirePerm("team"); // add, change and remove team accounts
+const linksAuth = requirePerm("links"); // site links
+const videosAuth = requirePerm("videos"); // chapter videos
+const databaseAuth = requirePerm("database"); // the Database tab
+const teamAuth = requirePerm("team"); // team accounts and roles
 
 app.get("/api/config", (_req, res) =>
   res.json({
@@ -698,8 +703,10 @@ const teamLoginLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many attempts. Try again in a few minutes." },
 });
-const permList = (role) => (team.ROLES[role] ? team.ROLES[role].perms : []);
-const meOf = (who) => ({ username: who.username, name: who.name, role: who.role, roleLabel: team.ROLES[who.role].label, perms: permList(who.role), canChangePassword: who.role !== "owner" });
+async function meOf(who) {
+  const info = who.role === "owner" ? { label: team.ROLES.owner.label, perms: team.ROLES.owner.perms } : await teamService.roleInfo(who.role);
+  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.role !== "owner" };
+}
 
 function teamRoute(handler) {
   return async (req, res) => {
@@ -721,10 +728,10 @@ app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
   if (!pw) throw new team.TeamError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
   const b = req.body || {};
   const who = await teamService.login(clean(b.username, 40), typeof b.password === "string" ? b.password.slice(0, 200) : "", pw, safeEqual);
-  res.json({ token: team.signToken(who.username, pw), me: meOf(who) });
+  res.json({ token: team.signToken(who.username, pw), me: await meOf(who) });
 }));
 
-app.get("/api/admin/me", adminLimiter, adminAuth, teamRoute(async (req, res) => res.json(meOf(req.admin))));
+app.get("/api/admin/me", adminLimiter, adminAuth, teamRoute(async (req, res) => res.json(await meOf(req.admin))));
 
 app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req, res) => {
   if (req.admin.role === "owner") throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
@@ -732,8 +739,21 @@ app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req
   res.json(await teamService.changeOwnPassword(req.admin.username, b.current, b.next));
 }));
 
-app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (_req, res) => {
-  res.json({ members: await teamService.members(), roles: team.ASSIGNABLE.map((k) => ({ key: k, label: team.ROLES[k].label, perms: permList(k) })) });
+app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json({ members: await teamService.members(), roles: await teamService.roles(req.admin), permissions: team.PERMS });
+}));
+
+// Roles: create one and pick its access; change a custom role's name or access; remove a custom role nobody uses.
+app.post("/api/admin/roles", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.addRole(req.body, req.admin));
+}));
+
+app.put("/api/admin/roles/:key", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.updateRole(String(req.params.key).toLowerCase(), req.body, req.admin));
+}));
+
+app.post("/api/admin/roles/:key/delete", adminLimiter, teamAuth, teamRoute(async (req, res) => {
+  res.json(await teamService.removeRole(String(req.params.key).toLowerCase(), req.admin));
 }));
 
 app.post("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
@@ -775,7 +795,7 @@ app.get("/api/admin/drill", adminLimiter, adminAuth, async (req, res) => {
 });
 
 // The editor reads and changes the site links here.
-app.get("/api/admin/links", adminLimiter, manageAuth, async (_req, res) => {
+app.get("/api/admin/links", adminLimiter, linksAuth, async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     res.json({ fields: links.FIELDS, values: await store.readLinks(0) });
@@ -785,7 +805,7 @@ app.get("/api/admin/links", adminLimiter, manageAuth, async (_req, res) => {
   }
 });
 
-app.put("/api/admin/links", adminLimiter, manageAuth, async (req, res) => {
+app.put("/api/admin/links", adminLimiter, linksAuth, async (req, res) => {
   const { values, errors } = links.sanitize(req.body);
   if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
   try {
@@ -798,7 +818,7 @@ app.put("/api/admin/links", adminLimiter, manageAuth, async (req, res) => {
 });
 
 // The editor reads and changes the chapter video addresses here.
-app.get("/api/admin/videos", adminLimiter, manageAuth, async (_req, res) => {
+app.get("/api/admin/videos", adminLimiter, videosAuth, async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     res.json({ chapters: videos.VIDEO_CHAPTERS, values: await store.readVideos(0) });
@@ -808,7 +828,7 @@ app.get("/api/admin/videos", adminLimiter, manageAuth, async (_req, res) => {
   }
 });
 
-app.put("/api/admin/videos", adminLimiter, manageAuth, async (req, res) => {
+app.put("/api/admin/videos", adminLimiter, videosAuth, async (req, res) => {
   const { values, errors } = videos.sanitize(req.body);
   if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
   try {
@@ -847,7 +867,7 @@ app.use(
     legacyHeaders: false,
     message: { error: "Too many attempts. Try again in a few minutes." },
   }),
-  manageAuth
+  databaseAuth
 );
 
 function databaseRoute(handler) {
