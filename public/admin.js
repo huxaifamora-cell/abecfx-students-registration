@@ -56,6 +56,8 @@
     if ($("tmDlg").open) $("tmDlg").close();
     if ($("pwDlg").open) $("pwDlg").close();
     $("tmTable").replaceChildren();
+    if ($("rlDlg").open) $("rlDlg").close();
+    $("rlTable").replaceChildren();
     $("dash").hidden = true;
     $("topActions").hidden = true;
     $("login").hidden = false;
@@ -80,7 +82,7 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", links: "manage", videos: "manage", database: "manage", team: "team" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", links: "links", videos: "videos", database: "database", team: "team" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   function applyRole() {
     Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
@@ -933,6 +935,7 @@
       teamData = r;
       $("tmNote").textContent = "";
       renderTeam();
+      renderRoles();
     }).catch(function (err) {
       if (err.auth) showLogin(err.message); else $("tmNote").textContent = err.message;
     });
@@ -984,11 +987,19 @@
     });
   }
 
+  function permLabel(key) {
+    var p = teamData && teamData.permissions.filter(function (x) { return x.key === key; })[0];
+    return p ? p.label : key;
+  }
+  function roleFor(key) {
+    return teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+  }
+  function accessText(r) {
+    return r ? r.perms.map(permLabel).join(", ") : "";
+  }
   function roleHelp() {
-    var r = teamData && teamData.roles.filter(function (x) { return x.key === $("tm-role").value; })[0];
-    $("tm-roleHelp").textContent = !r ? "" : r.key === "admin"
-      ? "Sees everything, changes the site (links, videos, database) and manages the team."
-      : "Can only view statistics, student lists and quiz results.";
+    var r = roleFor($("tm-role").value);
+    $("tm-roleHelp").textContent = r ? "Can open: " + accessText(r) + "." : "";
   }
 
   function openTeamDlg(mode, member) {
@@ -997,11 +1008,18 @@
     $("tmDlgTitle").textContent = adding ? "Add team member" : member.name;
     var sel = $("tm-role");
     sel.replaceChildren();
-    (teamData ? teamData.roles : []).forEach(function (r) { var o = el("option", null, r.label); o.value = r.key; sel.appendChild(o); });
+    (teamData ? teamData.roles : []).forEach(function (r) {
+      // hide roles that allow more than the signed-in person has, except the one this member already holds
+      if (!r.canGrant && !(member && member.role === r.key)) return;
+      var o = el("option", null, r.label + (r.builtin ? "" : " (custom)")); o.value = r.key;
+      if (!r.canGrant) o.disabled = true;
+      sel.appendChild(o);
+    });
     $("tm-username").value = adding ? "" : member.username;
     $("tm-username").disabled = !adding;
     $("tm-fullName").value = adding ? "" : member.name;
     sel.value = adding ? "moderator" : member.role;
+    if (adding && sel.value !== "moderator" && sel.options.length) sel.selectedIndex = 0;
     $("tm-password").value = "";
     $("tm-passwordLabel").textContent = adding ? "Password" : "New password (optional)";
     $("tm-passwordHelp").textContent = adding
@@ -1068,6 +1086,131 @@
       tmDlg.close();
       return openTeam().then(function () { $("tmNote").textContent = m.name + " was removed."; });
     }).catch(teamFail).then(function () { btn.disabled = false; });
+  });
+
+
+  // ---------- Roles and access ----------
+  var rl = { mode: "add", role: null };
+  var rlDlg = $("rlDlg");
+  var RL_FIELDS = ["name", "perms"];
+
+  function renderRoles() {
+    var t = $("rlTable");
+    t.replaceChildren();
+    var head = el("tr");
+    ["Role", "Type", "Can open", "People"].forEach(function (h) { head.appendChild(el("th", null, h)); });
+    head.appendChild(el("th"));
+    var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
+    var body = el("tbody");
+    var list = teamData ? teamData.roles : [];
+    list.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, r.label));
+      tr.appendChild(el("td", null, r.builtin ? "Built in" : "Custom"));
+      tr.appendChild(el("td", null, accessText(r)));
+      tr.appendChild(el("td", null, String(r.members)));
+      var act = el("td");
+      if (!r.builtin) {
+        var b = el("button", "linkbtn", "Edit");
+        b.type = "button";
+        b.setAttribute("aria-label", "Edit role " + r.label);
+        b.addEventListener("click", function () { openRoleDlg("edit", r); });
+        act.appendChild(b);
+      }
+      tr.appendChild(act);
+      body.appendChild(tr);
+    });
+    t.appendChild(body);
+  }
+
+  function showRoleErrors(errs) {
+    RL_FIELDS.forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("rl-e-" + f).textContent = msg;
+      $("rl-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+
+  function openRoleDlg(mode, role) {
+    rl = { mode: mode, role: role || null };
+    var adding = mode === "add";
+    var mine = me ? me.perms : [];
+    $("rlDlgTitle").textContent = adding ? "Create role" : role.label;
+    $("rl-name").value = adding ? "" : role.label;
+    var box = $("rl-perms");
+    box.replaceChildren();
+    (teamData ? teamData.permissions : []).forEach(function (p) {
+      var row = el("label", "perm-row");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = p.key;
+      var always = p.key === "view";
+      var have = mine.indexOf(p.key) >= 0;
+      cb.checked = always || (!adding && role.perms.indexOf(p.key) >= 0);
+      // "view" is always on (signing in needs it); access you do not have yourself cannot be given
+      cb.disabled = always || !have;
+      var txt = el("span", "perm-txt");
+      txt.appendChild(el("b", null, p.label));
+      txt.appendChild(el("small", null, always ? p.help : (have ? p.help : "You do not have this access, so you cannot give it.")));
+      row.appendChild(cb);
+      row.appendChild(txt);
+      box.appendChild(row);
+    });
+    $("rlRemove").hidden = adding;
+    $("rlSave").textContent = adding ? "Create role" : "Save changes";
+    $("rlDlgErr").textContent = "";
+    showRoleErrors(null);
+    rlDlg.showModal();
+    $("rl-name").focus();
+  }
+
+  function roleFail(err) {
+    if (err.auth) { rlDlg.close(); return showLogin(err.message); }
+    showRoleErrors(err.fields);
+    $("rlDlgErr").textContent = err.message;
+  }
+
+  function pickedPerms() {
+    return Array.prototype.filter.call($("rl-perms").querySelectorAll("input[type=checkbox]"), function (c) { return c.checked; })
+      .map(function (c) { return c.value; });
+  }
+
+  $("rlAdd").addEventListener("click", function () { openRoleDlg("add"); });
+  $("rlDlgClose").addEventListener("click", function () { rlDlg.close(); });
+  rlDlg.addEventListener("click", function (e) { if (e.target === rlDlg) rlDlg.close(); });
+  RL_FIELDS.forEach(function (f) {
+    ["input", "change"].forEach(function (ev) {
+      $("rl-w-" + f).addEventListener(ev, function () { $("rl-e-" + f).textContent = ""; $("rl-w-" + f).classList.remove("invalid"); $("rlDlgErr").textContent = ""; });
+    });
+  });
+
+  $("rlForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("rlSave");
+    btn.disabled = true;
+    $("rlDlgErr").textContent = "Saving...";
+    showRoleErrors(null);
+    var body = { name: $("rl-name").value, perms: pickedPerms() };
+    var job = rl.mode === "add"
+      ? api("/api/admin/roles", "POST", body)
+      : api("/api/admin/roles/" + encodeURIComponent(rl.role.key), "PUT", body);
+    job.then(function () {
+      rlDlg.close();
+      var msg = rl.mode === "add" ? "Role created." : "Role saved. People with this role get the new access straight away.";
+      return openTeam().then(function () { $("rlNote").textContent = msg; });
+    }).catch(roleFail).then(function () { btn.disabled = false; });
+  });
+
+  $("rlRemove").addEventListener("click", function () {
+    var r = rl.role;
+    if (!r) return;
+    if (!window.confirm("Delete the role " + r.label + "? This cannot be undone.")) return;
+    var btn = this;
+    btn.disabled = true;
+    api("/api/admin/roles/" + encodeURIComponent(r.key) + "/delete", "POST", {}).then(function () {
+      rlDlg.close();
+      return openTeam().then(function () { $("rlNote").textContent = "The role " + r.label + " was deleted."; });
+    }).catch(roleFail).then(function () { btn.disabled = false; });
   });
 
   // ---------- Your own password ----------

@@ -163,9 +163,19 @@
             <h3>Team</h3>
             <button type="button" class="btn ghost" id="tmAdd">Add team member</button>
           </div>
-          <p class="adm-note"><b>Admins</b> see everything, change the site (links, videos, database) and manage this team. <b>Moderators</b> can only view statistics, student lists and quiz results. The owner (the ADMIN_PASSWORD holder) always has full access and is not listed here.</p>
+          <p class="adm-note">Each person has a <b>role</b>, and each role decides what they can open. The owner (the ADMIN_PASSWORD holder) always has full access and is not listed here.</p>
           <div class="tablewrap"><table class="adm-table" id="tmTable"></table></div>
           <p class="adm-note" id="tmNote" role="status"></p>
+        </article>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Roles and access</h3>
+            <button type="button" class="btn ghost" id="rlAdd">Create role</button>
+          </div>
+          <p class="adm-note">Admin, Editor and Moderator are built in and cannot be changed. Create your own role and tick exactly what it may open. You can only give access that you have yourself.</p>
+          <div class="tablewrap"><table class="adm-table" id="rlTable"></table></div>
+          <p class="adm-note" id="rlNote" role="status"></p>
         </article>
       </div>
     </section>
@@ -214,6 +224,34 @@
       <div class="lk-bar">
         <button type="submit" class="primary" id="tmSave">Save</button>
         <button type="button" class="btn ghost sh-del" id="tmRemove" hidden>Remove</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- A role: name and access -->
+  <dialog id="rlDlg" class="adm-drill sh-dlg" aria-labelledby="rlDlgTitle">
+    <form id="rlForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="rlDlgTitle">Role</h2>
+        <button type="button" class="btn ghost" id="rlDlgClose">Close</button>
+      </div>
+      <div class="lk-form sh-fields">
+        <div class="field" id="rl-w-name">
+          <label for="rl-name">Role name</label>
+          <input id="rl-name" type="text" autocomplete="off" maxlength="40" />
+          <span class="hint">For example Support or Video team.</span>
+          <p class="lk-err" id="rl-e-name"></p>
+        </div>
+        <div class="field" id="rl-w-perms">
+          <span class="label" id="rl-permsLabel">Access: tick what this role may open</span>
+          <div class="perm-list" id="rl-perms" role="group" aria-labelledby="rl-permsLabel"></div>
+          <p class="lk-err" id="rl-e-perms"></p>
+        </div>
+      </div>
+      <p class="formErr" id="rlDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="rlSave">Save</button>
+        <button type="button" class="btn ghost sh-del" id="rlRemove" hidden>Delete role</button>
       </div>
     </form>
   </dialog>
