@@ -44,14 +44,17 @@
   // What the card calls a status. A Certified student is a certified graduate.
   function statusLabel(status) { return status === "Certified" ? "Certified Graduate" : status; }
 
-  // Round stamp: "Certified graduate of ABEC-FX" (Certified students) or "Alumni member" (alumni).
+  // The team: their card shows the role they hold in the ABECFX organisation, and a stamp with it.
+  var TEAM_ROLE = { "Mentor": "Mentor", "Staff Member": "Staff Member", "CEO": "Chief Executive Officer (CEO)" };
+  var TEAM_STAMP = { "Mentor": "MENTOR", "Staff Member": "STAFF MEMBER", "CEO": "CHIEF EXECUTIVE OFFICER" };
+
+  // Round stamp: "Certified graduate" (Certified students), "Alumni member" (alumni), or the team member's role.
   function buildStamp(status, dateText) {
-    var isGrad = status !== "Alumni Member";
-    var top = isGrad ? "CERTIFIED GRADUATE" : "ALUMNI MEMBER";
+    var top = TEAM_STAMP[status] || (status === "Alumni Member" ? "ALUMNI MEMBER" : "CERTIFIED GRADUATE");
+    var label = TEAM_ROLE[status] ? TEAM_ROLE[status] + " at ABEC-FX" : status === "Alumni Member" ? "Alumni member of ABEC-FX" : "Certified graduate of ABEC-FX";
     var id = "stamp" + ++stampCounter;
 
-    var svg = svgEl("svg", { viewBox: "0 0 200 200", "class": "idc-stamp-svg", role: "img",
-      "aria-label": isGrad ? "Certified graduate of ABEC-FX" : "Alumni member of ABEC-FX" });
+    var svg = svgEl("svg", { viewBox: "0 0 200 200", "class": "idc-stamp-svg", role: "img", "aria-label": label });
 
     var defs = svgEl("defs");
     defs.appendChild(svgEl("path", { id: id + "t", d: "M 100,100 m -67,0 a 67,67 0 1,1 134,0" }));
@@ -70,7 +73,7 @@
       t.appendChild(tp);
       return t;
     }
-    svg.appendChild(arcText(id + "t", top, 13.5));
+    svg.appendChild(arcText(id + "t", top, top.length > 20 ? 10.5 : top.length > 14 ? 12.5 : 13.5)); // long titles get a smaller size so they fit the ring
     svg.appendChild(arcText(id + "b", "ADEBASS BASE EDGE CONSULT", 10.5));
 
     var stars = svgEl("text", { x: 100, y: 83, "text-anchor": "middle", "class": "st-stars", "font-size": 10 });
@@ -89,15 +92,16 @@
     return svg;
   }
 
-  // Text for the "expires" line on the card.
+  // Text for the "expires" line on the card. Only an Uncertified ID has one: any other status shows no line at all.
   function expiryLine(d) {
+    if (d.expiryKind === "none") return null;
     if (d.expiryKind === "date") {
       if (d.expired) return { text: "Expired " + d.expires, cls: "is-expired" };
       if (d.daysLeft === 0) return { text: "Expires today", cls: "is-soon" };
       return { text: "Expires " + d.expires, cls: d.daysLeft <= 14 ? "is-soon" : "" };
     }
     if (d.expiryKind === "unknown") return { text: "Expiry date not set", cls: "" };
-    return { text: "No expiry", cls: "" };
+    return null;
   }
 
   // Message shown under the card when an ID has expired or is about to.
@@ -186,17 +190,18 @@
     card.appendChild(el("h3", "idc-name", d.fullName));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 
-    // ---- status (+ stamp for certified graduates and alumni)
+    // ---- status (+ stamp for certified graduates, alumni and the team)
     var row = el("div", "idc-statusrow");
     var col = el("div", "idc-statuscol");
     var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
     chip.appendChild(el("span", null, statusLabel(status)));
     col.appendChild(chip);
+    if (TEAM_ROLE[status]) col.appendChild(el("span", "idc-role", "Role in ABECFX: " + TEAM_ROLE[status]));
     col.appendChild(el("span", "idc-since",
       status === "Uncertified" ? "Awaiting certification"
         : "Since " + (d.statusDate || "date not recorded")));
     row.appendChild(col);
-    if (status === "Certified" || status === "Alumni Member") {
+    if (status === "Certified" || status === "Alumni Member" || TEAM_ROLE[status]) {
       var stampWrap = el("div", "idc-stamp");
       stampWrap.appendChild(buildStamp(status, d.statusDate));
       row.appendChild(stampWrap);
@@ -214,7 +219,7 @@
     vt.appendChild(el("span", null, "Opens this student's live record."));
     if (d.issued) vt.appendChild(el("span", "idc-issued", "Issued " + d.issued));
     var exp = expiryLine(d);
-    vt.appendChild(el("span", "idc-expiry " + exp.cls, exp.text));
+    if (exp) vt.appendChild(el("span", "idc-expiry " + exp.cls, exp.text));
     verify.appendChild(vt);
     card.appendChild(verify);
 
