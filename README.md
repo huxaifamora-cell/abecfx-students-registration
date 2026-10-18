@@ -115,7 +115,7 @@ New students also see their ID card right after registering.
 
 **Status** is column J of the Students tab. Every new student is saved as **Uncertified**. An editor
 picks a new value from the dropdown:
-`Uncertified`, `Certified`, `Team Member`, `Alumni Member`. An ID card is always one of these four. (Old rows that say Mentor, Staff Member or CEO are read as Team Member.)
+`Uncertified`, `Certified`, `Team Member`, `Alumni Member`. An ID card is always one of these four. A Team Member also has a **Team Role** (column O, typed on the dashboard) that is printed on their Team ID card. (Old rows that say Mentor, Staff Member or CEO are read as Team Member.)
 Then type the date in the **Status Date** column (K), e.g. `13 Oct 2026`.
 The stamp shows that date too. Changes show on the ID card within about 15 seconds.
 

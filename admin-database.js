@@ -74,15 +74,15 @@ function create(store) {
     students: {
       label: "Students",
       help: "One row per student. The registration number, sign-up time and mentorship code are locked. A student's photo can only be added when the student registers.",
-      editable: [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13],
+      editable: [2, 3, 4, 5, 6, 7, 9, 14, 10, 11, 12, 13],
       selects: { 2: countries, 7: GENDERS, 9: store.STATUSES },
-      placeholders: { 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      placeholders: { 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
       create: {
         label: "Add student",
         help: "The registration number, sign-up time and ID issue date are filled in for you. A student added here has no photo, so the ID card shows their initials.",
-        fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 10],
+        fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 14, 10],
         defaults: { 3: "Forex Mentorship", 9: "Uncertified" },
       },
       deleteWarning: "This also deletes the student's photo, quiz results and handbook progress, and cannot be undone. Their registration number will never be given to anyone else.",
@@ -131,6 +131,15 @@ function create(store) {
         if (changed(9)) {
           p[9] = clean(p[9]);
           if (!store.STATUSES.includes(p[9])) errors[9] = "Choose a status from the list.";
+        }
+        // The role only exists for a Team Member: it is required for them and cleared for everyone else.
+        if (!errors[9]) {
+          if (p[9] === "Team Member") {
+            p[14] = clean(p[14], 40);
+            if (p[14].length < 2) errors[14] = "Type this team member's role, e.g. Mentor, CEO or Support Staff.";
+          } else {
+            p[14] = "";
+          }
         }
         if (changed(10)) p[10] = clean(p[10], 40);
         if (changed(11)) {

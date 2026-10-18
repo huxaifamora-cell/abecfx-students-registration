@@ -163,6 +163,7 @@ function cardFromRow(r) {
     admitted: Number.isNaN(yy) ? "" : 2000 + yy,
     issued: issuedISO ? idrules.formatISO(issuedISO) : (r[1] || "").split(",")[0],
     status,
+    teamRole: status === "Team Member" ? (r[14] || "").trim() : "",
     statusDate: status === "Uncertified" ? "" : r[10] || "",
     ...expiry, // expiryKind, expires, expired, daysLeft
   };

@@ -32,8 +32,9 @@ const HEADERS = [
   "ID Issue Date",
   "State / Region",
   "Date of Birth",
+  "Team Role",
 ];
-const LAST_COL = "N";
+const LAST_COL = "O";
 const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)"];
 const QUIZ_TAB = process.env.GOOGLE_QUIZ_TAB || "Quiz Results";
 const QUIZ_HEADERS = [
