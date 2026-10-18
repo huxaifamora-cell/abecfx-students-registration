@@ -530,6 +530,10 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quizrun-foot { margin: 10px 0 0; text-align: center; font-size: .82rem; }
 .quizrun-foot a { color: var(--muted); }
 .quizcard .btn.wide + .btn.wide { margin-top: 10px; }
+/* Community page: reuses the quiz card look, buttons stack */
+.communitycard .live { margin: 0; }
+.communitycard .btn.wide + .btn.wide { margin-top: 10px; }
+
 /* One-time quiz code: the box shown while the quiz is locked, and the note shown once it is open */
 .quizgate { border-color: var(--violet); }
 .quizgate-note { margin: 0 0 14px; font-size: .92rem; color: var(--muted); }

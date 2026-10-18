@@ -64,6 +64,7 @@
             <a href="#/card" data-view="card" aria-current="page">My ID card</a>
             <a href="#/quiz" data-view="quiz">Quiz</a>
             <a href="#/handbook" data-view="handbook">Mentorship Handbook</a>
+            <a href="#/community" data-view="community">Community</a>
           </nav>
 
           <!-- View: ID card -->
@@ -120,6 +121,17 @@
               <p class="live" id="quizRunMsg" role="status">Opening the quiz. The first load can take up to a minute.</p>
               <iframe id="quizFrame" title="ABECFX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
               <p class="quizrun-foot"><a id="quizTab" href="#" target="_blank" rel="noopener">Quiz not loading? Open it in a new tab</a></p>
+            </section>
+          </div>
+
+          <!-- View: Community (the official WhatsApp / Telegram, set by an admin on Site links) -->
+          <div id="viewCommunity" class="view" hidden>
+            <h2>Community</h2>
+            <p class="lead">Join the official ABECFX community to learn alongside other students and get updates from your mentors.</p>
+            <section class="quizcard communitycard" aria-label="Community links">
+              <p class="live" id="communityMsg" role="status">Loading...</p>
+              <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Join on WhatsApp</a>
+              <a id="communityTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Join on Telegram</a>
             </section>
           </div>
 

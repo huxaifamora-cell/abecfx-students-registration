@@ -101,11 +101,11 @@
   }
 
   // ---- My portal submenu: ID card, Quiz, Mentorship Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook"];
+  var VIEWS = ["card", "quiz", "handbook", "community"];
   var currentView = "";
 
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|community)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -123,12 +123,43 @@
     document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
+    if (r.view === "community" && currentView !== "community") showCommunity();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
     currentView = r.view;
     if (r.view !== "handbook" || !r.chapter) window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+
+  // ---- Community: the official WhatsApp / Telegram, opened in a new tab ----
+  function safeHttps(u) {
+    try { var x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
+  }
+  function showCommunity() {
+    var msg = document.getElementById("communityMsg");
+    var wa = document.getElementById("communityWhatsapp");
+    var tg = document.getElementById("communityTelegram");
+    msg.textContent = "Loading...";
+    msg.hidden = false;
+    wa.hidden = true;
+    tg.hidden = true;
+    authFetch("/api/community")
+      .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
+      .then(function (c) {
+        var w = safeHttps(c.whatsapp), t = safeHttps(c.telegram);
+        if (w) { wa.href = w; wa.hidden = false; }
+        if (t) { tg.href = t; tg.hidden = false; }
+        // With only one choice, that one is the main button.
+        if (!w && t) tg.className = "btn primary wide";
+        else tg.className = "btn ghost wide";
+        msg.hidden = !!(w || t);
+        if (!w && !t) msg.textContent = "The community link is coming soon. Please check back.";
+      })
+      .catch(function (e) {
+        if (e && e.message === "signed out") return;
+        msg.textContent = "We could not load the community links just now. Refresh to try again.";
+      });
+  }
 
   // ---- Quiz results (taken in the ABECFX Telegram quiz bot) ----
   function el(tag, cls, text) {
