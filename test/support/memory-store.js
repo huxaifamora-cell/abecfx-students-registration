@@ -1,6 +1,6 @@
 // An in-memory stand-in for sheets.js, used by the tests (and for trying the dashboard without Google).
 // It keeps every tab as an array of rows and offers the same functions admin-sheets.js calls.
-const STATUSES = ["Uncertified", "Certified", "Graduate", "Alumni Member", "Mentor", "Staff Member", "CEO"];
+const STATUSES = ["Uncertified", "Certified", "Alumni Member", "Mentor", "Staff Member", "CEO"];
 
 // Same columns as sheets.js (a test below checks they have not drifted apart).
 const HEADERS = {
