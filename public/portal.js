@@ -35,8 +35,9 @@
 
   function remember(reg, token) {
     try { localStorage.setItem(KEY, reg); if (token) localStorage.setItem(TKEY, token); } catch (e) {}
+    window.abecNav.refresh(); // signed in: the menu no longer offers "Register"
   }
-  function forget() { try { localStorage.removeItem(KEY); localStorage.removeItem(TKEY); } catch (e) {} }
+  function forget() { try { localStorage.removeItem(KEY); localStorage.removeItem(TKEY); } catch (e) {} window.abecNav.refresh(); }
   function saved() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
   function token() { try { return localStorage.getItem(TKEY) || ""; } catch (e) { return ""; } }
 
