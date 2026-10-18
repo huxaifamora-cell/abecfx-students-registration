@@ -10,6 +10,7 @@ const HEADERS = {
   progress: ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"],
   links: ["Key (do not edit)", "What it is", "Value"],
   videos: ["Chapter", "Chapter title", "YouTube video address"],
+  photos: ["Reg Number", "Photo (base64 JPEG - do not edit)"],
 };
 
 function student(n, over = {}) {
@@ -22,7 +23,7 @@ function student(n, over = {}) {
 
 function createMemoryStore(seed = {}) {
   const fit = (row, w) => { const r = (row || []).map((c) => (c == null ? "" : String(c))); while (r.length < w) r.push(""); return r.slice(0, w); };
-  const data = { students: [], codes: [], quiz: [], progress: [], links: [], videos: [] };
+  const data = { students: [], codes: [], quiz: [], progress: [], links: [], videos: [], photos: [] };
   for (const k of Object.keys(seed)) data[k] = seed[k].map((r) => r.slice());
   const width = (key) => HEADERS[key].length;
   const calls = []; // what was written, for the tests to look at
@@ -42,6 +43,12 @@ function createMemoryStore(seed = {}) {
       data[key][n - 2] = row;
     },
     async appendTabRows(key, rows) { calls.push(["append", key, rows.length]); rows.forEach((r) => data[key].push(fit(r, width(key)))); },
+    async deleteTabRowsByReg(key, reg, col = 0) {
+      const before = data[key].length;
+      data[key] = data[key].filter((r) => String((r && r[col]) || "").trim().toUpperCase() !== reg);
+      calls.push(["deleteByReg", key, reg, before - data[key].length]);
+      return before - data[key].length;
+    },
     async deleteTabRow(key, n) { calls.push(["delete", key, n]); data[key].splice(n - 2, 1); },
   };
 }
