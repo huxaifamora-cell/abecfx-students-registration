@@ -104,7 +104,7 @@ number and see that student's **ID card**:
 - status, and the date they got it (once they are no longer Uncertified)
 - a **QR code**. Scanning it opens `/status?reg=...`, which looks the student up straight away and
   shows the live card
-- a round **stamp**: "Certified Graduate - ABEC-FX" for Certified and Graduate students, "Alumni Member" for Alumni
+- a round **stamp**: "Certified Graduate - ABEC-FX" for Certified students, "Alumni Member" for Alumni
 - Print ID card and Copy link buttons (Print can also save as PDF)
 
 Email, WhatsApp number and promo code are never shown publicly.
@@ -115,7 +115,7 @@ New students also see their ID card right after registering.
 
 **Status** is column J of the Students tab. Every new student is saved as **Uncertified**. An editor
 picks a new value from the dropdown:
-`Uncertified`, `Certified`, `Graduate`, `Alumni Member`, `Mentor`, `Staff Member`, `CEO`.
+`Uncertified`, `Certified`, `Alumni Member`, `Mentor`, `Staff Member`, `CEO`.
 Then type the date in the **Status Date** column (K), e.g. `13 Oct 2026`.
 The stamp shows that date too. Changes show on the ID card within about 15 seconds.
 
@@ -123,9 +123,10 @@ The stamp shows that date too. Changes show on the ID card within about 15 secon
 
 Certified students are graduates. IDs of students who are **not yet graduates** (status Uncertified)
 are valid for **2 months from the ID Issue Date**. The card shows "Expires 13 Dec 2026", warns in the
-last 14 days, and shows a red **EXPIRED** mark after the expiry date. Certified, Graduate, Alumni Member,
-Mentor, Staff Member and CEO IDs have no expiry. When an editor changes a student to Certified (or
-Graduate), the expiry disappears and the graduate stamp appears.
+last 14 days, and shows a red **EXPIRED** mark after the expiry date. Certified, Alumni Member,
+Mentor, Staff Member and CEO IDs have no expiry. When an editor changes a student to Certified, the expiry disappears, the ID card shows the status
+**Certified Graduate** and the graduate stamp appears. (There is no separate "Graduate" status. A row that still has
+"Graduate" in the sheet is treated as Certified; change it to Certified when convenient.)
 
 The **ID Issue Date** (column L, written as `2026-10-13`) is set automatically at registration. To
 **renew** an expired ID, an editor types a new date in that cell. Students registered before this

@@ -4,9 +4,9 @@
 const idrules = require("./idrules");
 const grading = require("./grading");
 
-const GRADUATE_STATUSES = ["Certified", "Graduate", "Alumni Member"];
+const GRADUATE_STATUSES = ["Certified", "Alumni Member"]; // Certified students are the graduates
 const TEAM_STATUSES = ["Mentor", "Staff Member", "CEO"];
-const STATUS_ORDER = ["Uncertified", "Certified", "Graduate", "Alumni Member", "Mentor", "Staff Member", "CEO"];
+const STATUS_ORDER = ["Uncertified", "Certified", "Alumni Member", "Mentor", "Staff Member", "CEO"];
 
 // The label each student is counted under, for every breakdown. Used by the counts AND by the lists
 // behind them, so a number on the dashboard and the list it opens can never disagree.
@@ -47,7 +47,8 @@ function nextYm(ym) {
 }
 
 function statusOf(r) {
-  return STATUS_ORDER.includes(r[9]) ? r[9] : "Uncertified";
+  const v = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
+  return STATUS_ORDER.includes(v) ? v : "Uncertified";
 }
 
 function buildStats(rows, quizRows, todayISO) {
@@ -115,7 +116,7 @@ function buildStats(rows, quizRows, todayISO) {
     state: tally(rows.map(KEYS.state)),
     programme: tally(rows.map(KEYS.programme)),
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
-    graduates: sum(GRADUATE_STATUSES), // Certified + Graduate + Alumni Member
+    graduates: sum(GRADUATE_STATUSES), // Certified + Alumni Member
     uncertified: statusCounts.Uncertified,
     team: sum(TEAM_STATUSES), // Mentor + Staff Member + CEO
     byYear,
@@ -186,7 +187,7 @@ function drill(rows, quizRows, kind, value) {
 
   switch (kind) {
     case "all": title = "All students"; pick = () => true; break;
-    case "graduates": title = "Certified / graduates (Certified, Graduate and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
+    case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
     case "uncertified": title = "Uncertified students"; pick = (r) => statusOf(r) === "Uncertified"; break;
     case "team": title = "Mentors, staff and CEO"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
     case "status":

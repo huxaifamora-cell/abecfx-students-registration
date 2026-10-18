@@ -146,7 +146,8 @@ function validate(body) {
 
 // What the public ID card is allowed to show. Email and WhatsApp number are never included.
 function cardFromRow(r) {
-  const status = store.STATUSES.includes(r[9]) ? r[9] : "Uncertified";
+  const raw = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
+  const status = store.STATUSES.includes(raw) ? raw : "Uncertified";
   const reg = r[0] || "";
   const yy = parseInt((reg.split("/")[1] || ""), 10);
   const issuedISO = idrules.parseIssued(r);

@@ -1,7 +1,12 @@
 // ID card rules: who gets an expiry date, and the date maths behind it.
-// Certified students are graduates. Only Uncertified students (not yet graduates) have IDs that are
-// valid for 2 months from the issue date. Certified, Graduate, Alumni Member, Mentor, Staff Member
-// and CEO have no expiry.
+// Certified students are graduates (their ID card says "Certified Graduate"). Only Uncertified students have IDs
+// that are valid for 2 months from the issue date. Certified, Alumni Member, Mentor, Staff Member and CEO have no expiry.
+// "Graduate" is no longer a status of its own. Rows that still hold it in the sheet are read as Certified.
+const LEGACY_STATUS = { graduate: "Certified" };
+function normalizeStatus(v) {
+  const s = String(v == null ? "" : v).trim();
+  return LEGACY_STATUS[s.toLowerCase()] || s;
+}
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const EXPIRING_STATUSES = ["Uncertified"];
@@ -65,4 +70,5 @@ function expiryInfo(status, issuedISO, todayISO) {
   return { expiryKind: "date", expires: formatISO(exp), expired: daysLeft < 0, daysLeft };
 }
 
-module.exports = { lagosToday, parseIssued, parseRegistered, addMonthsISO, formatISO, daysBetween, expiryInfo, EXPIRING_STATUSES };
+module.exports = {
+  normalizeStatus, lagosToday, parseIssued, parseRegistered, addMonthsISO, formatISO, daysBetween, expiryInfo, EXPIRING_STATUSES };
