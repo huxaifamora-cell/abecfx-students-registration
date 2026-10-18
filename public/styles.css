@@ -76,7 +76,7 @@ a { color: inherit; }
   mask-image: linear-gradient(to top, #000 10%, transparent 100%);
 }
 
-.brandbar { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+.brandbar { display: flex; align-items: center; justify-content: center; gap: 14px; text-align: center; text-decoration: none; }
 .brandbar img { width: 54px; height: auto; display: block; }
 .brandbar .name { font-family: var(--display); font-weight: 800; font-size: 1.5rem; letter-spacing: .12em; line-height: 1; }
 .brandbar .tag { display: block; font-family: var(--body); font-weight: 500; font-size: .78rem; letter-spacing: .02em; opacity: .75; margin-top: 5px; }
@@ -625,7 +625,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
     justify-content: flex-start;
   }
   .brandbar { order: 1; }
-  .panel .nav { order: 2; display: flex; flex-wrap: wrap; gap: 8px; }
+  .panel .nav { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
   .panel .nav a { padding: 10px 16px; border-radius: 999px; font-size: .95rem; }
   .panel .nav svg { width: 18px; height: 18px; }
   .panel .pitch { order: 3; margin-top: auto; }
