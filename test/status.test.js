@@ -7,7 +7,7 @@ const stats = require("../stats");
 const { STATUSES, student } = require("./support/memory-store");
 
 test("the status list has no separate Graduate", () => {
-  assert.deepEqual(STATUSES, ["Uncertified", "Certified", "Alumni Member", "Mentor", "Staff Member", "CEO"]);
+  assert.deepEqual(STATUSES, ["Uncertified", "Certified", "Team Member", "Alumni Member"]);
   assert.ok(!stats.GRADUATE_STATUSES.includes("Graduate"));
   assert.deepEqual(stats.GRADUATE_STATUSES, ["Certified", "Alumni Member"]);
 });

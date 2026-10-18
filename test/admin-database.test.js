@@ -110,7 +110,7 @@ test("locked columns cannot be changed, and a change to them is refused rather t
   await rejects(svc.update("students", 2, o, { 8: "SNEAKY" }), 400, 8);
   assert.equal(store.calls.length, 0);
   // sending a locked column unchanged is fine
-  const out = await svc.update("students", 2, o, { 0: o[0], 9: "Mentor" });
+  const out = await svc.update("students", 2, o, { 0: o[0], 9: "Team Member" });
   assert.equal(out.changed, true);
 });
 
