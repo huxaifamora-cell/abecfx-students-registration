@@ -412,6 +412,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   .panel { padding: 24px 20px 28px; gap: 22px; }
   .panel::before { width: 110%; right: -30%; bottom: -30%; }
   .panel::after { display: none; }
+  .brandbar { justify-content: flex-start; text-align: left; } /* phones keep the logo at the left; only computers centre it */
   .brandbar img { width: 42px; }
   .brandbar .name { font-size: 1.25rem; }
   .pitch h1 { font-size: clamp(1.9rem, 8vw, 2.5rem); max-width: 16ch; margin-bottom: 12px; }
