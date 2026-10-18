@@ -4,6 +4,7 @@
 //   view      Statistics, student lists and quiz results. Every role has it: it is what signing in needs.
 //   links     Site links (social icons, Deriv link, About, Contact).
 //   videos    Chapter videos.
+//   quizcodes Quiz codes: make and cancel the one-time codes students need to unlock the quiz.
 //   database  The Database tab: add, edit and delete records.
 //   team      Team accounts and roles.
 //
@@ -11,7 +12,8 @@
 //   owner      The person who holds ADMIN_PASSWORD on Render. Always works, is not stored in the sheet and
 //              cannot be removed or locked out by anyone. Signs in with the username "owner".
 //   admin      Everything, including the team and roles.
-//   editor     Everything except the team: statistics, site links, chapter videos and the Database.
+//   editor     Statistics, site links, chapter videos and the Database. (Not the team, and not quiz codes: give
+//              someone "quizcodes" through a custom role, e.g. a "Quiz supervisor" role with only that access.)
 //   moderator  Read only: statistics, student lists and quiz results.
 // Custom roles are created by anyone with the "team" permission, who picks the access for each one. They live
 // on the "Roles" sheet tab (a name and a list of permissions, no secrets).
@@ -29,6 +31,7 @@ const PERMS = [
   { key: "view", label: "Statistics and quiz results", help: "See statistics, student lists and quiz results. Every role has this; it is needed to sign in." },
   { key: "links", label: "Site links", help: "Change the social icons, Deriv link, About and Contact." },
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
+  { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "team", label: "Team and roles", help: "Add team members, create roles and choose their access." },
 ];

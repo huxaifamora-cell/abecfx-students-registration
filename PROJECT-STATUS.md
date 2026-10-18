@@ -1,7 +1,7 @@
 # ABECFX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
-**Last updated:** 18 Oct 2026, 02:32 (Lagos time), after change 10 (Editor role, and roles an admin creates with chosen access). Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 18 Oct 2026, 09:06 (Lagos time), after change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge). Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -30,6 +30,8 @@
 13. **Change 9 (owner, 17-18 Oct 2026): a "Database" tab in the admin dashboard to browse, search, add, edit and delete records (full CRUD) without opening Google Sheets** [DONE, awaiting live check].
 
 14. **Change 10 (owner, 18 Oct 2026): an "Editor" role, and when an admin creates a role they choose its access control** [DONE, awaiting live check].
+
+15. **Change 11 (owner, 18 Oct 2026): the quiz section is only accessible after entering a one-time quiz code made by an admin or other roles in charge. A code unlocks the quiz until it is completed; after that another code is needed** [DONE, awaiting live check].
 
 ## 2. Decisions
 
@@ -90,6 +92,7 @@
 | 2026-10-18 | **Custom roles.** On the Team tab a new **Roles and access** card lists every role with what it can open and how many people hold it. **Create role** asks for a name and shows a tick box for each of the five accesses ("Statistics and quiz results" is ticked and locked). A custom role can be renamed, have its access changed, or be deleted from its Edit window; the role is then offered in the role list when adding or editing a team member. Custom roles are saved on a new sheet tab **Roles** (A: role key, B: role name, C: access list, D: created at, E: created by). The key is made from the name ("Video team" becomes `video-team`) and never changes | Owner request. A role name cannot be one of the built-in names, and two roles cannot share a name. |
 | 2026-10-18 | **Guard rails.** (1) Nobody can give access they do not have themselves: not when creating or editing a role, and not when giving a role to a person (the role list shows only roles you may hand out). (2) Nobody can change or delete the role they hold. (3) A role that is still held by someone cannot be deleted (the editor is told how many people hold it). (4) Someone cannot change, disable, re-role, reset the password of or remove a person whose access is bigger than their own. (5) Unknown access names in the sheet are ignored, `view` is forced on, and a row in the Roles tab can never override a built-in role | Stops a person with the Team switch from making themselves, or a friend, more powerful than they are. The owner has everything, so none of this limits the owner. |
 | 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
+| 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `team.js`, `public/portal.*`, `public/admin.*`. |
 
 ## 3. Current state
 
@@ -157,6 +160,8 @@
 
 **Owner action for the Database buttons fix:** push `public/admin.js` and `public/admin.css`. Open `/admin` > Database: every row should show Edit and Delete. Try Delete on a test record.
 
+**Owner action for change 11:** push the new/changed `quizcodes.js`, `server.js`, `sheets.js`, `team.js`, `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `test/quizcodes.test.js`, `test/quiz-gate.test.js`, `test/team.test.js`, `test/support/memory-store.js`, `test/support/fake-sheets.js`, `status/build.js`, `status/STATUS-SOURCE.md`, `env.example`, `README.md`. No new package. On startup the site creates the **Quiz Codes** tab. Then: (1) open `/admin` as owner > **Quiz codes** > make 1 code. (2) Sign in to the portal as a student > **Quiz**: you should see **Unlock the quiz** and no quiz buttons. (3) Enter the code: the quiz buttons appear. (4) Finish the quiz: the quiz locks again and asks for a new code. (5) To give someone else this job, **Team** > **Create role** > tick only **Quiz codes**. **Telegram:** the bot is a separate project, so its link is only shown to students whose quiz is unlocked, but anyone who already has the bot link could still use it. To close that too, set `QUIZ_CODE_FOR_TELEGRAM=on` on Render **after** checking the bot shows the website's error text when the website answers 403 (the bot code was not available when this was built).
+
 **Owner action for change 10:** push the new/changed `team.js`, `server.js`, `sheets.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `test/team.test.js`, `test/support/memory-store.js`, `status/build.js`, `status/STATUS-SOURCE.md`. No new Render variable and no new package. On startup the site creates the **Roles** tab. Then open `/admin`, sign in as owner, open **Team**: you should see a new **Roles and access** card with Admin, Editor and Moderator. Click **Create role**, name it (for example Video team), tick only Chapter videos, Create. Add a team member with that role and one with the Editor role, sign out, and sign in as each: the Video team person should see only Statistics, Quiz results and Chapter videos; the Editor should also see Site links and Database, but not Team. Then tick another access on the Video team role (Edit) and Refresh the first person's screen: the new tab appears without signing in again. Existing admin and moderator accounts are unchanged. **Note:** the old single access "manage" (links, videos and database together) is now three separate accesses; existing Admins keep all of them, so nothing changes for them.
 
 **Owner action for change 9:** push the new `admin-database.js` and the `test/` folder, and the changed `server.js`, `sheets.js`, `package.json`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`, `status/build.js`. No new Render variable and no new package. Then open `/admin`, sign in, open **Database**, change one student's status and check the Google Sheet shows it, add a test mentorship code and delete it again, then add a test student and delete it (check its photo and results rows go too). The service account already has edit access (the site writes to the sheet today).
@@ -207,6 +212,10 @@
 
 ## 5. Open questions
 
+0c. **Change 11: should the Editor role also make quiz codes?** Built in, only Owner and Admin can (plus any custom role given the Quiz codes access), because you asked for "admin or other roles set in charge". Say the word and the Editor gets it too (one line in `team.js`).
+
+0d. **Change 11: should a student's past results stay visible while the quiz is locked?** They do now (the code only controls taking the quiz). Codes also do not expire; say if you want an expiry time.
+
 0b. **Change 10 assumes an Editor can use the Database tab** (edit and delete students, codes and results) but cannot manage the team. Is that what you want, or should the Editor only manage links and videos?
 
 0. **Change 2 asks for the registered email as the second check at sign-in.** Is email right, or would you prefer WhatsApp number or a one-time code sent to them? (Answered question 6 below in the meantime.)
@@ -233,6 +242,7 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-10-18 | **Change 11: one-time quiz codes.** New `quizcodes.js` (code rules: make, enter, finish, cancel); `sheets.js` (new **Quiz Codes** tab with a Status dropdown); `team.js` (new **Quiz codes** access); `server.js` (`POST /api/quiz/unlock`, lock on `/api/quiz/session` and `/api/quiz/result`, `unlocked` in `/api/results`, `/api/admin/quiz-codes` routes, optional `QUIZ_CODE_FOR_TELEGRAM`); portal Quiz page (code box, locked and unlocked states); **Quiz codes** dashboard tab; 31 new tests (23 for the code rules, 7 that run the real server over HTTP on a fake sheet, one updated access test). |
 | 2026-10-18 | **Change 10: Editor role and roles with chosen access.** `team.js` (five accesses, built-in Owner/Admin/Editor/Moderator, custom roles with create/change/delete and guard rails); `sheets.js` (new **Roles** tab); `server.js` (per-access checks, `/api/admin/roles` routes, role list with member counts); **Roles and access** card and role dialog on the Team tab (`public/admin.html`, `admin.js`, `admin.css`); 19 new tests. Replaces the single `manage` access by `links`, `videos` and `database`. |
 | 2026-10-18 | **Fix: visible Edit and Delete buttons on every Database row.** Before, editing and deleting were hidden behind clicking the small row number. Each row now has an **Actions** column (right after the row number, so it never scrolls out of view) with **Edit** and **Delete** (tables that cannot be edited show **Open**, tables that cannot be deleted from show no Delete). Delete asks for confirmation, then removes the record. Changed `public/admin.js`, `public/admin.css` only; the server rules are unchanged (the server still decides what each table allows). |
 | 2026-10-18 | **Change 9: Database tab in the editor dashboard (full create, read, update, delete).** New `admin-database.js` (what each table allows, every check); `sheets.js` gains generic table read, cell write, append, row delete and delete-by-registration; five `/api/admin/database...` routes in `server.js`; new **Database** tab (`public/admin.html`, `admin.js`, `admin.css`); `npm test` and `test/`; dashboard tab bar wraps on phones. |
@@ -257,7 +267,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 18 Oct 2026, 02:32 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 18 Oct 2026, 09:06 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -279,6 +289,7 @@ const grading = require("./grading");
 const { buildStats, drill, quizEntry } = require("./stats");
 const crypto = require("crypto");
 const quizToken = require("./quiztoken");
+const quizcodes = require("./quizcodes");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -833,6 +844,7 @@ function requirePerm(perm) {
 const adminAuth = requirePerm("view"); // statistics, student lists and quiz results
 const linksAuth = requirePerm("links"); // site links
 const videosAuth = requirePerm("videos"); // chapter videos
+const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
 const databaseAuth = requirePerm("database"); // the Database tab
 const teamAuth = requirePerm("team"); // team accounts and roles
 
@@ -855,8 +867,52 @@ app.get("/api/links", linksLimiter, async (_req, res) => {
   }
 });
 
+// ---- One-time quiz codes ----
+// The quiz is locked until a student enters a code made by an admin (or a role with the "quizcodes" access).
+// A code opens the quiz for that student until their result is saved; then the quiz locks again and the next
+// attempt needs a new code. The rules live in quizcodes.js; the codes are kept on the "Quiz Codes" sheet tab.
+// The quiz service and the Telegram bot are not in this project, so the website enforces the lock at the points
+// it controls: handing out the portal quiz pass (/api/quiz/session) and saving a result (/api/quiz/result).
+const quizCodes = quizcodes.create(store, {
+  now: lagosTimestamp,
+  studentExists: async (reg) => (await store.readCached(5000)).some((r) => (r[0] || "").toUpperCase() === reg),
+});
+// Optional, off by default: also make the Telegram quiz need a code. Set QUIZ_CODE_FOR_TELEGRAM=on once the bot
+// shows the error text it gets back (a 403 with an "error" message) to the student.
+const TELEGRAM_NEEDS_CODE = /^(1|on|true|yes)$/i.test(process.env.QUIZ_CODE_FOR_TELEGRAM || "");
+const QUIZ_LOCKED_MESSAGE = "The quiz is locked. Enter a one-time quiz code from your mentor or ABECFX to take it.";
+
+// A wrong code counts against the student (not their network, which many students share). Only failures count.
+const unlockLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many wrong codes. Please wait a few minutes and try again." },
+});
+
+// Student portal: enter a quiz code to open the quiz.
+app.post("/api/quiz/unlock", studentAuth, unlockLimiter, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const reg = req.studentReg; // taken from the sign-in, never from the page
+  try {
+    const rows = await store.readCached(5000);
+    if (!rows.some((row) => (row[0] || "").toUpperCase() === reg)) {
+      return res.status(404).json({ error: "No student found with that registration number." });
+    }
+    res.json(await quizCodes.redeem((req.body || {}).code, reg));
+  } catch (err) {
+    if (err instanceof quizcodes.QuizCodeError) return res.status(err.status).json({ error: err.message });
+    console.error("Quiz unlock failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
 // Student portal: open the quiz inside the portal. Returns the quiz address with a short-lived,
 // signed pass for this registration number (in the part after #, which is never sent to a server).
+// Only while the student's quiz is unlocked with a code.
 app.get("/api/quiz/session", lookupLimiter, studentAuth, async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!QUIZ_APP_ORIGIN || !process.env.QUIZ_API_KEY) {
@@ -867,6 +923,9 @@ app.get("/api/quiz/session", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached(5000);
     if (!rows.some((row) => (row[0] || "").toUpperCase() === reg)) {
       return res.status(404).json({ error: "No student found with that registration number." });
+    }
+    if (!(await quizCodes.accessFor(reg, { fresh: true })).unlocked) {
+      return res.status(403).json({ error: QUIZ_LOCKED_MESSAGE, locked: true });
     }
     const token = quizToken.sign(reg, process.env.QUIZ_API_KEY);
     res.json({ url: QUIZ_APP_ORIGIN + "/#t=" + token });
@@ -884,6 +943,9 @@ app.get("/api/quiz/student", botAuth, async (req, res) => {
     const rows = await store.readCached(5000);
     const r = rows.find((row) => (row[0] || "").toUpperCase() === reg);
     if (!r) return res.status(404).json({ error: "No student found with that registration number." });
+    if (TELEGRAM_NEEDS_CODE && !(await quizCodes.accessFor(reg, { fresh: true })).unlocked) {
+      return res.status(403).json({ error: QUIZ_LOCKED_MESSAGE + " Get your code, enter it in your student portal, then come back here.", locked: true });
+    }
     res.json({ regNumber: r[0], fullName: r[4] || "" });
   } catch (err) {
     console.error("Quiz student lookup failed:", err.message);
@@ -930,12 +992,33 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
         return { status: 200, body: { ...quizEntry(prev), duplicate: true } };
       }
 
+      // The quiz must have been unlocked with a code. This is what makes a code work for ONE quiz: even if a
+      // student keeps an old quiz page open and tries again, the second result is refused here.
+      // (Checked after the double-submit rule above, so sending the same finished result twice is still fine.)
+      const unlocked = (await quizCodes.accessFor(reg, { fresh: true })).unlocked;
+      if (!unlocked && (viaPortal || TELEGRAM_NEEDS_CODE)) {
+        return { status: 403, body: { error: QUIZ_LOCKED_MESSAGE, locked: true } };
+      }
+
       const pct = grading.percent(score, total);
       const g = grading.gradeFor(pct);
       const attempt = mine.length + 1;
       await store.appendQuiz([
         lagosTimestamp(), reg, stu[4] || "", score, total, pct, g.grade, attempt, tgId, breakdown, new Date().toISOString(),
       ]);
+      // The result is saved, so the code is spent and the quiz locks again. Saved first on purpose: a failure
+      // here must never cost a student their result. One retry, then it is logged for an admin to cancel by hand.
+      if (unlocked) {
+        try {
+          await quizCodes.complete(reg);
+        } catch (e1) {
+          try {
+            await quizCodes.complete(reg);
+          } catch (e2) {
+            console.error("Could not close the quiz code for", reg, e2.message);
+          }
+        }
+      }
       return { status: 200, body: { regNumber: reg, fullName: stu[4] || "", score, total, pct, grade: g.grade, label: g.label, attempt } };
     });
     res.status(out.status).json(out.body);
@@ -949,10 +1032,11 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
 app.get("/api/results", lookupLimiter, studentAuth, async (req, res) => {
   const reg = req.studentReg; // a student can only ever see their own results
   try {
-    const rows = await store.readQuiz();
+    const [rows, access] = await Promise.all([store.readQuiz(), quizCodes.accessFor(reg)]);
     const attempts = rows.filter((q) => q[1] === reg).map(quizEntry).reverse(); // newest first
     const best = attempts.reduce((b, a) => (!b || a.pct > b.pct ? a : b), null);
-    res.json({ regNumber: reg, attempts, latest: attempts[0] || null, best, scale: grading.SCALE });
+    // `unlocked`: has this student entered a quiz code that is still open? (The portal shows the code box when not.)
+    res.json({ regNumber: reg, attempts, latest: attempts[0] || null, best, scale: grading.SCALE, unlocked: access.unlocked });
   } catch (err) {
     console.error("Results lookup failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -1118,6 +1202,41 @@ app.get("/api/admin/results", adminLimiter, adminAuth, async (_req, res) => {
   }
 });
 
+// ---- Quiz codes: make, list and cancel the one-time codes (admin, or any role given the "quizcodes" access) ----
+function quizCodeRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof quizcodes.QuizCodeError) {
+        return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      }
+      console.error("Quiz codes request failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
+}
+
+app.get("/api/admin/quiz-codes", adminLimiter, quizCodesAuth, quizCodeRoute(async (_req, res) => {
+  const [codes, students] = await Promise.all([quizCodes.list(), store.readCached(5000)]);
+  const names = new Map(students.map((r) => [(r[0] || "").toUpperCase(), r[4] || ""]));
+  res.json({
+    codes: codes.map((c) => ({ ...c, usedByName: names.get(c.usedBy) || "", forName: names.get(c.forReg) || "" })),
+    max: quizcodes.MAX_AT_ONCE,
+  });
+}));
+
+app.post("/api/admin/quiz-codes", adminLimiter, quizCodesAuth, quizCodeRoute(async (req, res) => {
+  const out = await quizCodes.generate(req.body, req.admin);
+  const names = new Map((await store.readCached(5000)).map((r) => [(r[0] || "").toUpperCase(), r[4] || ""]));
+  res.json({ codes: out.codes.map((c) => ({ ...c, forName: names.get(c.forReg) || "" })) });
+}));
+
+app.post("/api/admin/quiz-codes/revoke", adminLimiter, quizCodesAuth, quizCodeRoute(async (req, res) => {
+  res.json(await quizCodes.revoke((req.body || {}).code, req.admin));
+}));
+
 // ---- Database view: the editor browses, adds, edits and deletes records from /admin ----
 // What may be changed, and the checks on every change, live in admin-database.js. Only a WRONG password counts
 // toward the lock-out here (a mistyped value must not lock the editor out of editing); a second limiter just
@@ -1193,6 +1312,7 @@ const { JWT } = require("google-auth-library");
 const links = require("./links");
 const videos = require("./videos");
 const team = require("./team");
+const quizcodes = require("./quizcodes");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -1247,6 +1367,13 @@ const QUIZ_LAST_COL = "K";
 const CODE_TAB = process.env.GOOGLE_CODE_TAB || "Mentorship Codes";
 const CODE_HEADERS = ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"];
 const CODE_LAST_COL = "D";
+
+// Quiz codes: one row per one-time code that unlocks the quiz for a student (see quizcodes.js for the rules).
+// Managed from the dashboard's "Quiz codes" tab, never through the Database view, so only roles given the
+// "quizcodes" access can make codes.
+const QUIZCODE_TAB = process.env.GOOGLE_QUIZCODE_TAB || "Quiz Codes";
+const QUIZCODE_HEADERS = quizcodes.HEADERS;
+const QUIZCODE_LAST_COL = "I";
 
 // Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
@@ -1353,6 +1480,9 @@ async function init() {
   await ensureTab(CODE_TAB);
   await ensureHeaders(CODE_TAB, CODE_HEADERS, CODE_LAST_COL);
 
+  const quizCodes = await ensureTab(QUIZCODE_TAB);
+  await ensureHeaders(QUIZCODE_TAB, QUIZCODE_HEADERS, QUIZCODE_LAST_COL);
+
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
 
@@ -1396,6 +1526,17 @@ async function init() {
                 type: "ONE_OF_LIST",
                 values: STATUSES.map((s) => ({ userEnteredValue: s })),
               },
+              showCustomUi: true,
+              strict: true,
+            },
+          },
+        },
+        {
+          // Dropdown on the Quiz Codes Status column (column E), so a hand edit cannot invent a status.
+          setDataValidation: {
+            range: { sheetId: quizCodes.sheetId, startRowIndex: 1, startColumnIndex: 4, endColumnIndex: 5 },
+            rule: {
+              condition: { type: "ONE_OF_LIST", values: quizcodes.STATUS_LIST.map((x) => ({ userEnteredValue: x })) },
               showCustomUi: true,
               strict: true,
             },
@@ -1604,6 +1745,8 @@ const EDITOR_TABS = {
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
   // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
+  // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
+  quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
   // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
   team: { title: TEAM_TAB, headers: TEAM_HEADERS, lastCol: TEAM_LAST_COL },
   // Internal only: custom roles. Managed through team.js, never the Database view.
@@ -1726,6 +1869,7 @@ module.exports = {
 //   view      Statistics, student lists and quiz results. Every role has it: it is what signing in needs.
 //   links     Site links (social icons, Deriv link, About, Contact).
 //   videos    Chapter videos.
+//   quizcodes Quiz codes: make and cancel the one-time codes students need to unlock the quiz.
 //   database  The Database tab: add, edit and delete records.
 //   team      Team accounts and roles.
 //
@@ -1733,7 +1877,8 @@ module.exports = {
 //   owner      The person who holds ADMIN_PASSWORD on Render. Always works, is not stored in the sheet and
 //              cannot be removed or locked out by anyone. Signs in with the username "owner".
 //   admin      Everything, including the team and roles.
-//   editor     Everything except the team: statistics, site links, chapter videos and the Database.
+//   editor     Statistics, site links, chapter videos and the Database. (Not the team, and not quiz codes: give
+//              someone "quizcodes" through a custom role, e.g. a "Quiz supervisor" role with only that access.)
 //   moderator  Read only: statistics, student lists and quiz results.
 // Custom roles are created by anyone with the "team" permission, who picks the access for each one. They live
 // on the "Roles" sheet tab (a name and a list of permissions, no secrets).
@@ -1751,6 +1896,7 @@ const PERMS = [
   { key: "view", label: "Statistics and quiz results", help: "See statistics, student lists and quiz results. Every role has this; it is needed to sign in." },
   { key: "links", label: "Site links", help: "Change the social icons, Deriv link, About and Contact." },
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
+  { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "team", label: "Team and roles", help: "Add team members, create roles and choose their access." },
 ];
@@ -2192,6 +2338,260 @@ module.exports = {
   hashPassword, verifyPassword, signToken, verifyToken, normUsername, usernameError, passwordError, fromRows, publicUser,
   roleKeyFrom, cleanPerms, roleFromRows,
 };
+```
+
+#### `quizcodes.js`
+
+```js
+// One-time quiz codes: the quiz stays locked until a student enters a code, and a code works for ONE quiz.
+//
+// Life of a code (the "Status" column of the "Quiz Codes" sheet tab):
+//   Unused     made by an admin (or any role given the "quizcodes" access). Nobody has used it yet.
+//   Unlocked   a student entered it. THEIR quiz is open and stays open until they finish it
+//              (on any device, even after signing out), because this is kept here and not in the browser.
+//   Completed  the student's quiz result was saved. The code is spent: the quiz is locked again and a
+//              new code is needed to take it another time.
+//   Revoked    cancelled by an admin before it was finished. If the student was mid-quiz, the quiz locks.
+//
+// Rules this file enforces (the website, not the browser, is the judge):
+//   - A code can be entered once. The same student entering it again while it is open just gets "already open".
+//   - A code made "for" one registration number cannot be used by anyone else.
+//   - A student can have only ONE open quiz at a time, so codes cannot be stockpiled or burned by accident.
+//   - Entering a code and finishing a quiz are changed one at a time (a queue), so two people cannot use the
+//     same code at once and a finish cannot race an entry.
+//
+// Codes look like QZ-7K4M-9PXR (no 0/O/1/I/L, so they are easy to read out loud). When a code is checked,
+// capitals, spaces and dashes do not matter: "qz 7k4m 9pxr" is the same code.
+const crypto = require("crypto");
+
+const HEADERS = [
+  "Quiz Code",
+  "Created At (Lagos)",
+  "Created By",
+  "For (Reg Number, optional)",
+  "Status",
+  "Used By (Reg Number)",
+  "Unlocked At (Lagos)",
+  "Completed At (Lagos)",
+  "Revoked (By, At)",
+];
+const COL = { code: 0, createdAt: 1, createdBy: 2, forReg: 3, status: 4, usedBy: 5, unlockedAt: 6, completedAt: 7, revoked: 8 };
+
+const STATUS = { UNUSED: "Unused", UNLOCKED: "Unlocked", COMPLETED: "Completed", REVOKED: "Revoked" };
+const STATUS_LIST = Object.values(STATUS);
+
+const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 31 characters: no 0, O, 1, I or L
+const MAX_AT_ONCE = 50;
+const REG_RE = /^ABECFX\/\d{2}\/\d{4}$/;
+
+// What a student sees when a code does not work. One message for "no such code", "already used", "cancelled"
+// and "meant for someone else", so nobody can use the form to find out which codes exist.
+const BAD_CODE = "This quiz code is not valid or has already been used. Ask your mentor for a new one.";
+
+class QuizCodeError extends Error {
+  constructor(status, message, fields) {
+    super(message);
+    this.status = status;
+    if (fields) this.fields = fields;
+  }
+}
+
+// Capitals only, letters and numbers only: the form a code is compared in.
+function normCode(v) {
+  return String(v == null ? "" : v).slice(0, 60).toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+const normReg = (v) => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+
+// QZ-XXXX-XXXX from 31^8 (about 850 billion) possibilities. `random(n)` returns a whole number 0..n-1.
+function makeCode(random = (n) => crypto.randomInt(n)) {
+  const pick = (len) => Array.from({ length: len }, () => ALPHABET[random(ALPHABET.length)]).join("");
+  return "QZ-" + pick(4) + "-" + pick(4);
+}
+
+function statusOf(cells) {
+  const s = String(cells[COL.status] || "").trim().toLowerCase();
+  const found = STATUS_LIST.find((x) => x.toLowerCase() === s);
+  if (found) return found;
+  // A row typed in by hand with no status is a fresh code, unless it already names who used it.
+  return String(cells[COL.usedBy] || "").trim() ? STATUS.COMPLETED : STATUS.UNUSED;
+}
+
+function fromRows(rows) {
+  return rows
+    .map(({ n, cells }) => ({
+      n,
+      code: String(cells[COL.code] || "").trim(),
+      createdAt: cells[COL.createdAt] || "",
+      createdBy: cells[COL.createdBy] || "",
+      forReg: normReg(cells[COL.forReg]),
+      status: statusOf(cells),
+      usedBy: normReg(cells[COL.usedBy]),
+      unlockedAt: cells[COL.unlockedAt] || "",
+      completedAt: cells[COL.completedAt] || "",
+      revoked: cells[COL.revoked] || "",
+    }))
+    .filter((r) => r.code);
+}
+
+// What the dashboard may see of a code.
+function publicCode(r) {
+  return {
+    code: r.code,
+    status: r.status,
+    forReg: r.forReg,
+    createdAt: r.createdAt,
+    createdBy: r.createdBy,
+    usedBy: r.usedBy,
+    unlockedAt: r.unlockedAt,
+    completedAt: r.completedAt,
+    revoked: r.revoked,
+  };
+}
+
+// `store` needs tabRows / appendTabRows / writeTabCells for the "quizcodes" tab (sheets.js, or the in-memory
+// stand-in the tests use). Options:
+//   now            gives the time text written to the sheet (the website passes Lagos time)
+//   studentExists  async (reg) => boolean, so a code cannot be made "for" a number nobody has
+//   cacheMs        how long a read may be re-used for the "is the quiz open?" display. Anything that
+//                  decides (entering a code, opening the quiz, saving a result) always reads fresh.
+//   random         a random whole number below n (the tests pass their own)
+function create(store, opts = {}) {
+  const stamp = opts.now || (() => new Date().toISOString());
+  const studentExists = opts.studentExists || null;
+  const cacheMs = opts.cacheMs == null ? 3000 : opts.cacheMs;
+  const random = opts.random || ((n) => crypto.randomInt(n));
+  let cache = { at: 0, rows: [] };
+  let chain = Promise.resolve();
+
+  // Changes go one at a time, so two people cannot spend the same code and a finish cannot race an entry.
+  const queued = (task) => {
+    const run = chain.then(task, task);
+    chain = run.catch(() => {});
+    return run;
+  };
+  const forget = () => { cache = { at: 0, rows: [] }; };
+
+  async function fresh() {
+    const rows = fromRows(await store.tabRows("quizcodes"));
+    cache = { at: Date.now(), rows };
+    return rows;
+  }
+  async function recent() {
+    if (cache.at && Date.now() - cache.at < cacheMs) return cache.rows;
+    return fresh();
+  }
+
+  const openFor = (rows, reg) => rows.find((r) => r.status === STATUS.UNLOCKED && r.usedBy === reg) || null;
+
+  // ---------- Students ----------
+
+  // Is this student's quiz open right now? { unlocked, since }.
+  // Pass { fresh: true } whenever the answer decides something (opening the quiz, saving a result).
+  async function accessFor(reg, o = {}) {
+    const rows = o.fresh ? await fresh() : await recent();
+    const open = openFor(rows, normReg(reg));
+    return { unlocked: Boolean(open), since: open ? open.unlockedAt : "" };
+  }
+
+  // A student enters a code. Opens their quiz, or throws a QuizCodeError that is safe to show them.
+  function redeem(codeInput, regInput) {
+    return queued(async () => {
+      const reg = normReg(regInput);
+      const want = normCode(codeInput);
+      if (!want) throw new QuizCodeError(400, "Enter your quiz code.", { code: "Enter your quiz code." });
+      const rows = await fresh();
+      const row = rows.find((r) => normCode(r.code) === want) || null;
+      const open = openFor(rows, reg);
+
+      if (open) {
+        // Typing the same code again (a refresh, another device) is fine: the quiz is already open.
+        if (row && row.n === open.n) return { unlocked: true, already: true };
+        throw new QuizCodeError(409, "Your quiz is already unlocked. Finish it first. You will need a new code to take the quiz again.");
+      }
+      if (!row || row.status !== STATUS.UNUSED || (row.forReg && row.forReg !== reg)) {
+        throw new QuizCodeError(400, BAD_CODE, { code: BAD_CODE });
+      }
+      await store.writeTabCells("quizcodes", row.n, {
+        [COL.status]: STATUS.UNLOCKED,
+        [COL.usedBy]: reg,
+        [COL.unlockedAt]: stamp(),
+      });
+      forget();
+      return { unlocked: true, already: false };
+    });
+  }
+
+  // The student's quiz result has been saved: the open code is spent and the quiz locks again.
+  // Returns the code that was spent, or null when the student had none open.
+  function complete(regInput) {
+    return queued(async () => {
+      const reg = normReg(regInput);
+      const open = openFor(await fresh(), reg);
+      if (!open) return null;
+      await store.writeTabCells("quizcodes", open.n, { [COL.status]: STATUS.COMPLETED, [COL.completedAt]: stamp() });
+      forget();
+      return open.code;
+    });
+  }
+
+  // ---------- The dashboard (admin, or a role given the "quizcodes" access) ----------
+
+  // Make `count` new codes, optionally all for one registration number. Returns them with the time they were made.
+  function generate(input, actor) {
+    return queued(async () => {
+      const b = input || {};
+      const count = Number(b.count);
+      const forReg = normReg(b.forReg);
+      const errors = {};
+      if (!Number.isInteger(count) || count < 1 || count > MAX_AT_ONCE) errors.count = "Choose how many codes to make (1 to " + MAX_AT_ONCE + ").";
+      if (forReg) {
+        if (!REG_RE.test(forReg)) errors.forReg = "Enter a registration number like ABECFX/26/0001, or leave it empty.";
+        else if (studentExists && !(await studentExists(forReg))) errors.forReg = "No student has this registration number.";
+      }
+      if (Object.keys(errors).length) throw new QuizCodeError(400, "Please fix the highlighted fields.", errors);
+
+      const taken = new Set((await fresh()).map((r) => normCode(r.code)));
+      const at = stamp();
+      const by = (actor && actor.username) || "";
+      const made = [];
+      for (let i = 0; i < count; i++) {
+        let code;
+        let guard = 0;
+        do { code = makeCode(random); } while (taken.has(normCode(code)) && ++guard < 100);
+        if (taken.has(normCode(code))) throw new QuizCodeError(500, "Could not make a new code. Please try again.");
+        taken.add(normCode(code));
+        made.push([code, at, by, forReg, STATUS.UNUSED, "", "", "", ""]);
+      }
+      await store.appendTabRows("quizcodes", made);
+      forget();
+      return { codes: made.map((r) => ({ code: r[COL.code], createdAt: at, createdBy: by, forReg })) };
+    });
+  }
+
+  // Every code, newest first.
+  async function list() {
+    return (await fresh()).map(publicCode).reverse();
+  }
+
+  // Cancel a code that has not been finished. If its student is in the middle of the quiz, their quiz locks.
+  function revoke(codeInput, actor) {
+    return queued(async () => {
+      const want = normCode(codeInput);
+      const row = want ? (await fresh()).find((r) => normCode(r.code) === want) : null;
+      if (!row) throw new QuizCodeError(404, "That code could not be found.");
+      if (row.status === STATUS.COMPLETED) throw new QuizCodeError(409, "This code was already used to finish a quiz, so there is nothing to cancel.");
+      if (row.status === STATUS.REVOKED) return { code: row.code, status: STATUS.REVOKED, wasOpen: false };
+      const by = (actor && actor.username) || "";
+      await store.writeTabCells("quizcodes", row.n, { [COL.status]: STATUS.REVOKED, [COL.revoked]: by + ", " + stamp() });
+      forget();
+      return { code: row.code, status: STATUS.REVOKED, wasOpen: row.status === STATUS.UNLOCKED };
+    });
+  }
+
+  return { accessFor, redeem, complete, generate, list, revoke };
+}
+
+module.exports = { create, makeCode, normCode, HEADERS, COL, STATUS, STATUS_LIST, MAX_AT_ONCE, BAD_CODE, QuizCodeError };
 ```
 
 #### `admin-database.js`
@@ -4103,9 +4503,25 @@ _missing_
           <div id="viewQuiz" class="view" hidden>
             <h2>Quiz</h2>
             <p class="lead">Test what you have learned in the Mentorship Handbook.</p>
+            <!-- The quiz is locked until the student enters a one-time quiz code -->
+            <section class="quizcard quizgate" id="quizGate" aria-labelledby="quizGateTitle" hidden>
+              <h3 id="quizGateTitle">Unlock the quiz</h3>
+              <p class="quizgate-note" id="quizGateNote"></p>
+              <form id="quizUnlockForm" novalidate>
+                <div class="field">
+                  <label for="quizCode">Quiz code</label>
+                  <input id="quizCode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="QZ-XXXX-XXXX" required />
+                </div>
+                <p class="formErr" id="quizCodeErr" role="alert"></p>
+                <button type="submit" id="quizUnlockBtn" class="primary">Unlock quiz</button>
+              </form>
+              <p class="quizgate-foot">A code works for one quiz. It stays open until you finish the quiz, then you need a new code to take it again.</p>
+            </section>
+
             <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">
               <h3 id="quizTitle">Quiz results</h3>
               <div id="quizBody" class="quizbody"><p class="live" role="status">Loading your results...</p></div>
+              <p class="quiz-open" id="quizOpenNote" hidden>Your quiz is unlocked. It stays open until you finish it.</p>
               <button type="button" id="quizStartBtn" class="btn primary wide" hidden>Take the quiz here</button>
               <a id="quizLink" class="btn ghost wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
             </section>
@@ -4165,6 +4581,19 @@ _missing_
   var quizFrame = document.getElementById("quizFrame");
   var quizMsg = document.getElementById("quizRunMsg");
   var quizStartBtn = document.getElementById("quizStartBtn");
+
+  // The quiz is locked until the student enters a one-time quiz code. The website decides (/api/results says
+  // `unlocked`); the portal only shows the code box or the quiz buttons to match.
+  var quizCfg = null;           // { quizUrl, quizEmbed } from the website, loaded once
+  var quizUnlocked = false;     // does this student have a quiz code that is still open?
+  var quizAccessKnown = false;  // has the website answered yet? Until it has, neither the code box nor the quiz is shown
+  var quizJustFinished = false; // a quiz was saved from the frame on this page
+  var quizGate = document.getElementById("quizGate");
+  var quizGateNote = document.getElementById("quizGateNote");
+  var quizOpenNote = document.getElementById("quizOpenNote");
+  var quizLinkEl = document.getElementById("quizLink");
+  var GATE_NOTE = "The quiz is locked. Enter the one-time quiz code your mentor or ABECFX gave you to open it.";
+  var GATE_NOTE_DONE = "You have finished the quiz. To take it again, enter a new one-time quiz code.";
 
   function remember(reg, token) {
     try { localStorage.setItem(KEY, reg); if (token) localStorage.setItem(TKEY, token); } catch (e) {}
@@ -4270,22 +4699,43 @@ _missing_
     return e;
   }
 
+  // Locked: only the code box. Unlocked: the ways to take the quiz. Nothing is offered until we know which.
+  function hideQuizActions() {
+    quizGate.hidden = true;
+    quizOpenNote.hidden = true;
+    quizStartBtn.hidden = true;
+    quizLinkEl.hidden = true;
+  }
+  function applyQuizAccess() {
+    if (!quizAccessKnown) return;
+    var cfg = quizCfg || {};
+    var hasTelegram = !!(cfg.quizUrl && /^https:\/\//.test(cfg.quizUrl));
+    if (hasTelegram) {
+      quizLinkEl.href = cfg.quizUrl;
+      // When the quiz can run inside the portal, Telegram becomes the second choice.
+      quizLinkEl.textContent = cfg.quizEmbed ? "Take it on Telegram instead" : "Take the quiz on Telegram";
+    }
+    quizGate.hidden = quizUnlocked;
+    quizGateNote.textContent = quizJustFinished ? GATE_NOTE_DONE : GATE_NOTE;
+    quizOpenNote.hidden = !quizUnlocked;
+    quizStartBtn.hidden = !(quizUnlocked && cfg.quizEmbed && quizRun.hidden);
+    quizLinkEl.hidden = !(quizUnlocked && hasTelegram);
+  }
+
   function showQuiz(reg) {
     var body = document.getElementById("quizBody");
-    var link = document.getElementById("quizLink");
     body.replaceChildren(el("p", "live", "Loading your results..."));
-    fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) {
-      if (c.quizUrl && /^https:\/\//.test(c.quizUrl)) {
-        link.href = c.quizUrl;
-        link.hidden = false;
-        // When the quiz can run inside the portal, Telegram becomes the second choice.
-        if (c.quizEmbed) link.textContent = "Take it on Telegram instead";
-      }
-      quizStartBtn.hidden = !c.quizEmbed || !quizRun.hidden;
-    }).catch(function () {});
+    quizAccessKnown = false;
+    hideQuizActions();
+    if (!quizCfg) {
+      fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) { quizCfg = c; applyQuizAccess(); }).catch(function () {});
+    }
     authFetch("/api/results")
       .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (d) {
+        quizUnlocked = !!d.unlocked;
+        quizAccessKnown = true;
+        applyQuizAccess();
         body.replaceChildren();
         if (!d.latest) {
           body.appendChild(el("p", "quiz-empty", "You have not taken the quiz yet. Take it from this page and your result will appear here."));
@@ -4322,6 +4772,9 @@ _missing_
       })
       .catch(function (e) {
         if (e && e.message === "signed out") return;
+        quizUnlocked = false;
+        quizAccessKnown = true;
+        applyQuizAccess(); // the code box still works: entering a code again is always safe
         body.replaceChildren(el("p", "quiz-empty", "We could not load your quiz results just now. Refresh to try again."));
       });
   }
@@ -4332,7 +4785,12 @@ _missing_
     quizFrame.src = "about:blank";
     quizRun.hidden = true;
     quizOrigin = "";
-    quizStartBtn.hidden = true; // showQuiz decides again whether to offer it
+    quizJustFinished = false;
+    quizUnlocked = false; // showQuiz asks the website again; nothing is offered until it answers
+    quizAccessKnown = false;
+    hideQuizActions();
+    quizCodeInput.value = ""; // nothing typed here is left behind for the next person on this device
+    quizCodeErr.textContent = "";
     if (!silent && currentReg) showQuiz(currentReg);
   }
 
@@ -4342,7 +4800,11 @@ _missing_
     authFetch("/api/quiz/session")
       .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error(""); } return { ok: r.ok, body: b }; }); })
       .then(function (res) {
-        if (!res.ok || !res.body.url) throw new Error(res.body.error || "We could not open the quiz just now.");
+        if (!res.ok || !res.body.url) {
+          var er = new Error(res.body.error || "We could not open the quiz just now.");
+          er.locked = !!res.body.locked; // the quiz is locked (never unlocked, finished, or cancelled by an admin)
+          throw er;
+        }
         quizOrigin = new URL(res.body.url).origin;
         quizMsg.textContent = "Opening the quiz. The first load can take up to a minute.";
         quizMsg.hidden = false;
@@ -4354,7 +4816,8 @@ _missing_
       })
       .catch(function (e) {
         if (!e.message) return; // signed out: the sign-in form is already showing
-        quizStartBtn.hidden = false;
+        if (e.locked) { showQuiz(currentReg); } // back to the code box
+        else quizStartBtn.hidden = false;
         window.alert(e.message || "We could not open the quiz just now.");
       })
       .then(function () { quizStartBtn.disabled = false; });
@@ -4368,7 +4831,42 @@ _missing_
   // The quiz page tells the portal when a result has been saved, so the results card refreshes by itself.
   window.addEventListener("message", function (e) {
     if (!quizOrigin || e.origin !== quizOrigin || e.source !== quizFrame.contentWindow) return;
-    if (e.data && e.data.type === "abecfx_quiz_saved" && currentReg) showQuiz(currentReg);
+    if (e.data && e.data.type === "abecfx_quiz_saved" && currentReg) {
+      // The finished quiz is saved and its code is spent, so the quiz locks again. The frame stays open
+      // so the student can read their result there until they close it.
+      quizJustFinished = true;
+      showQuiz(currentReg);
+    }
+  });
+
+  // ---- Enter a one-time quiz code ----
+  var quizUnlockForm = document.getElementById("quizUnlockForm");
+  var quizCodeInput = document.getElementById("quizCode");
+  var quizCodeErr = document.getElementById("quizCodeErr");
+  var quizUnlockBtn = document.getElementById("quizUnlockBtn");
+  quizUnlockForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    quizCodeErr.textContent = "";
+    var code = quizCodeInput.value.trim();
+    if (!code) { quizCodeErr.textContent = "Enter your quiz code."; quizCodeInput.focus(); return; }
+    quizUnlockBtn.disabled = true;
+    quizUnlockBtn.textContent = "Checking...";
+    authFetch("/api/quiz/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code }),
+    })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; }); })
+      .then(function (res) {
+        if (res.status === 401) { signedOut(); return; }
+        // 409 means the quiz is already open (another tab or device): show it as open.
+        if (!res.ok && res.status !== 409) { quizCodeErr.textContent = res.body.error || "Something went wrong. Please try again."; return; }
+        quizCodeInput.value = "";
+        quizJustFinished = false;
+        showQuiz(currentReg);
+      })
+      .catch(function () { quizCodeErr.textContent = "Network problem. Check your connection and try again."; })
+      .then(function () { quizUnlockBtn.disabled = false; quizUnlockBtn.textContent = "Unlock quiz"; });
   });
 
   form.addEventListener("submit", function (e) {
@@ -5494,6 +5992,7 @@ _missing_
       <nav class="adm-tabs" role="tablist" aria-label="Dashboard sections">
         <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
+        <button type="button" role="tab" id="tab-quizcodes" aria-selected="false" aria-controls="view-quizcodes" hidden>Quiz codes</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
@@ -5554,6 +6053,55 @@ _missing_
           </div>
           <div class="tablewrap"><table class="adm-table" id="resultsTable"></table></div>
           <p class="adm-note" id="resultsNote"></p>
+        </article>
+      </div>
+
+      <div id="view-quizcodes" role="tabpanel" aria-labelledby="tab-quizcodes" hidden>
+        <article class="adm-card wide">
+          <h3>Make quiz codes</h3>
+          <p class="adm-note">Students cannot open the quiz until they enter a one-time code. Make codes here and give them to your students. A code opens the quiz for one student and stays open until they finish it. After that the quiz locks again, and the next attempt needs a new code.</p>
+          <form id="qcForm" class="lk-form" novalidate>
+            <div class="field">
+              <label for="qc-count">How many codes</label>
+              <input id="qc-count" type="number" min="1" max="50" step="1" value="1" inputmode="numeric" />
+              <p class="lk-err" id="qc-e-count" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="qc-for">For one student only (optional)</label>
+              <input id="qc-for" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001. Leave empty for a code any student can use" />
+              <p class="lk-err" id="qc-e-for" role="alert"></p>
+            </div>
+            <div class="lk-bar">
+              <button type="submit" class="primary" id="qcMake">Make codes</button>
+              <span class="lk-msg" id="qcMsg" role="status"></span>
+            </div>
+          </form>
+          <div class="qc-new" id="qcNew" hidden>
+            <div class="adm-card-head">
+              <h3>New codes</h3>
+              <button type="button" class="btn ghost" id="qcCopyAll">Copy all</button>
+            </div>
+            <ul class="qc-list" id="qcNewList"></ul>
+          </div>
+        </article>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>All quiz codes</h3>
+            <button type="button" class="btn ghost" id="qcReload">Reload</button>
+          </div>
+          <div class="filters">
+            <input id="qcSearch" type="search" placeholder="Search code, student name or reg number" aria-label="Search quiz codes" />
+            <select id="qcStatus" aria-label="Filter by status">
+              <option value="">Every status</option>
+              <option value="Unused">Unused</option>
+              <option value="Unlocked">In use (quiz open)</option>
+              <option value="Completed">Completed</option>
+              <option value="Revoked">Cancelled</option>
+            </select>
+          </div>
+          <div class="tablewrap"><table class="adm-table" id="qcTable"></table></div>
+          <p class="adm-note" id="qcNote" role="status"></p>
         </article>
       </div>
 
@@ -5788,6 +6336,7 @@ _missing_
   var sh = { meta: null, key: "students", data: null, page: 0, mode: "edit", row: null, flash: "" };
   var shSeq = 0;
   var SH_PAGE = 50;
+  var qc = { codes: [], newCodes: [] }; // the Quiz codes tab: every code, and the ones just made
 
   function getSaved() { try { return sessionStorage.getItem(SS_KEY) || ""; } catch (e) { return ""; } }
   function save(v) { try { if (v) sessionStorage.setItem(SS_KEY, v); else sessionStorage.removeItem(SS_KEY); } catch (e) {} }
@@ -5832,6 +6381,10 @@ _missing_
     $("tmTable").replaceChildren();
     if ($("rlDlg").open) $("rlDlg").close();
     $("rlTable").replaceChildren();
+    $("qcTable").replaceChildren();
+    $("qcNew").hidden = true;
+    $("qcNewList").replaceChildren();
+    qc.codes = [];
     $("dash").hidden = true;
     $("topActions").hidden = true;
     $("login").hidden = false;
@@ -5856,7 +6409,7 @@ _missing_
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", links: "links", videos: "videos", database: "database", team: "team" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", videos: "videos", database: "database", team: "team" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   function applyRole() {
     Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
@@ -6291,6 +6844,141 @@ _missing_
 
   // ---------- Site links ----------
   var linkFields = [];
+  // ---------- Quiz codes: make, list and cancel the one-time codes that unlock the quiz ----------
+  var QC_LABEL = { Unused: "Unused", Unlocked: "In use", Completed: "Completed", Revoked: "Cancelled" };
+
+  function copyText(text, done) {
+    var ok = function () { if (done) done(true); };
+    var fallback = function () {
+      var t = el("textarea");
+      t.value = text;
+      t.setAttribute("readonly", "");
+      t.style.position = "fixed";
+      t.style.opacity = "0";
+      document.body.appendChild(t);
+      t.select();
+      var good = false;
+      try { good = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(t);
+      if (done) done(good);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback);
+    else fallback();
+  }
+
+  function showQcErrors(errs) {
+    $("qc-e-count").textContent = (errs && errs.count) || "";
+    $("qc-e-for").textContent = (errs && errs.forReg) || "";
+  }
+
+  function qcWho(reg, name) { return reg ? (name ? name + " (" + reg + ")" : reg) : ""; }
+
+  function renderQcNew() {
+    var list = $("qcNewList");
+    list.replaceChildren();
+    $("qcNew").hidden = !qc.newCodes.length;
+    qc.newCodes.forEach(function (c) {
+      var li = el("li");
+      var left = el("div");
+      left.appendChild(el("span", "qc-code", c.code));
+      if (c.forReg) { left.appendChild(document.createElement("br")); left.appendChild(el("span", "qc-for", "Only for " + qcWho(c.forReg, c.forName))); }
+      li.appendChild(left);
+      var b = el("button", "btn ghost", "Copy");
+      b.type = "button";
+      b.addEventListener("click", function () {
+        copyText(c.code, function (ok) { b.textContent = ok ? "Copied" : "Copy failed"; setTimeout(function () { b.textContent = "Copy"; }, 1500); });
+      });
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+  }
+
+  function qcVisible() {
+    var term = $("qcSearch").value.trim().toLowerCase();
+    var st = $("qcStatus").value;
+    return qc.codes.filter(function (c) {
+      if (st && c.status !== st) return false;
+      if (!term) return true;
+      return [c.code, c.usedBy, c.usedByName, c.forReg, c.forName, c.createdBy].join(" ").toLowerCase().indexOf(term) >= 0;
+    });
+  }
+
+  function renderQcTable() {
+    var rows = qcVisible();
+    var open = qc.codes.filter(function (c) { return c.status === "Unlocked"; }).length;
+    var unused = qc.codes.filter(function (c) { return c.status === "Unused"; }).length;
+    $("qcNote").textContent = qc.codes.length
+      ? "Showing " + Math.min(rows.length, 500) + " of " + qc.codes.length + " codes. " + unused + " unused, " + open + " in use right now."
+      : "No quiz codes yet. Make some above.";
+    table($("qcTable"), [
+      { t: "Code" }, { t: "Status" }, { t: "For" }, { t: "Used by" }, { t: "Unlocked at" }, { t: "Completed at" }, { t: "Made by" }, { t: "" },
+    ], rows.slice(0, 500).map(function (c) {
+      var badge = el("span", "qc-status qc-" + c.status, QC_LABEL[c.status] || c.status);
+      var action = "";
+      if (c.status === "Unused" || c.status === "Unlocked") {
+        var b = el("button", "btn ghost sh-rowbtn sh-del", "Cancel");
+        b.type = "button";
+        b.addEventListener("click", function () { revokeQc(c, b); });
+        action = { node: b };
+      }
+      var code = el("span", "qc-code", c.code);
+      return [{ node: code }, { node: badge }, qcWho(c.forReg, c.forName) || "Any student", qcWho(c.usedBy, c.usedByName), c.unlockedAt, c.completedAt || (c.revoked ? "Cancelled: " + c.revoked : ""), c.createdBy, action];
+    }));
+  }
+
+  function loadQuizCodes() {
+    return api("/api/admin/quiz-codes").then(function (r) { qc.codes = r.codes; renderQcTable(); });
+  }
+
+  function revokeQc(c, btn) {
+    var msg = c.status === "Unlocked"
+      ? "This code is in use: " + qcWho(c.usedBy, c.usedByName) + " has the quiz open right now. Cancelling locks their quiz straight away, and a quiz they have not finished will not be saved. Cancel it?"
+      : "Cancel code " + c.code + "? Nobody will be able to use it.";
+    if (!window.confirm(msg)) return;
+    btn.disabled = true;
+    api("/api/admin/quiz-codes/revoke", "POST", { code: c.code })
+      .then(function () { $("qcMsg").textContent = "Code " + c.code + " cancelled."; return loadQuizCodes(); })
+      .catch(function (err) {
+        if (err.auth) return showLogin(err.message);
+        btn.disabled = false;
+        $("qcMsg").textContent = err.message;
+        loadQuizCodes().catch(function () {});
+      });
+  }
+
+  function openQuizCodes() {
+    $("qcNote").textContent = "Loading...";
+    loadQuizCodes().catch(function (err) { if (err.auth) showLogin(err.message); else $("qcNote").textContent = err.message; });
+  }
+
+  $("qcForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    showQcErrors(null);
+    $("qcMsg").textContent = "";
+    var b = $("qcMake");
+    b.disabled = true;
+    api("/api/admin/quiz-codes", "POST", { count: Number($("qc-count").value), forReg: $("qc-for").value })
+      .then(function (r) {
+        qc.newCodes = r.codes;
+        renderQcNew();
+        $("qcMsg").textContent = r.codes.length === 1 ? "1 code made." : r.codes.length + " codes made.";
+        return loadQuizCodes();
+      })
+      .catch(function (err) {
+        if (err.auth) return showLogin(err.message);
+        showQcErrors(err.fields);
+        $("qcMsg").textContent = err.fields ? "" : err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+  $("qcCopyAll").addEventListener("click", function () {
+    var b = $("qcCopyAll");
+    copyText(qc.newCodes.map(function (c) { return c.code; }).join("\n"), function (ok) { b.textContent = ok ? "Copied" : "Copy failed"; setTimeout(function () { b.textContent = "Copy all"; }, 1500); });
+  });
+  $("qcReload").addEventListener("click", openQuizCodes);
+  $("qcSearch").addEventListener("input", renderQcTable);
+  $("qcStatus").addEventListener("change", renderQcTable);
+
   function renderLinks(fields, values) {
     linkFields = fields;
     var form = $("linksForm");
@@ -7048,11 +7736,12 @@ _missing_
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "links", "videos", "database", "team"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "videos", "database", "team"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team";
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team" || name === "quizcodes";
+    if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
     if (name === "team") openTeam();
     if (name === "videos") {
@@ -7066,6 +7755,7 @@ _missing_
   }
   $("tab-overview").addEventListener("click", function () { setTab("overview"); });
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
+  $("tab-quizcodes").addEventListener("click", function () { setTab("quizcodes"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
@@ -7106,6 +7796,7 @@ _missing_
     b.disabled = true;
     load()
       .then(function () { if (!$("view-database").hidden) return loadSheet(sh.key); })
+      .then(function () { if (!$("view-quizcodes").hidden) return loadQuizCodes(); })
       .catch(function (err) { if (err.auth) showLogin(err.message); else $("stamp").textContent = err.message; })
       .then(function () { b.disabled = false; });
   });
@@ -7292,6 +7983,17 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 /* Database rows: visible Edit / Delete buttons */
 .sh-actions { display: inline-flex; gap: 6px; white-space: nowrap; }
 .sh-rowbtn { min-height: 0; padding: 6px 12px; font-size: .85rem; }
+
+/* Quiz codes tab */
+.qc-new { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.qc-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; max-width: 760px; }
+.qc-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bone); }
+.qc-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: .08em; user-select: all; }
+.qc-for { font-size: .82rem; color: var(--muted); }
+.qc-list .btn { height: 38px; padding: 0 16px; font-size: .88rem; }
+.qc-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; color: #fff; }
+.qc-Unused { background: #5a6b8c; } .qc-Unlocked { background: #b8920f; } .qc-Completed { background: #1f9d6b; } .qc-Revoked { background: #8a8a8a; }
+.qc-table td .qc-code { font-size: .92rem; }
 ```
 
 #### `public/styles.css`
@@ -7828,7 +8530,15 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quizrun-foot { margin: 10px 0 0; text-align: center; font-size: .82rem; }
 .quizrun-foot a { color: var(--muted); }
 .quizcard .btn.wide + .btn.wide { margin-top: 10px; }
-@media print { .quizcard, .quizrun { display: none; } }
+/* One-time quiz code: the box shown while the quiz is locked, and the note shown once it is open */
+.quizgate { border-color: var(--violet); }
+.quizgate-note { margin: 0 0 14px; font-size: .92rem; color: var(--muted); }
+.quizgate .field { margin-bottom: 12px; }
+.quizgate input { text-transform: uppercase; letter-spacing: .08em; }
+.quizgate .primary { width: 100%; }
+.quizgate-foot { margin: 12px 0 0; font-size: .78rem; color: var(--muted); line-height: 1.5; }
+.quiz-open { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: #eef8f0; color: #1f6b3a; font-size: .88rem; font-weight: 600; }
+@media print { .quizcard, .quizrun, .quizgate { display: none; } }
 
 /* ---------- My portal submenu ---------- */
 .sheet-inner.is-wide { max-width: 680px; }
@@ -8269,7 +8979,7 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "team.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "server.js", "sheets.js", "team.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
   "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",

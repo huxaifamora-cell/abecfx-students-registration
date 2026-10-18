@@ -11,6 +11,7 @@ const grading = require("./grading");
 const { buildStats, drill, quizEntry } = require("./stats");
 const crypto = require("crypto");
 const quizToken = require("./quiztoken");
+const quizcodes = require("./quizcodes");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -565,6 +566,7 @@ function requirePerm(perm) {
 const adminAuth = requirePerm("view"); // statistics, student lists and quiz results
 const linksAuth = requirePerm("links"); // site links
 const videosAuth = requirePerm("videos"); // chapter videos
+const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
 const databaseAuth = requirePerm("database"); // the Database tab
 const teamAuth = requirePerm("team"); // team accounts and roles
 
@@ -587,8 +589,52 @@ app.get("/api/links", linksLimiter, async (_req, res) => {
   }
 });
 
+// ---- One-time quiz codes ----
+// The quiz is locked until a student enters a code made by an admin (or a role with the "quizcodes" access).
+// A code opens the quiz for that student until their result is saved; then the quiz locks again and the next
+// attempt needs a new code. The rules live in quizcodes.js; the codes are kept on the "Quiz Codes" sheet tab.
+// The quiz service and the Telegram bot are not in this project, so the website enforces the lock at the points
+// it controls: handing out the portal quiz pass (/api/quiz/session) and saving a result (/api/quiz/result).
+const quizCodes = quizcodes.create(store, {
+  now: lagosTimestamp,
+  studentExists: async (reg) => (await store.readCached(5000)).some((r) => (r[0] || "").toUpperCase() === reg),
+});
+// Optional, off by default: also make the Telegram quiz need a code. Set QUIZ_CODE_FOR_TELEGRAM=on once the bot
+// shows the error text it gets back (a 403 with an "error" message) to the student.
+const TELEGRAM_NEEDS_CODE = /^(1|on|true|yes)$/i.test(process.env.QUIZ_CODE_FOR_TELEGRAM || "");
+const QUIZ_LOCKED_MESSAGE = "The quiz is locked. Enter a one-time quiz code from your mentor or ABECFX to take it.";
+
+// A wrong code counts against the student (not their network, which many students share). Only failures count.
+const unlockLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many wrong codes. Please wait a few minutes and try again." },
+});
+
+// Student portal: enter a quiz code to open the quiz.
+app.post("/api/quiz/unlock", studentAuth, unlockLimiter, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const reg = req.studentReg; // taken from the sign-in, never from the page
+  try {
+    const rows = await store.readCached(5000);
+    if (!rows.some((row) => (row[0] || "").toUpperCase() === reg)) {
+      return res.status(404).json({ error: "No student found with that registration number." });
+    }
+    res.json(await quizCodes.redeem((req.body || {}).code, reg));
+  } catch (err) {
+    if (err instanceof quizcodes.QuizCodeError) return res.status(err.status).json({ error: err.message });
+    console.error("Quiz unlock failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
 // Student portal: open the quiz inside the portal. Returns the quiz address with a short-lived,
 // signed pass for this registration number (in the part after #, which is never sent to a server).
+// Only while the student's quiz is unlocked with a code.
 app.get("/api/quiz/session", lookupLimiter, studentAuth, async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!QUIZ_APP_ORIGIN || !process.env.QUIZ_API_KEY) {
@@ -599,6 +645,9 @@ app.get("/api/quiz/session", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached(5000);
     if (!rows.some((row) => (row[0] || "").toUpperCase() === reg)) {
       return res.status(404).json({ error: "No student found with that registration number." });
+    }
+    if (!(await quizCodes.accessFor(reg, { fresh: true })).unlocked) {
+      return res.status(403).json({ error: QUIZ_LOCKED_MESSAGE, locked: true });
     }
     const token = quizToken.sign(reg, process.env.QUIZ_API_KEY);
     res.json({ url: QUIZ_APP_ORIGIN + "/#t=" + token });
@@ -616,6 +665,9 @@ app.get("/api/quiz/student", botAuth, async (req, res) => {
     const rows = await store.readCached(5000);
     const r = rows.find((row) => (row[0] || "").toUpperCase() === reg);
     if (!r) return res.status(404).json({ error: "No student found with that registration number." });
+    if (TELEGRAM_NEEDS_CODE && !(await quizCodes.accessFor(reg, { fresh: true })).unlocked) {
+      return res.status(403).json({ error: QUIZ_LOCKED_MESSAGE + " Get your code, enter it in your student portal, then come back here.", locked: true });
+    }
     res.json({ regNumber: r[0], fullName: r[4] || "" });
   } catch (err) {
     console.error("Quiz student lookup failed:", err.message);
@@ -662,12 +714,33 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
         return { status: 200, body: { ...quizEntry(prev), duplicate: true } };
       }
 
+      // The quiz must have been unlocked with a code. This is what makes a code work for ONE quiz: even if a
+      // student keeps an old quiz page open and tries again, the second result is refused here.
+      // (Checked after the double-submit rule above, so sending the same finished result twice is still fine.)
+      const unlocked = (await quizCodes.accessFor(reg, { fresh: true })).unlocked;
+      if (!unlocked && (viaPortal || TELEGRAM_NEEDS_CODE)) {
+        return { status: 403, body: { error: QUIZ_LOCKED_MESSAGE, locked: true } };
+      }
+
       const pct = grading.percent(score, total);
       const g = grading.gradeFor(pct);
       const attempt = mine.length + 1;
       await store.appendQuiz([
         lagosTimestamp(), reg, stu[4] || "", score, total, pct, g.grade, attempt, tgId, breakdown, new Date().toISOString(),
       ]);
+      // The result is saved, so the code is spent and the quiz locks again. Saved first on purpose: a failure
+      // here must never cost a student their result. One retry, then it is logged for an admin to cancel by hand.
+      if (unlocked) {
+        try {
+          await quizCodes.complete(reg);
+        } catch (e1) {
+          try {
+            await quizCodes.complete(reg);
+          } catch (e2) {
+            console.error("Could not close the quiz code for", reg, e2.message);
+          }
+        }
+      }
       return { status: 200, body: { regNumber: reg, fullName: stu[4] || "", score, total, pct, grade: g.grade, label: g.label, attempt } };
     });
     res.status(out.status).json(out.body);
@@ -681,10 +754,11 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
 app.get("/api/results", lookupLimiter, studentAuth, async (req, res) => {
   const reg = req.studentReg; // a student can only ever see their own results
   try {
-    const rows = await store.readQuiz();
+    const [rows, access] = await Promise.all([store.readQuiz(), quizCodes.accessFor(reg)]);
     const attempts = rows.filter((q) => q[1] === reg).map(quizEntry).reverse(); // newest first
     const best = attempts.reduce((b, a) => (!b || a.pct > b.pct ? a : b), null);
-    res.json({ regNumber: reg, attempts, latest: attempts[0] || null, best, scale: grading.SCALE });
+    // `unlocked`: has this student entered a quiz code that is still open? (The portal shows the code box when not.)
+    res.json({ regNumber: reg, attempts, latest: attempts[0] || null, best, scale: grading.SCALE, unlocked: access.unlocked });
   } catch (err) {
     console.error("Results lookup failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -849,6 +923,41 @@ app.get("/api/admin/results", adminLimiter, adminAuth, async (_req, res) => {
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
   }
 });
+
+// ---- Quiz codes: make, list and cancel the one-time codes (admin, or any role given the "quizcodes" access) ----
+function quizCodeRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof quizcodes.QuizCodeError) {
+        return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      }
+      console.error("Quiz codes request failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
+}
+
+app.get("/api/admin/quiz-codes", adminLimiter, quizCodesAuth, quizCodeRoute(async (_req, res) => {
+  const [codes, students] = await Promise.all([quizCodes.list(), store.readCached(5000)]);
+  const names = new Map(students.map((r) => [(r[0] || "").toUpperCase(), r[4] || ""]));
+  res.json({
+    codes: codes.map((c) => ({ ...c, usedByName: names.get(c.usedBy) || "", forName: names.get(c.forReg) || "" })),
+    max: quizcodes.MAX_AT_ONCE,
+  });
+}));
+
+app.post("/api/admin/quiz-codes", adminLimiter, quizCodesAuth, quizCodeRoute(async (req, res) => {
+  const out = await quizCodes.generate(req.body, req.admin);
+  const names = new Map((await store.readCached(5000)).map((r) => [(r[0] || "").toUpperCase(), r[4] || ""]));
+  res.json({ codes: out.codes.map((c) => ({ ...c, forName: names.get(c.forReg) || "" })) });
+}));
+
+app.post("/api/admin/quiz-codes/revoke", adminLimiter, quizCodesAuth, quizCodeRoute(async (req, res) => {
+  res.json(await quizCodes.revoke((req.body || {}).code, req.admin));
+}));
 
 // ---- Database view: the editor browses, adds, edits and deletes records from /admin ----
 // What may be changed, and the checks on every change, live in admin-database.js. Only a WRONG password counts

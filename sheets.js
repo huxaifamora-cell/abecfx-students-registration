@@ -3,6 +3,7 @@ const { JWT } = require("google-auth-library");
 const links = require("./links");
 const videos = require("./videos");
 const team = require("./team");
+const quizcodes = require("./quizcodes");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -57,6 +58,13 @@ const QUIZ_LAST_COL = "K";
 const CODE_TAB = process.env.GOOGLE_CODE_TAB || "Mentorship Codes";
 const CODE_HEADERS = ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"];
 const CODE_LAST_COL = "D";
+
+// Quiz codes: one row per one-time code that unlocks the quiz for a student (see quizcodes.js for the rules).
+// Managed from the dashboard's "Quiz codes" tab, never through the Database view, so only roles given the
+// "quizcodes" access can make codes.
+const QUIZCODE_TAB = process.env.GOOGLE_QUIZCODE_TAB || "Quiz Codes";
+const QUIZCODE_HEADERS = quizcodes.HEADERS;
+const QUIZCODE_LAST_COL = "I";
 
 // Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
@@ -163,6 +171,9 @@ async function init() {
   await ensureTab(CODE_TAB);
   await ensureHeaders(CODE_TAB, CODE_HEADERS, CODE_LAST_COL);
 
+  const quizCodes = await ensureTab(QUIZCODE_TAB);
+  await ensureHeaders(QUIZCODE_TAB, QUIZCODE_HEADERS, QUIZCODE_LAST_COL);
+
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
 
@@ -206,6 +217,17 @@ async function init() {
                 type: "ONE_OF_LIST",
                 values: STATUSES.map((s) => ({ userEnteredValue: s })),
               },
+              showCustomUi: true,
+              strict: true,
+            },
+          },
+        },
+        {
+          // Dropdown on the Quiz Codes Status column (column E), so a hand edit cannot invent a status.
+          setDataValidation: {
+            range: { sheetId: quizCodes.sheetId, startRowIndex: 1, startColumnIndex: 4, endColumnIndex: 5 },
+            rule: {
+              condition: { type: "ONE_OF_LIST", values: quizcodes.STATUS_LIST.map((x) => ({ userEnteredValue: x })) },
               showCustomUi: true,
               strict: true,
             },
@@ -414,6 +436,8 @@ const EDITOR_TABS = {
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
   // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
+  // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
+  quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
   // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
   team: { title: TEAM_TAB, headers: TEAM_HEADERS, lastCol: TEAM_LAST_COL },
   // Internal only: custom roles. Managed through team.js, never the Database view.

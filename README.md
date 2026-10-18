@@ -163,6 +163,27 @@ Telegram account to take the quiz for a registration number keeps it, so nobody 
 someone else's number (to move a number to a new Telegram account, clear the **Telegram ID** cells for it in
 the Quiz Results tab); double submits are ignored.
 
+### One-time quiz codes
+
+The quiz is locked until a student enters a one-time code (like `QZ-7K4M-9PXR`).
+
+- **Who makes codes:** the owner, any Admin, and any role that has the **Quiz codes** access. To put someone
+  else in charge, open **Team**, click **Create role**, tick only **Quiz codes**, and add them with that role.
+  Editors and Moderators cannot make codes unless you give them such a role.
+- **Making codes:** `/admin` > **Quiz codes**. Choose how many (1 to 50). Optionally type a registration number to
+  make the code usable by that student only. Copy the codes and give them out.
+- **What a student sees:** in the portal's **Quiz** page there is an **Unlock the quiz** box. A correct code opens
+  the quiz (and the Telegram link). It stays open, on any device, until the quiz is finished.
+- **After the quiz:** once the result is saved the code is spent and the quiz locks again. The next attempt needs
+  a new code. A used code cannot be reused by anyone.
+- **Cancelling:** on the same tab, **Cancel** stops a code. If its student is in the middle of the quiz, their quiz
+  locks at once and an unfinished quiz is not saved.
+- Codes live on the **Quiz Codes** sheet tab (Status: Unused, Unlocked, Completed, Revoked). They are not part of the
+  dashboard's Database tab on purpose, so only the Quiz codes access can make them.
+- **Telegram:** the bot is a separate project. The portal only shows its link while the quiz is unlocked, but the bot
+  itself is not locked unless you set `QUIZ_CODE_FOR_TELEGRAM=on` (see `env.example`). Turn that on only after
+  checking that the bot shows the website's error message when the website answers 403.
+
 ### Grading (A to F)
 
 | Grade | Score | Meaning |
