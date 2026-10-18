@@ -4,7 +4,7 @@ const STATUSES = ["Uncertified", "Certified", "Team Member", "Alumni Member"];
 
 // Same columns as sheets.js (a test below checks they have not drifted apart).
 const HEADERS = {
-  students: ["Reg Number", "Registered At (Lagos)", "Country", "Programme Type", "Full Name", "Email", "WhatsApp Number", "Gender", "Mentorship Code", "Status", "Status Date", "ID Issue Date", "State / Region", "Date of Birth"],
+  students: ["Reg Number", "Registered At (Lagos)", "Country", "Programme Type", "Full Name", "Email", "WhatsApp Number", "Gender", "Mentorship Code", "Status", "Status Date", "ID Issue Date", "State / Region", "Date of Birth", "Team Role"],
   codes: ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"],
   quizcodes: ["Quiz Code", "Created At (Lagos)", "Created By", "For (Reg Number, optional)", "Status", "Used By (Reg Number)", "Unlocked At (Lagos)", "Completed At (Lagos)", "Revoked (By, At)"],
   quiz: ["Submitted At (Lagos)", "Reg Number", "Full Name", "Score", "Total Questions", "Percent", "Grade", "Attempt", "Telegram ID", "Breakdown (JSON)", "Submitted (UTC)"],
@@ -19,7 +19,7 @@ const HEADERS = {
 function student(n, over = {}) {
   const base = [
     "ABECFX/26/" + String(n).padStart(4, "0"), "13 Oct 2026, 14:20:11", "Nigeria", "Forex Mentorship", "Ada Obi " + n,
-    "ada" + n + "@example.com", "+234 801 234 5678", "Female", "CODE" + n + "AB", "Uncertified", "", "2026-10-13", "Lagos", "1995-03-27",
+    "ada" + n + "@example.com", "+234 801 234 5678", "Female", "CODE" + n + "AB", "Uncertified", "", "2026-10-13", "Lagos", "1995-03-27", "",
   ];
   return base.map((v, i) => (over[i] !== undefined ? over[i] : v));
 }
