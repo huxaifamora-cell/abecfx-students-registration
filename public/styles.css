@@ -632,9 +632,9 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 }
 
 /* ---------- Social icons, Deriv button, About / Contact (editable from /admin) ---------- */
-.social { display: grid; gap: 14px; }
+.social { display: grid; gap: 14px; justify-items: center; width: 100%; }
 .social[hidden] { display: none; }
-.soc-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.soc-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .soc {
   appearance: none; cursor: pointer; text-decoration: none; font: inherit;
   display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%;
@@ -667,7 +667,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .deriv-cta:hover { background: var(--gold); }
 .deriv-cta:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 @media (min-width: 901px) { .panel .social { order: 4; } }
-@media (max-width: 900px) { .social { justify-items: start; } }
+@media (max-width: 900px) { .social { justify-items: center; } }
 
 .info-dlg { border: 0; border-radius: 20px; padding: 0; max-width: min(440px, calc(100vw - 32px)); width: 100%; color: var(--ink, #1c0f20); }
 .info-dlg::backdrop { background: rgba(30, 6, 36, .55); }
