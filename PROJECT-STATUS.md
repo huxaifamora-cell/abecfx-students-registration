@@ -1,7 +1,7 @@
 # ABECFX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
-**Last updated:** 17 Oct 2026 (Lagos time), after change 9 (Sheets view in the editor dashboard). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 17 Oct 2026 (Lagos time), after change 9 (Database tab in the editor dashboard: create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -27,7 +27,7 @@
 11. Students take the quiz inside their portal without leaving it (Telegram stays as a second way in).
 12. **Owner's change list of 16 Oct 2026, done one at a time, each approved before the next:** (1) mentorship code at registration [DONE, awaiting live check]; (2) only registered users reach the student portal, while find-a-student stays public [DONE, awaiting live check]; (3) My Portal submenu: Quiz and Mentorship Handbook (the PDF the quiz came from), with a learning-progress bar in percent [DONE, awaiting live check]; (4) every statistic on the admin page clickable and viewable [DONE, awaiting live check]; (5) on computer screens the menu goes to the top left for everyone, not bottom left [DONE, awaiting live check].
 
-13. **Change 9 (owner, 17 Oct 2026): the admin can view and edit the Google Sheet data directly from the admin dashboard** [DONE, awaiting live check].
+13. **Change 9 (owner, 17-18 Oct 2026): a "Database" tab in the admin dashboard to browse, search, add, edit and delete records (full CRUD) without opening Google Sheets** [DONE, awaiting live check].
 
 ## 2. Decisions
 
@@ -76,12 +76,12 @@
 | 2026-10-15 | Portal-to-quiz sign-in is a short-lived **signed pass**: one registration number, HMAC-signed with `QUIZ_API_KEY`, valid 4 hours, carried after the `#` so it is never sent to a server and is removed from the address bar. The quiz service takes the number from the pass, never from the page | Same principle as the Telegram login. Code: `quiztoken.js` (website) and `verifyPortalToken` in `bot.js`. |
 | 2026-10-15 | Portal results are saved with the word `portal` in the Telegram ID column. A number already linked to a Telegram account cannot save portal results; Telegram can still claim a number that only has portal results | Stops the portal from getting around the earlier Telegram-link rule. **Assumed**, not yet confirmed by owner. |
 | 2026-10-15 | The quiz page itself is not edited for portal mode. `webapp/embed.js`, added to the page by `bot.js`, does it (signs the student in, locks the number, hides the Telegram-only button, tells the portal when a result is saved) | The full 130 KB quiz file was not available. It relies on the ids `reg-input`, `reg-check-btn`, `reg-change-btn`, `save-status`, `grade-line` and on the button text "Send score to chat". If any change, update `embed.js`. |
-| 2026-10-17 | **Change 9: new dashboard tab "Sheets"** to look at and edit the sheet tabs from `/admin`: Students, Mentorship Codes, Quiz Results, Handbook Progress, Site Links, Chapter Videos. Search, 50 rows per page, newest first where it matters, an "Open in Google Sheets" link. The **Photos tab is not shown** | Owner request. Photos are long image text that nobody should edit by hand. |
-| 2026-10-17 | **What may be changed differs per tab, and the server decides** (`admin-sheets.js`). **Students:** edit country, state, programme, name, email, WhatsApp, gender, status, status date, ID issue date, date of birth. **Locked:** registration number, registered-at time, mentorship code used. **No add and no delete** | The registration number ties together photos, quiz results and progress and must never be reused. **Assumed**: tell me if you want deleting students from the dashboard. |
-| 2026-10-17 | Every edit uses the **same rules as the rest of the site**: country from the list, state must belong to that country, email format and no other student with it, phone format, gender, status from the list, real dates (date of birth not in the future), links https only, videos YouTube only. Text starting with `=` is stored as plain text (`valueInputOption=RAW`) | A hand edit in the dashboard must not be able to put bad data in that the registration form would refuse. |
-| 2026-10-17 | **A row is changed only if it still matches what the editor was looking at** (the browser sends the row as it saw it). If someone changed or removed it meanwhile, the save is refused (409), the sheet reloads and the editor tries again. Only the cells that changed are written | Row numbers move when rows are deleted in Google Sheets; this stops a stale screen writing over the wrong student. |
-| 2026-10-17 | **Mentorship codes:** add many at once (one per line or comma separated, made capital letters, duplicates refused as a batch, up to 200); edit or delete a code that is not used yet; **a used code cannot be renamed or deleted** (it is the record of who joined with it). **Quiz results and Handbook progress:** view and delete only (scores are not editable). **Site links and Chapter videos:** only the Value column, with their existing checks | Keeps the records honest while letting the editor remove a test attempt or reset a student's progress. |
-| 2026-10-17 | Sheet changes wait in the same queue as registrations (handbook progress uses its own queue), and the website's short-lived caches are cleared after each change | A row number cannot move under a running save, and the public pages show a fix straight away. |
+| 2026-10-18 | **Change 9: new dashboard tab "Database"** (named by the owner; first called Sheets). It browses, searches, adds, edits and deletes the records of Students, Mentorship codes, Quiz results, Handbook progress, Site links and Chapter videos, so the editor never has to open Google Sheets (an "Open the Google Sheet" button is still there). Search, 50 per page. The **Photos table is never shown** | Owner request: full create, read, update, delete. Photos are long image text nobody should edit by hand. |
+| 2026-10-18 | **What each table allows (`admin-database.js`; the server decides, the browser is never trusted).** **Students:** add, edit, delete. The registration number, sign-up time and ID issue date are filled in for you; locked: number, sign-up time, mentorship code used. **Mentorship codes:** add many at once, edit, delete (a used code cannot be renamed). **Quiz results:** add (registered student), edit score and total (percent and grade are recalculated by `grading.js`), delete. **Handbook progress:** add (one row per registered student), edit chapters read (count and percent recalculated), delete. **Site links and Chapter videos:** fixed rows the website looks up by name: edit the Value only, no add or delete | Reverses the earlier view-only limits at the owner's request. Links and videos stay fixed because removing a row would break the website. **Assumed:** a student added in the dashboard has no photo (the ID card shows initials) and no mentorship code. |
+| 2026-10-18 | **Deleting a student also deletes their photo, quiz results and handbook progress**, after a warning that says so. New registration numbers always go **past every number ever recorded** (students and the codes' "used by"), so a deleted student's number is never given to someone else and old results can never attach to a new student. A used mentorship code keeps its "used by" record | Stops orphan records and number reuse. **Assumed**: tell me if you would rather keep quiz results of deleted students. |
+| 2026-10-18 | Every add and edit uses the **same rules as the rest of the site**: country from the list, state must belong to the country, email format and no other student with it, phone format, gender, status from the list, real dates (date of birth not in the future), score not above total, chapters must exist, links https only, videos YouTube only. Text starting with `=` is stored as plain text (`valueInputOption=RAW`) | A hand entry in the dashboard must not be able to put in data the registration form would refuse. |
+| 2026-10-18 | **A record is changed or deleted only if it still matches what the editor was looking at** (the browser sends the row as it saw it). If someone changed or removed it meanwhile, the action is refused (409), the table reloads and the editor tries again. Only the cells that changed are written | Row numbers move when rows are deleted; this stops a stale screen touching the wrong student. |
+| 2026-10-18 | Database changes wait in the same queue as registrations (handbook progress uses its own queue), and the website's short-lived caches are cleared after each change | A row number cannot move under a running save, and the public pages show a fix straight away. |
 
 ## 3. Current state
 
@@ -115,7 +115,7 @@
 | `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`). The result route accepts either a Telegram id or `source: "portal"` |
 | `GET /api/admin/stats`, `/api/admin/results` | Editor only (Bearer password) |
 | `GET /api/admin/drill?kind=...&value=...` | Editor only. The list behind one number. `kind` is one of `all`, `graduates`, `uncertified`, `team`, `status`, `gender`, `country`, `state`, `programme`, `year`, `month` (YYYY-MM), `upto` (YYYY-MM, joined by the end of that month), `undated`, `quiz-students`, `quiz-avg`, `quiz-not-taken`, `quiz-attempts`, `grade` (A-F). Anything else is refused (400). At most 5000 rows |
-| `GET /api/admin/sheets`, `GET /api/admin/sheets/:key`, `PUT /api/admin/sheets/:key/rows/:n`, `POST /api/admin/sheets/:key/rows`, `POST /api/admin/sheets/:key/rows/:n/delete` | Editor only (Bearer password). `:key` is `students`, `codes`, `quiz`, `progress`, `links` or `videos` (anything else is 404). `PUT` takes `{original, values}`, `POST .../rows` takes `{text}` (codes only), delete takes `{original}`. 400 with per-column messages for bad values, 403 when that tab does not allow the action, 409 when the row changed. Only a wrong password counts toward the lock-out |
+| `GET /api/admin/database`, `GET /api/admin/database/:key`, `POST /api/admin/database/:key/rows`, `PUT /api/admin/database/:key/rows/:n`, `POST /api/admin/database/:key/rows/:n/delete` | Editor only (Bearer password). `:key` is `students`, `codes`, `quiz`, `progress`, `links` or `videos` (anything else is 404). Create takes `{values: {columnIndex: text}}` (codes: `{text}`); update takes `{original, values}`; delete takes `{original}`. 400 with per-column messages for bad values, 403 when that table does not allow the action, 409 when the record changed. Only a wrong password counts toward the lock-out |
 
 **Sheet tabs:** Handbook Progress (A-G, new: reg number, full name, chapters read, count, total, percent, updated at), Mentorship Codes (A-D), Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, mentorship code, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
 
@@ -136,12 +136,12 @@
 | Quiz bot | `QUIZ_API_KEY` | Same value as on the website |
 
 **Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy. **Added for the in-portal quiz:** 32 checks on the pass (tampering, other number, expiry, wrong key) and the website routes (including the Telegram-link rules and the security policy), 17 checks on the quiz service (the number comes from the pass, bad passes never reach the website, Telegram login unchanged, limits), and 23 checks in a real Chromium browser over https with the real `server.js`, `bot.js` and `portal.js` (portal opens the quiz in the page, automatic sign-in, save and live refresh, close, "Not you?", Telegram-linked refusal, damaged pass, phone width).
-**Change 9 (Sheets view) checks:** `npm test` runs 19 unit checks on `admin-sheets.js` against an in-memory sheet (`test/`): locked columns, every field rule, duplicate email, country and state, stale rows (409), used codes, bulk adding and refusing codes, view-only tabs, links and video checks, formulas kept as plain text. The real `server.js` and the dashboard were then run with an in-memory sheet and a stand-in for Express (the build sandbox cannot reach npm): 11 checks over HTTP and **31 checks in a headless browser** (login, paging, search, editing, error messages on the right fields, state list following the country, stale edit refused, codes added and deleted, view-only quiz tab, unsafe link refused, sign-out clears the table, no console errors, no sideways scroll on a phone). That run found and fixed one bug: the fifth tab made the page wider than a phone, so the tab bar now wraps. **Not tested:** real Google Sheets (the exact calls `values:batchUpdate`, `deleteDimension` and append were written from the Google Sheets API but never sent), `npm install`, Render.
+**Change 9 (Database tab) checks:** `npm test` runs 30 unit checks on `admin-database.js` against an in-memory sheet (`test/`): locked columns, every field rule, duplicate email, country and state, stale records (409), adding and deleting students (number never reused, cascade removes photo, quiz results and progress), quiz score recalculation, progress chapters, code adding and refusing, links and video checks, fixed tables refuse add and delete, formulas kept as plain text. The real `server.js` and the dashboard were then run with an in-memory sheet and a stand-in for Express (the build sandbox cannot reach npm): 11 checks over HTTP and **44 checks in a headless browser** (login, paging, search, add, edit, delete with confirmation, errors on the right fields, state list following the country, stale edit refused, quiz and progress add and edit, student delete cascade, unsafe link refused, sign-out clears the table, no console errors, no sideways scroll on a phone). A bug found and fixed in that run: the fifth tab made the page wider than a phone, so the tab bar now wraps. **Not tested:** real Google Sheets (the exact calls `values:batchUpdate`, `deleteDimension` and append were written from the Google Sheets API but never sent, including deleting several rows in one request for the cascade), `npm install`, Render.
 **Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 ## 4. Next steps
 
-**Owner action for change 9:** push the new `admin-sheets.js` and the `test/` folder, and the changed `server.js`, `sheets.js`, `package.json`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`, `status/build.js`. No new Render variable and no new package. Then open `/admin`, sign in, open **Sheets**, change one student's status and check the Google Sheet shows it, add a test mentorship code and delete it again. The service account already has edit access (the site writes to the sheet today).
+**Owner action for change 9:** push the new `admin-database.js` and the `test/` folder, and the changed `server.js`, `sheets.js`, `package.json`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`, `status/build.js`. No new Render variable and no new package. Then open `/admin`, sign in, open **Database**, change one student's status and check the Google Sheet shows it, add a test mentorship code and delete it again, then add a test student and delete it (check its photo and results rows go too). The service account already has edit access (the site writes to the sheet today).
 
 **Owner action for change 8:** push `server.js`, `sheets.js`, `public/register.html`, `public/app.js`, `status/STATUS-SOURCE.md`. No new Render variable. On startup the site adds the **Date of Birth** heading to column N of the Students tab. Then register a test student with a date of birth and check column N, and try a future date (it must be refused).
 
@@ -206,14 +206,14 @@
 15. The menu stays pinned at the top left while a page scrolls (computers). Keep that, or let it scroll away with the page?
 14. Clickable statistics open a pop-up list. Would you like sorting by column, or a "Print" button, in the list?
 13. The handbook PDF is private (10-minute links). Is that right, or should it be a normal public download?
-16. Should the dashboard also be able to **delete a student** (today only in Google Sheets, on purpose, because the number is used by photos, quiz results and progress), or **change a student's photo**?
-17. Should the quiz score and progress be editable from the dashboard, or stay view and delete only?
+16. A student added in the Database tab has no photo. Should there be a way to upload a photo there?
+17. Deleting a student also deletes their quiz results and progress. Would you rather keep the quiz results?
 
 ## 6. Change log (newest first)
 
 | Date | Change |
 | --- | --- |
-| 2026-10-17 | **Change 9: Sheets view in the editor dashboard.** New `admin-sheets.js` (what each tab allows, every check); `sheets.js` gains generic tab read, cell write, append and row delete; five `/api/admin/sheets...` routes in `server.js`; new **Sheets** tab (`public/admin.html`, `admin.js`, `admin.css`); `npm test` and `test/`; dashboard tab bar wraps on phones. |
+| 2026-10-18 | **Change 9: Database tab in the editor dashboard (full create, read, update, delete).** New `admin-database.js` (what each table allows, every check); `sheets.js` gains generic table read, cell write, append, row delete and delete-by-registration; five `/api/admin/database...` routes in `server.js`; new **Database** tab (`public/admin.html`, `admin.js`, `admin.css`); `npm test` and `test/`; dashboard tab bar wraps on phones. |
 | 2026-10-17 | **Change 8: date of birth at registration.** Required date field on `register.html`; checked in `server.js` (`validDob`); stored in Students column N (`sheets.js`: header and range now A-N). Not shown publicly. |
 | 2026-10-17 | **Change 7: chapter video tutorials.** New `videos.js`; sheet tab Chapter Videos; `GET`/`PUT /api/admin/videos`; `/api/handbook` now includes `videos`; embedded player and "coming soon" in each chapter (`public/handbook.js`); "Chapter videos" tab on the dashboard; CSP `frame-src` allows youtube-nocookie.com. |
 | 2026-10-17 | **Change 6: social icons, Deriv affiliate button, About and Contact, editable from `/admin`.** New `links.js`, `public/links.js`; new sheet tab Site Links; `GET /api/links`, `GET`/`PUT /api/admin/links`; "Site links" tab on the dashboard; icons on portal, register and find a student. |
@@ -235,7 +235,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 18 Oct 2026, 01:11 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 18 Oct 2026, 01:33 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -263,7 +263,7 @@ const progress = require("./handbook-progress");
 const pdfLink = require("./pdflink");
 const links = require("./links");
 const videos = require("./videos");
-const adminSheets = require("./admin-sheets");
+const adminDatabase = require("./admin-database");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -991,13 +991,13 @@ app.get("/api/admin/results", adminLimiter, adminAuth, async (_req, res) => {
   }
 });
 
-// ---- Sheets view: the editor looks at and edits the Google Sheet tabs from /admin ----
-// What may be changed, and the checks on every change, live in admin-sheets.js. Only a WRONG password counts
+// ---- Database view: the editor browses, adds, edits and deletes records from /admin ----
+// What may be changed, and the checks on every change, live in admin-database.js. Only a WRONG password counts
 // toward the lock-out here (a mistyped value must not lock the editor out of editing); a second limiter just
 // stops floods, because every call here reads from Google.
-const sheetsAdmin = adminSheets.create(store);
+const database = adminDatabase.create(store);
 app.use(
-  "/api/admin/sheets",
+  "/api/admin/database",
   rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests. Please wait a moment." } }),
   rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -1011,16 +1011,16 @@ app.use(
   adminAuth
 );
 
-function sheetsRoute(handler) {
+function databaseRoute(handler) {
   return async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
       await handler(req, res);
     } catch (err) {
-      if (err instanceof adminSheets.AdminError) {
+      if (err instanceof adminDatabase.AdminError) {
         return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
       }
-      console.error("Admin sheets failed:", err.message);
+      console.error("Admin database failed:", err.message);
       res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
     }
   };
@@ -1028,21 +1028,21 @@ function sheetsRoute(handler) {
 // Changes wait their turn with registrations (or handbook saves), so a row number never moves under a running save.
 const inQueue = (key, task) => (key === "progress" ? exclusiveProgress : exclusive)(task);
 
-app.get("/api/admin/sheets", sheetsRoute(async (_req, res) => res.json(sheetsAdmin.meta())));
+app.get("/api/admin/database", databaseRoute(async (_req, res) => res.json(database.meta())));
 
-app.get("/api/admin/sheets/:key", sheetsRoute(async (req, res) => res.json(await sheetsAdmin.read(req.params.key))));
+app.get("/api/admin/database/:key", databaseRoute(async (req, res) => res.json(await database.read(req.params.key))));
 
-app.put("/api/admin/sheets/:key/rows/:n", sheetsRoute(async (req, res) => {
+app.put("/api/admin/database/:key/rows/:n", databaseRoute(async (req, res) => {
   const b = req.body || {};
-  res.json(await inQueue(req.params.key, () => sheetsAdmin.update(req.params.key, req.params.n, b.original, b.values)));
+  res.json(await inQueue(req.params.key, () => database.update(req.params.key, req.params.n, b.original, b.values)));
 }));
 
-app.post("/api/admin/sheets/:key/rows", sheetsRoute(async (req, res) => {
-  res.json(await inQueue(req.params.key, () => sheetsAdmin.add(req.params.key, (req.body || {}).text)));
+app.post("/api/admin/database/:key/rows", databaseRoute(async (req, res) => {
+  res.json(await inQueue(req.params.key, () => database.create(req.params.key, req.body)));
 }));
 
-app.post("/api/admin/sheets/:key/rows/:n/delete", sheetsRoute(async (req, res) => {
-  res.json(await inQueue(req.params.key, () => sheetsAdmin.remove(req.params.key, req.params.n, (req.body || {}).original)));
+app.post("/api/admin/database/:key/rows/:n/delete", databaseRoute(async (req, res) => {
+  res.json(await inQueue(req.params.key, () => database.remove(req.params.key, req.params.n, (req.body || {}).original)));
 }));
 
 app.listen(PORT, async () => {
@@ -1458,6 +1458,8 @@ const EDITOR_TABS = {
   progress: { title: PROG_TAB, headers: PROG_HEADERS, lastCol: PROG_LAST_COL },
   links: { title: LINKS_TAB, headers: LINKS_HEADERS, lastCol: LINKS_LAST_COL },
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
+  // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
+  photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
 };
 
 function editorTab(key) {
@@ -1482,6 +1484,7 @@ function invalidate(key) {
   else if (key === "progress") progCache.at = 0;
   else if (key === "links") linksCache = { at: 0, values: null };
   else if (key === "videos") videoCache = { at: 0, values: null };
+  else if (key === "photos") { photoIndex.at = 0; photoCache.clear(); }
 }
 
 function sheetUrl() {
@@ -1537,28 +1540,54 @@ async function deleteTabRow(key, n) {
   invalidate(key);
 }
 
+// Delete every row of a tab whose column A equals `reg` (a deleted student's photo, results, progress).
+// Rows are removed from the bottom up in ONE request, so the row numbers cannot shift under it.
+async function deleteTabRowsByReg(key, reg, col = 0) {
+  const t = editorTab(key);
+  const tab = await findTab(t.title);
+  if (!tab) return 0;
+  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  const hits = [];
+  (data.values || []).forEach((r, i) => { if (String((r && r[col]) || "").trim().toUpperCase() === reg) hits.push(i + 2); });
+  if (!hits.length) return 0;
+  await call(":batchUpdate", {
+    method: "POST",
+    data: {
+      requests: hits.reverse().map((n) => ({
+        deleteDimension: { range: { sheetId: tab.sheetId, dimension: "ROWS", startIndex: n - 1, endIndex: n } },
+      })),
+    },
+  });
+  invalidate(key);
+  return hits.length;
+}
+
 module.exports = {
   init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
-  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, invalidate, sheetUrl,
+  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
 };
 ```
 
-#### `admin-sheets.js`
+#### `admin-database.js`
 
 ```js
-// The editor dashboard's "Sheets" view: look at the Google Sheet tabs and change them without leaving /admin.
+// The editor dashboard's "Database" view: browse, search, add, edit and delete the records behind the website
+// (students, mentorship codes, quiz results, handbook progress, site links, chapter videos) without opening
+// Google Sheets. The records are stored in the Google Sheet; this file decides what may be done to each table.
 //
-// Every change is checked HERE, never trusted from the browser, and uses the same rules as the rest of the
-// site (the registration form, the status list, the links and video checks). What the editor may do differs
-// per tab, on purpose:
-//   Students        edit most columns. The registration number, the sign-up time and the mentorship code used are
-//                   locked, and rows cannot be deleted here, because the number is used by photos, quiz results
-//                   and progress and must never be handed out twice. (Delete in Google Sheets if you must.)
-//   Mentorship Codes  add codes (many at once), edit, and delete codes that have not been used yet.
-//   Quiz Results, Handbook Progress   look, and delete a row (e.g. a test attempt). Scores are not editable.
-//   Site Links, Chapter Videos        change the Value column only, with the same checks as their own dashboard tabs.
-// The Photos tab is not shown at all.
+// Every change is checked HERE, never trusted from the browser, with the same rules as the rest of the site
+// (registration form, status list, grading, handbook chapters, link and video checks).
+//
+//   Students          create (number, sign-up time and ID date are filled in for you), edit, delete.
+//                     Locked: registration number, sign-up time, mentorship code used.
+//                     Deleting a student also deletes their photo, quiz results and handbook progress, and their
+//                     number is never given to anyone else (new numbers go past every number ever recorded).
+//   Mentorship codes  create (many at once), edit, delete. A code that a student used cannot be renamed.
+//   Quiz results      create (for a registered student), edit score and total (percent and grade follow), delete.
+//   Handbook progress create (one row per registered student), edit the chapters read (count and percent follow), delete.
+//   Site links, Chapter videos   fixed rows (the website looks them up by name): edit the Value only.
+// The Photos tab is never listed.
 //
 // A row is only changed when it still matches what the editor was looking at (`original`). If someone else
 // changed or removed it in the meantime, the change is refused and the editor reloads, so a stale screen can
@@ -1567,6 +1596,9 @@ module.exports = {
 const countries = require("./countries");
 const states = require("./states.json");
 const idrules = require("./idrules");
+const grading = require("./grading");
+const progress = require("./handbook-progress");
+const handbook = require("./handbook-content");
 const links = require("./links");
 const videos = require("./videos");
 
@@ -1605,16 +1637,29 @@ function realDate(v) {
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
 }
 
+const normReg = (v) => clean(v, 20).toUpperCase().replace(/\s+/g, "");
+const same = (a, b) => String(a == null ? "" : a).trim() === String(b == null ? "" : b).trim();
+
 function create(store) {
+  const rowsOf = async (key) => (await store.tabRows(key)).map((r) => r.cells);
+  const findStudent = async (reg) => (await rowsOf("students")).find((r) => (r[0] || "").toUpperCase() === reg);
+
   const TABS = {
     students: {
       label: "Students",
-      help: "One row per student. The registration number, sign-up time and mentorship code are locked. To change a student's photo or remove a student, use Google Sheets.",
+      help: "One row per student. The registration number, sign-up time and mentorship code are locked. A student's photo can only be added when the student registers.",
       editable: [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13],
       selects: { 2: countries, 7: GENDERS, 9: store.STATUSES },
-      placeholders: { 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      placeholders: { 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
+      create: {
+        label: "Add student",
+        help: "The registration number, sign-up time and ID issue date are filled in for you. A student added here has no photo, so the ID card shows their initials.",
+        fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 10],
+        defaults: { 3: "Forex Mentorship", 9: "Uncertified" },
+      },
+      deleteWarning: "This also deletes the student's photo, quiz results and handbook progress, and cannot be undone. Their registration number will never be given to anyone else.",
       check(p, cur, rows) {
         const errors = {};
         const changed = (i) => p[i] !== cur[i];
@@ -1674,17 +1719,44 @@ function create(store) {
         }
         return errors;
       },
+      // Fill in what the website normally fills in, then return the new row.
+      async build(p) {
+        const [students, codes] = await Promise.all([rowsOf("students"), rowsOf("codes")]);
+        const yy = idrules.lagosToday().slice(2, 4);
+        const prefix = `ABECFX/${yy}/`;
+        let max = 0;
+        // Past every number ever recorded (students AND the codes' "used by"), so a deleted student's number is never reused.
+        for (const reg of students.map((r) => r[0]).concat(codes.map((r) => r[2]))) {
+          const r = String(reg || "").trim().toUpperCase();
+          if (r.startsWith(prefix)) { const n = parseInt(r.slice(prefix.length), 10); if (n > max) max = n; }
+        }
+        if (max >= 9999) throw new AdminError(400, "This year's registration numbers are used up.");
+        p[0] = prefix + String(max + 1).padStart(4, "0");
+        p[1] = lagosTimestamp();
+        p[8] = "";
+        p[11] = p[11] || idrules.lagosToday();
+        if (p[9] !== "Uncertified" && !p[10]) p[10] = idrules.formatISO(idrules.lagosToday());
+        return p;
+      },
+      async cascade(row) {
+        const reg = (row[0] || "").trim().toUpperCase();
+        if (!reg) return;
+        await store.deleteTabRowsByReg("photos", reg, 0);
+        await store.deleteTabRowsByReg("quiz", reg, 1);
+        await store.deleteTabRowsByReg("progress", reg, 0);
+      },
     },
 
     codes: {
       label: "Mentorship codes",
-      help: "A code works once. Add new codes here (or type them in the sheet). A code that a student has used is kept as a record and cannot be deleted.",
+      help: "A code works once. A code that a student has used cannot be renamed.",
       editable: [0, 2, 3],
       selects: {},
       placeholders: { 2: "ABECFX/26/0001 (empty = not used)", 3: "e.g. 15 Oct 2026, 10:30:00" },
       newestFirst: true,
       needsRows: true,
-      add: { label: "Add codes", help: "Type or paste new codes: one per line, or separated by commas. Letters, numbers, - and _ only, 4 to 40 characters. Letters are made capital." },
+      create: { label: "Add codes", mode: "text", help: "Type or paste new codes: one per line, or separated by commas. Letters, numbers, - and _ only, 4 to 40 characters. Letters are made capital." },
+      deleteWarning: "If a student used this code, the record of who used it is lost. The student keeps their account.",
       check(p, cur, rows) {
         const errors = {};
         if (p[0] !== cur[0]) {
@@ -1701,9 +1773,8 @@ function create(store) {
         if (!p[2]) p[3] = ""; // an unused code has no "used at" time
         return errors;
       },
-      removeBlock: (cur) => ((cur[2] || "").trim() ? "This code has already been used by a student, so it is kept as a record." : ""),
       // text -> rows to append
-      prepareAdd(text, rows) {
+      prepareText(text, rows) {
         const wanted = String(text == null ? "" : text).split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean);
         if (!wanted.length) throw new AdminError(400, "Type at least one code.");
         if (wanted.length > MAX_CODES_AT_ONCE) throw new AdminError(400, "Add at most " + MAX_CODES_AT_ONCE + " codes at a time.");
@@ -1724,25 +1795,74 @@ function create(store) {
 
     quiz: {
       label: "Quiz results",
-      help: "Every finished quiz attempt. Scores cannot be edited. You can delete a row, for example a test attempt.",
-      editable: [],
+      help: "Every finished quiz attempt. Edit the score or total and the percent and grade follow. Adding a result needs a registered student.",
+      editable: [3, 4],
       selects: {},
+      placeholders: { 3: "Questions answered correctly", 4: "Number of questions in the quiz" },
       newestFirst: true,
       canDelete: true,
+      create: { label: "Add result", help: "Enter the student's registration number, the score and the total. The name, percent, grade and attempt number are worked out for you.", fields: [1, 3, 4] },
+      deleteWarning: "This quiz result is removed for good.",
+      check(p) {
+        const errors = {};
+        const score = Number(p[3]), total = Number(p[4]);
+        if (!/^\d{1,3}$/.test(clean(p[3], 4)) || !Number.isInteger(score)) errors[3] = "Enter the score as a whole number.";
+        if (!/^\d{1,3}$/.test(clean(p[4], 4)) || !Number.isInteger(total) || total < 1 || total > 500) errors[4] = "Enter the total number of questions (1 to 500).";
+        if (!errors[3] && !errors[4] && score > total) errors[3] = "The score cannot be more than the total.";
+        if (Object.keys(errors).length) return errors;
+        const pct = grading.percent(score, total);
+        p[3] = String(score); p[4] = String(total); p[5] = String(pct); p[6] = grading.gradeFor(pct).grade;
+        return {};
+      },
+      async prepare(p) {
+        const reg = normReg(p[1]);
+        if (!REG_RE.test(reg)) throw new AdminError(400, "Please fix the highlighted fields.", { 1: "Enter a registration number like ABECFX/26/0001." });
+        const stu = await findStudent(reg);
+        if (!stu) throw new AdminError(400, "Please fix the highlighted fields.", { 1: "No student has this registration number." });
+        const errors = this.check(p, []);
+        if (Object.keys(errors).length) throw new AdminError(400, "Please fix the highlighted fields.", errors);
+        const mine = (await rowsOf("quiz")).filter((q) => (q[1] || "").toUpperCase() === reg);
+        return [lagosTimestamp(), reg, stu[4] || "", p[3], p[4], p[5], p[6], String(mine.length + 1), "admin", "{}", new Date().toISOString()];
+      },
     },
 
     progress: {
       label: "Handbook progress",
-      help: "Which handbook chapters each student has marked as read. Delete a row to reset that student's progress.",
-      editable: [],
+      help: "Which handbook chapters each student has marked as read (00 is the introduction, 01 to 12 the chapters). Count and percent follow the chapters you list.",
+      editable: [2],
       selects: {},
+      placeholders: { 2: "e.g. 00, 01, 02" },
       newestFirst: false,
       canDelete: true,
+      create: { label: "Add progress", help: "Choose a registered student who has no progress row yet, and list the chapters read, e.g. 00, 01, 02. Leave it empty for none.", fields: [0, 2] },
+      deleteWarning: "This resets the student's handbook progress to nothing.",
+      check(p) {
+        const tokens = String(p[2] == null ? "" : p[2]).split(/[\s,;]+/).filter(Boolean);
+        const bad = tokens.filter((t) => !handbook.IDS.includes(/^\d{1,2}$/.test(t) ? t.padStart(2, "0") : t));
+        if (bad.length) return { 2: "Not a chapter: " + bad.slice(0, 5).join(", ") + ". Use " + handbook.IDS[0] + " to " + handbook.IDS[handbook.IDS.length - 1] + "." };
+        const sum = progress.summary(progress.parseRead(tokens.join(",")));
+        p[2] = sum.read.join(",");
+        p[3] = String(sum.count); p[4] = String(sum.total); p[5] = String(sum.percent); p[6] = lagosTimestamp();
+        return {};
+      },
+      async prepare(p) {
+        const reg = normReg(p[0]);
+        if (!REG_RE.test(reg)) throw new AdminError(400, "Please fix the highlighted fields.", { 0: "Enter a registration number like ABECFX/26/0001." });
+        const stu = await findStudent(reg);
+        if (!stu) throw new AdminError(400, "Please fix the highlighted fields.", { 0: "No student has this registration number." });
+        if ((await rowsOf("progress")).some((r) => (r[0] || "").toUpperCase() === reg)) {
+          throw new AdminError(400, "Please fix the highlighted fields.", { 0: "This student already has a progress row. Edit that row instead." });
+        }
+        const row = [reg, stu[4] || "", p[2] || "", "", "", "", ""];
+        const e = this.check(row); // fills in count, total, percent and time
+        if (Object.keys(e).length) throw new AdminError(400, "Please fix the highlighted fields.", { 2: e[2] });
+        return row;
+      },
     },
 
     links: {
       label: "Site links",
-      help: "The icons and text shown on the website. Only the Value column can be changed, with the same checks as the Site links tab.",
+      help: "The icons and text shown on the website. The rows are fixed (the website looks them up by name), so only the Value can be changed, with the same checks as the Site links tab.",
       editable: [2],
       selects: {},
       multiline: [2],
@@ -1759,7 +1879,7 @@ function create(store) {
 
     videos: {
       label: "Chapter videos",
-      help: "The YouTube video for each handbook chapter. Only the address can be changed, with the same checks as the Chapter videos tab.",
+      help: "The YouTube video for each handbook chapter. The rows are fixed (one per chapter), so only the address can be changed, with the same checks as the Chapter videos tab.",
       editable: [2],
       selects: {},
       placeholders: { 2: "https://youtu.be/..." },
@@ -1775,10 +1895,11 @@ function create(store) {
     },
   };
 
+  // Students first: they are what most editing is about.
   const ORDER = ["students", "codes", "quiz", "progress", "links", "videos"];
 
   function tabOf(key) {
-    if (!Object.prototype.hasOwnProperty.call(TABS, key)) throw new AdminError(404, "That sheet could not be found.");
+    if (!Object.prototype.hasOwnProperty.call(TABS, key)) throw new AdminError(404, "That table could not be found.");
     return TABS[key];
   }
 
@@ -1790,6 +1911,7 @@ function create(store) {
 
   function describe(key) {
     const t = TABS[key];
+    const c = t.create;
     return {
       key,
       label: t.label,
@@ -1799,17 +1921,17 @@ function create(store) {
       selects: t.selects || {},
       multiline: t.multiline || [],
       placeholders: t.placeholders || {},
-      add: t.add || null,
-      canDelete: Boolean(t.canDelete || t.removeBlock),
+      add: c ? { label: c.label, help: c.help, mode: c.mode || "form", fields: c.fields || [], defaults: c.defaults || {} } : null,
+      canDelete: Boolean(t.canDelete || t.cascade || t.deleteWarning),
+      deleteWarning: t.deleteWarning || "",
       newestFirst: Boolean(t.newestFirst),
     };
   }
 
-  const same = (a, b) => String(a == null ? "" : a).trim() === String(b == null ? "" : b).trim();
   function assertUnchanged(current, original, width) {
     const ok = Array.isArray(original) && current.length === width && current.every((c, i) => same(c, original[i]));
     if (!ok) {
-      throw new AdminError(409, "This row was changed or removed in the sheet since you opened it. The latest version has been loaded.");
+      throw new AdminError(409, "This row was changed or removed since you opened it. The latest version has been loaded.");
     }
   }
 
@@ -1821,7 +1943,7 @@ function create(store) {
     TABS,
     ORDER,
 
-    // What the dashboard needs to draw the tab picker and the forms.
+    // What the dashboard needs to draw the table picker and the forms.
     meta() {
       return { sheets: ORDER.map(describe), sheetUrl: store.sheetUrl ? store.sheetUrl() : "" };
     },
@@ -1833,7 +1955,7 @@ function create(store) {
 
     async update(key, n, original, values) {
       const t = tabOf(key);
-      if (!t.editable.length) throw new AdminError(403, "This sheet cannot be edited here.");
+      if (!t.editable.length) throw new AdminError(403, "This table cannot be edited here.");
       n = rowNumber(n);
       const width = store.EDITOR_TABS[key].headers.length;
       const current = await store.tabRow(key, n);
@@ -1860,23 +1982,47 @@ function create(store) {
       return { row: p, changed: true };
     },
 
-    async add(key, text) {
+    // body: { text } for the codes table, { values: { columnIndex: text } } for everything else.
+    async create(key, body) {
       const t = tabOf(key);
-      if (!t.add) throw new AdminError(403, "Rows cannot be added to this sheet here.");
-      const rows = t.prepareAdd(text, await otherRows(key, -1));
-      await store.appendTabRows(key, rows);
-      return { added: rows.length };
+      const c = t.create;
+      if (!c) throw new AdminError(403, "Rows cannot be added to this table here.");
+      const b = body && typeof body === "object" ? body : {};
+      if (c.mode === "text") {
+        const rows = t.prepareText(b.text, await otherRows(key, -1));
+        await store.appendTabRows(key, rows);
+        return { added: rows.length };
+      }
+      const width = store.EDITOR_TABS[key].headers.length;
+      const p = Array(width).fill("");
+      Object.entries(c.defaults || {}).forEach(([i, v]) => { p[Number(i)] = v; });
+      for (const [k, raw] of Object.entries(b.values && typeof b.values === "object" ? b.values : {})) {
+        const i = Number(k);
+        if (!c.fields.includes(i)) continue; // anything the form does not offer is ignored
+        const v = String(raw == null ? "" : raw).slice(0, MAX_CELL);
+        if (v.trim() || !(c.defaults && c.defaults[i])) p[i] = v;
+      }
+      let row;
+      if (t.prepare) {
+        row = await t.prepare(p);
+      } else {
+        // every column counts as "changed" when creating, so all of them are checked
+        const errors = t.check(p, Array(width).fill(null), t.needsRows ? await otherRows(key, -1) : []);
+        if (Object.keys(errors).length) throw new AdminError(400, "Please fix the highlighted fields.", errors);
+        row = await t.build(p);
+      }
+      await store.appendTabRows(key, [row]);
+      return { added: 1, row, ...(key === "students" ? { reg: row[0] } : {}) };
     },
 
     async remove(key, n, original) {
       const t = tabOf(key);
-      if (!(t.canDelete || t.removeBlock)) throw new AdminError(403, "Rows cannot be deleted from this sheet here.");
+      if (!(t.canDelete || t.cascade || t.deleteWarning)) throw new AdminError(403, "Rows cannot be deleted from this table here.");
       n = rowNumber(n);
       const width = store.EDITOR_TABS[key].headers.length;
       const current = await store.tabRow(key, n);
       assertUnchanged(current, original, width);
-      const blocked = t.removeBlock ? t.removeBlock(current) : "";
-      if (blocked) throw new AdminError(400, blocked);
+      if (t.cascade) await t.cascade(current);
       await store.deleteTabRow(key, n);
       return { ok: true };
     },
@@ -4719,7 +4865,7 @@ _missing_
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
-        <button type="button" role="tab" id="tab-sheets" aria-selected="false" aria-controls="view-sheets">Sheets</button>
+        <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
       </nav>
 
       <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
@@ -4803,16 +4949,16 @@ _missing_
         </article>
       </div>
 
-      <div id="view-sheets" role="tabpanel" aria-labelledby="tab-sheets" hidden>
+      <div id="view-database" role="tabpanel" aria-labelledby="tab-database" hidden>
         <article class="adm-card wide">
           <div class="adm-card-head">
-            <h3>Google Sheet data</h3>
-            <a class="btn ghost" id="shOpen" href="#" target="_blank" rel="noopener noreferrer" hidden>Open in Google Sheets</a>
+            <h3>Database</h3>
+            <a class="btn ghost" id="shOpen" href="#" target="_blank" rel="noopener noreferrer" hidden>Open the Google Sheet</a>
           </div>
-          <div class="sh-picker" id="shPicker" role="group" aria-label="Choose a sheet"></div>
+          <div class="sh-picker" id="shPicker" role="group" aria-label="Choose a table"></div>
           <p class="adm-note" id="shHelp"></p>
           <div class="filters">
-            <input id="shSearch" type="search" placeholder="Search this sheet" aria-label="Search this sheet" />
+            <input id="shSearch" type="search" placeholder="Search this table" aria-label="Search this table" />
             <button type="button" class="btn ghost" id="shAdd" hidden>Add</button>
             <button type="button" class="btn ghost" id="shReload">Reload</button>
           </div>
@@ -4828,7 +4974,7 @@ _missing_
     </section>
   </main>
 
-  <!-- One sheet row: edit, delete, or add codes -->
+  <!-- One record: add, edit or delete -->
   <dialog id="shDlg" class="adm-drill sh-dlg" aria-labelledby="shDlgTitle">
     <form id="shForm" class="drill-box" novalidate>
       <div class="drill-head">
@@ -4840,7 +4986,7 @@ _missing_
       <p class="formErr" id="shDlgErr" role="alert"></p>
       <div class="lk-bar">
         <button type="submit" class="primary" id="shSave">Save changes</button>
-        <button type="button" class="btn ghost sh-del" id="shDelete" hidden>Delete row</button>
+        <button type="button" class="btn ghost sh-del" id="shDelete" hidden>Delete</button>
       </div>
     </form>
   </dialog>
@@ -4881,7 +5027,7 @@ _missing_
   var stats = null;
   var results = [];
   var scale = [];
-  // The Sheets view: meta = what each sheet allows, data = the sheet being looked at, row = the row open in the form.
+  // The Database view: meta = what each table allows, data = the table being looked at, row = the record open in the form.
   var sh = { meta: null, key: "students", data: null, page: 0, mode: "edit", row: null, flash: "" };
   var shSeq = 0;
   var SH_PAGE = 50;
@@ -5464,12 +5610,12 @@ _missing_
       .then(function () { b.disabled = false; });
   });
 
-  // ---------- Sheets: look at and edit the Google Sheet tabs ----------
+  // ---------- Database: browse, add, edit and delete the records ----------
   // The server decides what each sheet allows (sh.data.editable, canDelete, add) and checks every change again.
   var shDlg = $("shDlg");
 
   function loadSheetMeta() {
-    return api("/api/admin/sheets").then(function (m) {
+    return api("/api/admin/database").then(function (m) {
       sh.meta = m;
       var open = $("shOpen");
       var ok = typeof m.sheetUrl === "string" && m.sheetUrl.indexOf("https://docs.google.com/") === 0;
@@ -5496,7 +5642,7 @@ _missing_
     renderPicker();
     $("shNote").textContent = "Loading...";
     var seq = ++shSeq;
-    return api("/api/admin/sheets/" + encodeURIComponent(key)).then(function (d) {
+    return api("/api/admin/database/" + encodeURIComponent(key)).then(function (d) {
       if (seq !== shSeq) return; // a newer click replaced this one
       sh.data = d;
       sh.page = 0;
@@ -5548,10 +5694,10 @@ _missing_
       }));
     }));
     var term = $("shSearch").value.trim();
-    var note = !d.rows.length ? "This sheet has no rows yet."
-      : term ? rows.length + " of " + d.rows.length + " row(s) match your search."
-      : d.rows.length + " row(s)." + (d.newestFirst ? " Newest first." : "");
-    if (rows.length && !canOpen) note += " This sheet is view only.";
+    var note = !d.rows.length ? "There are no records here yet."
+      : term ? rows.length + " of " + d.rows.length + " record(s) match your search."
+      : d.rows.length + " record(s)." + (d.newestFirst ? " Newest first." : "");
+    if (rows.length && !canOpen) note += " This table is view only.";
     if (sh.flash) { note = sh.flash + " " + note; sh.flash = ""; }
     $("shNote").textContent = note;
     $("shPage").textContent = "Page " + (sh.page + 1) + " of " + pages;
@@ -5577,11 +5723,12 @@ _missing_
       .catch(function () {});
   }
 
-  function buildFields(d, cells) {
+  function buildFields(d, cells, only) {
     var box = $("shFields");
     box.replaceChildren();
-    d.headers.forEach(function (h, i) {
-      var editable = d.editable.indexOf(i) >= 0;
+    (only || d.headers.map(function (h, n) { return n; })).forEach(function (i) {
+      var h = d.headers[i];
+      var editable = only ? true : d.editable.indexOf(i) >= 0;
       var wrap = el("div", "field");
       wrap.id = "sh-wrap-" + i;
       var label = el("label", null, h + (editable ? "" : " (locked)"));
@@ -5609,6 +5756,12 @@ _missing_
       if (d.placeholders && d.placeholders[i]) input.placeholder = d.placeholders[i];
       if (d.key === "students" && i === 12 && editable) input.setAttribute("list", "shStates");
       if (d.key === "students" && i === 2 && editable) input.addEventListener("change", function () { fillStates(input.value); });
+      if (only && !(d.selects && d.selects[i])) input.autocomplete = "off";
+      input.addEventListener("input", function () {
+        var e = $("sh-err-" + i), w = $("sh-wrap-" + i);
+        if (e) e.textContent = "";
+        if (w) w.classList.remove("invalid");
+      });
       var err = el("p", "lk-err");
       err.id = "sh-err-" + i;
       err.setAttribute("role", "alert");
@@ -5640,14 +5793,15 @@ _missing_
     var d = sh.data;
     sh.mode = "edit";
     sh.row = r;
-    $("shDlgTitle").textContent = d.label + ": row " + r.n;
+    $("shDlgTitle").textContent = d.label + ": record " + r.n;
     $("shDlgNote").textContent = d.editable.length
-      ? "Greyed-out fields are locked. Changes are saved straight to the Google Sheet."
-      : "This sheet is view only. You can delete the row if it should not be there.";
+      ? "Greyed-out fields are locked. Changes are saved straight away."
+      : "You can delete this record if it should not be there.";
     buildFields(d, r.cells);
     $("shSave").hidden = !d.editable.length;
     $("shSave").textContent = "Save changes";
     $("shDelete").hidden = !d.canDelete;
+    $("shDelete").textContent = "Delete";
     $("shDlgErr").textContent = "";
     shDlg.showModal();
   }
@@ -5655,28 +5809,37 @@ _missing_
   function openAdd() {
     var d = sh.data;
     if (!d || !d.add) return;
-    sh.mode = "add";
     sh.row = null;
     $("shDlgTitle").textContent = d.add.label;
     $("shDlgNote").textContent = d.add.help;
-    var box = $("shFields");
-    box.replaceChildren();
-    var wrap = el("div", "field");
-    var label = el("label", null, d.add.label);
-    label.setAttribute("for", "sh-add-text");
-    var ta = el("textarea");
-    ta.id = "sh-add-text";
-    ta.rows = 6;
-    ta.spellcheck = false;
-    ta.autocomplete = "off";
-    wrap.appendChild(label); wrap.appendChild(ta);
-    box.appendChild(wrap);
+    var focus;
+    if (d.add.mode === "text") {
+      sh.mode = "add";
+      var box = $("shFields");
+      box.replaceChildren();
+      var wrap = el("div", "field");
+      var label = el("label", null, d.add.label);
+      label.setAttribute("for", "sh-add-text");
+      var ta = el("textarea");
+      ta.id = "sh-add-text";
+      ta.rows = 6;
+      ta.spellcheck = false;
+      ta.autocomplete = "off";
+      wrap.appendChild(label); wrap.appendChild(ta);
+      box.appendChild(wrap);
+      focus = ta;
+    } else {
+      sh.mode = "create";
+      var blank = d.headers.map(function (h, i) { return (d.add.defaults && d.add.defaults[i]) || ""; });
+      buildFields(d, blank, d.add.fields);
+      focus = $("sh-f-" + d.add.fields[0]);
+    }
     $("shSave").hidden = false;
     $("shSave").textContent = "Add";
     $("shDelete").hidden = true;
     $("shDlgErr").textContent = "";
     shDlg.showModal();
-    ta.focus();
+    if (focus) focus.focus();
   }
 
   // After a failed change: sign-in problems go to the login, a changed row reloads, anything else shows in the form.
@@ -5693,11 +5856,19 @@ _missing_
     if (!d) return;
     btn.disabled = true;
     $("shDlgErr").textContent = "Saving...";
-    var base = "/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows";
+    var base = "/api/admin/database/" + encodeURIComponent(d.key) + "/rows";
     var job;
-    if (sh.mode === "add") {
-      job = api(base, "POST", { text: $("sh-add-text").value }).then(function (r) {
-        sh.flash = "Added " + r.added + " code" + (r.added === 1 ? "" : "s") + ".";
+    if (sh.mode === "add" || sh.mode === "create") {
+      var payload;
+      if (sh.mode === "add") payload = { text: $("sh-add-text").value };
+      else {
+        var vals = {};
+        d.add.fields.forEach(function (i) { vals[i] = $("sh-f-" + i).value; });
+        payload = { values: vals };
+        showShErrors(null);
+      }
+      job = api(base, "POST", payload).then(function (r) {
+        sh.flash = r.reg ? "Added " + r.reg + "." : "Added " + r.added + " record" + (r.added === 1 ? "" : "s") + ".";
         shDlg.close();
         $("shSearch").value = "";
         return loadSheet(d.key);
@@ -5708,7 +5879,7 @@ _missing_
       showShErrors(null);
       job = api(base + "/" + row.n, "PUT", { original: row.cells, values: values }).then(function (r) {
         row.cells = r.row;
-        sh.flash = r.changed ? "Saved row " + row.n + "." : "Nothing was changed.";
+        sh.flash = r.changed ? "Saved record " + row.n + "." : "Nothing was changed.";
         shDlg.close();
         renderSheet();
       });
@@ -5719,12 +5890,12 @@ _missing_
   $("shDelete").addEventListener("click", function () {
     var d = sh.data, row = sh.row, btn = this;
     if (!d || !row) return;
-    if (!window.confirm("Delete row " + row.n + " from \"" + d.label + "\"? This cannot be undone.")) return;
+    if (!window.confirm("Delete record " + row.n + " from \"" + d.label + "\"? " + (d.deleteWarning || "This cannot be undone."))) return;
     btn.disabled = true;
     $("shDlgErr").textContent = "Deleting...";
-    api("/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
+    api("/api/admin/database/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
       .then(function () {
-        sh.flash = "Deleted row " + row.n + ".";
+        sh.flash = "Deleted record " + row.n + ".";
         shDlg.close();
         return loadSheet(d.key);
       })
@@ -5750,12 +5921,12 @@ _missing_
 
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz", "links", "videos", "sheets"].forEach(function (n) {
+    ["overview", "quiz", "links", "videos", "database"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "sheets";
-    if (name === "sheets") openSheets();
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "database";
+    if (name === "database") openSheets();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
@@ -5769,7 +5940,7 @@ _missing_
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
-  $("tab-sheets").addEventListener("click", function () { setTab("sheets"); });
+  $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);
@@ -5794,7 +5965,7 @@ _missing_
     var b = this;
     b.disabled = true;
     load()
-      .then(function () { if (!$("view-sheets").hidden) return loadSheet(sh.key); })
+      .then(function () { if (!$("view-database").hidden) return loadSheet(sh.key); })
       .catch(function (err) { if (err.auth) showLogin(err.message); else $("stamp").textContent = err.message; })
       .then(function () { b.disabled = false; });
   });
@@ -6930,7 +7101,7 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "admin-sheets.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "server.js", "sheets.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
   "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",

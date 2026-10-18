@@ -395,6 +395,8 @@ const EDITOR_TABS = {
   progress: { title: PROG_TAB, headers: PROG_HEADERS, lastCol: PROG_LAST_COL },
   links: { title: LINKS_TAB, headers: LINKS_HEADERS, lastCol: LINKS_LAST_COL },
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
+  // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
+  photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
 };
 
 function editorTab(key) {
@@ -419,6 +421,7 @@ function invalidate(key) {
   else if (key === "progress") progCache.at = 0;
   else if (key === "links") linksCache = { at: 0, values: null };
   else if (key === "videos") videoCache = { at: 0, values: null };
+  else if (key === "photos") { photoIndex.at = 0; photoCache.clear(); }
 }
 
 function sheetUrl() {
@@ -474,8 +477,30 @@ async function deleteTabRow(key, n) {
   invalidate(key);
 }
 
+// Delete every row of a tab whose column A equals `reg` (a deleted student's photo, results, progress).
+// Rows are removed from the bottom up in ONE request, so the row numbers cannot shift under it.
+async function deleteTabRowsByReg(key, reg, col = 0) {
+  const t = editorTab(key);
+  const tab = await findTab(t.title);
+  if (!tab) return 0;
+  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  const hits = [];
+  (data.values || []).forEach((r, i) => { if (String((r && r[col]) || "").trim().toUpperCase() === reg) hits.push(i + 2); });
+  if (!hits.length) return 0;
+  await call(":batchUpdate", {
+    method: "POST",
+    data: {
+      requests: hits.reverse().map((n) => ({
+        deleteDimension: { range: { sheetId: tab.sheetId, dimension: "ROWS", startIndex: n - 1, endIndex: n } },
+      })),
+    },
+  });
+  invalidate(key);
+  return hits.length;
+}
+
 module.exports = {
   init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
-  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, invalidate, sheetUrl,
+  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
 };
