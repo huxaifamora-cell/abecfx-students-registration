@@ -254,11 +254,11 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .ghost:hover { border-color: var(--violet); background: #fff; }
 
 /* ---------- Student ID card ---------- */
-.cardwrap { container-type: inline-size; width: 100%; max-width: 360px; margin: 0 auto; }
+.cardwrap { container-type: inline-size; width: 100%; max-width: 440px; margin: 0 auto; }
 
 .idc {
   --accent: #b9a8c4;
-  font-size: 4.2cqw;
+  font-size: 4.7cqw;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -273,9 +273,6 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 }
 .idc[data-status="certified"] { --accent: #5ee0a4; }
 .idc[data-status="alumni-member"] { --accent: #f08ad9; }
-.idc[data-status="mentor"] { --accent: #5fd3e8; }
-.idc[data-status="staff-member"] { --accent: #9db4ff; }
-.idc[data-status="ceo"] { --accent: #e8b64c; }
 .idc::before {
   content: "";
   position: absolute; z-index: -1;
@@ -293,9 +290,15 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .idc-top { display: flex; align-items: center; justify-content: space-between; gap: .8em; padding: 1.35em 0 1.05em; }
 .idc-brand { display: flex; align-items: center; gap: .6em; font-family: var(--display); font-weight: 800; letter-spacing: .12em; font-size: 1.05em; }
 .idc-brand img { width: 1.9em; height: auto; display: block; }
-.idc-kind { font-size: .78em; opacity: .7; }
+.idc-kind {
+  margin: 0 -1.3em; padding: .7em 1.3em; text-align: center;
+  font-family: var(--display); font-weight: 800; font-size: 1.2em; letter-spacing: .16em; text-transform: uppercase;
+  color: #1b0a22; background: var(--accent);
+}
+.idc-roleline { margin: 0 0 .5em; font-family: var(--display); font-weight: 800; font-size: 1.3em; line-height: 1.15; color: var(--accent); word-break: break-word; }
+.idc[data-status="team-member"] { --accent: #5fd3e8; }
 
-.idc-hero { display: grid; grid-template-columns: 9.4em minmax(0, 1fr); gap: 1.5em; align-items: start; }
+.idc-hero { margin-top: 1.3em; display: grid; grid-template-columns: 9.4em minmax(0, 1fr); gap: 1.5em; align-items: start; }
 .idc-photo {
   position: relative;
   width: 9.4em; height: 11.75em;
@@ -323,16 +326,16 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .idc-flag-emoji { font-size: 1.6em; line-height: 1; }
 
 .idc-facts { margin: 0; display: grid; gap: .8em; }
-.idc-facts dt { font-size: .72em; opacity: .62; line-height: 1.2; }
-.idc-facts dd { margin: .12em 0 0; font-weight: 600; font-size: .96em; line-height: 1.2; word-break: break-word; }
+.idc-facts dt { font-size: .82em; opacity: .62; line-height: 1.2; }
+.idc-facts dd { margin: .12em 0 0; font-weight: 700; font-size: 1.08em; line-height: 1.2; word-break: break-word; }
 
-.idc-name { font-family: var(--display); font-weight: 700; font-size: 1.75em; line-height: 1.08; letter-spacing: -.02em; margin: 1.35em 0 .25em; word-break: break-word; }
-.idc-reg { margin: 0; font-weight: 600; letter-spacing: .1em; font-size: 1.02em; font-variant-numeric: tabular-nums; opacity: .92; }
+.idc-name { font-family: var(--display); font-weight: 700; font-size: 2em; line-height: 1.08; letter-spacing: -.02em; margin: 1.2em 0 .3em; word-break: break-word; }
+.idc-reg { margin: 0; font-weight: 700; letter-spacing: .1em; font-size: 1.15em; font-variant-numeric: tabular-nums; opacity: .92; }
 
 .idc-statusrow { display: flex; align-items: center; justify-content: space-between; gap: .6em; margin: 1em 0 0; min-height: 3.2em; }
 .idc-statuscol { display: grid; gap: .5em; justify-items: start; }
-.idc-since { font-size: .8em; opacity: .7; }
-.idc-stamp { flex: none; width: 8.4em; height: 8.4em; margin: -1.6em -.4em -1.9em 0; transform: rotate(-13deg); color: var(--accent); filter: drop-shadow(0 0 .02em currentColor); opacity: .95; pointer-events: none; }
+.idc-since { font-size: .95em; opacity: .7; }
+.idc-stamp { flex: none; width: 7.6em; height: 7.6em; margin: -1.4em .2em -1.6em 0; transform: rotate(-13deg); color: var(--accent); filter: drop-shadow(0 0 .02em currentColor); opacity: .95; pointer-events: none; }
 .idc-stamp-svg { width: 100%; height: 100%; display: block; }
 .st-ring { fill: none; stroke: currentColor; }
 .st-ring-thick { stroke-width: 5; }
@@ -347,25 +350,23 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   display: inline-flex; align-items: center; gap: .55em;
   padding: .5em .95em .5em .8em;
   border-radius: 999px;
-  font-weight: 700; font-size: .88em;
+  font-weight: 800; font-size: 1.1em; white-space: nowrap;
   background: rgba(255, 255, 255, .12);
   border: 1px solid rgba(255, 255, 255, .24);
   color: var(--accent);
 }
 .status::before { content: ""; width: .6em; height: .6em; border-radius: 50%; background: currentColor; }
 .status span { color: #fff; }
-.idc[data-status="ceo"] .status { background: linear-gradient(135deg, #c98a12, #e8b64c); border-color: transparent; color: #fff; }
-.idc[data-status="ceo"] .status span { color: #2a1700; }
 
 .idc-verify { display: flex; align-items: center; gap: 1.1em; margin: 1.5em 0 0; padding: 1.1em 0 1.2em; border-top: 1px dashed rgba(255, 255, 255, .28); }
 .idc-qr { flex: none; width: 7.6em; height: 7.6em; padding: .3em; background: #fff; border-radius: .8em; }
 .idc-qr svg { width: 100%; height: 100%; display: block; }
-.idc-vtext { display: grid; gap: .35em; font-size: .86em; line-height: 1.3; }
+.idc-vtext { display: grid; gap: .35em; font-size: .98em; line-height: 1.3; }
 .idc-vtext strong { font-size: 1.1em; }
 .idc-vtext span { opacity: .72; }
 .idc-vtext .idc-issued { opacity: .55; font-size: .92em; }
 .idc-foot { margin: 0 -1.3em; padding: 1em 1.3em; text-align: center; background: rgba(0, 0, 0, .28); }
-.idc-foot span { font-size: .72em; letter-spacing: .06em; opacity: .95; }
+.idc-foot span { font-size: .85em; letter-spacing: .06em; opacity: .95; }
 
 .success-head { margin-bottom: 22px; }
 .success-head .tick { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--violet); margin-bottom: 14px; }
@@ -428,7 +429,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 @media print {
   body * { visibility: hidden; }
   .cardwrap, .cardwrap * { visibility: visible; }
-  .cardwrap { position: absolute; left: 0; top: 0; max-width: 360px; }
+  .cardwrap { position: absolute; left: 0; top: 0; max-width: 440px; }
   .idc { box-shadow: none; animation: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 @media (prefers-reduced-motion: reduce) {

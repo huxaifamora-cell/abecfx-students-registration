@@ -135,8 +135,8 @@
     brand.appendChild(logo);
     brand.appendChild(el("span", null, "ABECFX"));
     top.appendChild(brand);
-    top.appendChild(el("span", "idc-kind", cardKind(status)));
     card.appendChild(top);
+    card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Team / Alumni ID card
 
     // ---- passport photo + national flag + facts
     var hero = el("div", "idc-hero");
@@ -193,6 +193,7 @@
       card.appendChild(mark);
     }
     card.appendChild(el("h3", "idc-name", d.fullName));
+    if (status === "Team Member" && d.teamRole) card.appendChild(el("p", "idc-roleline", d.teamRole));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 
     // ---- status (+ stamp for certified graduates, alumni and the team)
@@ -220,7 +221,7 @@
     verify.appendChild(qr);
     var vt = el("div", "idc-vtext");
     vt.appendChild(el("strong", null, "Scan to check status"));
-    vt.appendChild(el("span", null, "Opens this student's live record."));
+    vt.appendChild(el("span", null, "Opens this ID card's live record."));
     if (d.issued) vt.appendChild(el("span", "idc-issued", "Issued " + d.issued));
     var exp = expiryLine(d);
     if (exp) vt.appendChild(el("span", "idc-expiry " + exp.cls, exp.text));

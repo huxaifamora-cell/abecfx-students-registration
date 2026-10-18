@@ -926,7 +926,7 @@
       var editable = only ? true : d.editable.indexOf(i) >= 0;
       var wrap = el("div", "field");
       wrap.id = "sh-wrap-" + i;
-      var label = el("label", null, h + (editable ? "" : " (locked)"));
+      var label = el("label", null, d.key === "students" && i === 14 ? "Team role (shown on the Team ID card)" : h + (editable ? "" : " (locked)"));
       label.setAttribute("for", "sh-f-" + i);
       var input;
       var opts = d.selects && d.selects[i];
@@ -964,6 +964,13 @@
       box.appendChild(wrap);
     });
     if (d.key === "students") {
+      // The role box only shows while the status is Team Member.
+      var stSel = $("sh-f-9"), roleWrap = $("sh-wrap-14");
+      if (stSel && roleWrap) {
+        var syncRole = function () { roleWrap.hidden = stSel.value !== "Team Member"; };
+        stSel.addEventListener("change", syncRole);
+        syncRole();
+      }
       var dl = el("datalist");
       dl.id = "shStates";
       box.appendChild(dl);
