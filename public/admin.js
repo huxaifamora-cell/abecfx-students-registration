@@ -9,6 +9,10 @@
   var stats = null;
   var results = [];
   var scale = [];
+  // The Sheets view: meta = what each sheet allows, data = the sheet being looked at, row = the row open in the form.
+  var sh = { meta: null, key: "students", data: null, page: 0, mode: "edit", row: null, flash: "" };
+  var shSeq = 0;
+  var SH_PAGE = 50;
 
   function getSaved() { try { return sessionStorage.getItem(SS_KEY) || ""; } catch (e) { return ""; } }
   function save(v) { try { if (v) sessionStorage.setItem(SS_KEY, v); else sessionStorage.removeItem(SS_KEY); } catch (e) {} }
@@ -33,13 +37,19 @@
     return fetch(path, opts).then(function (r) {
       return r.json().then(function (b) {
         if (r.status === 401) { var e = new Error(b.error || "Wrong password."); e.auth = true; throw e; }
-        if (!r.ok) { var e2 = new Error(b.error || "Something went wrong."); e2.fields = b.errors; throw e2; }
+        if (!r.ok) { var e2 = new Error(b.error || "Something went wrong."); e2.fields = b.errors; e2.status = r.status; throw e2; }
         return b;
       });
     });
   }
 
   function showLogin(msg) {
+    // Leave no student details on the screen once signed out.
+    shSeq++;
+    sh.meta = null; sh.data = null; sh.row = null; sh.flash = "";
+    if ($("shDlg").open) $("shDlg").close();
+    $("shTable").replaceChildren();
+    $("shSearch").value = "";
     $("dash").hidden = true;
     $("topActions").hidden = true;
     $("login").hidden = false;
@@ -582,13 +592,298 @@
       .then(function () { b.disabled = false; });
   });
 
+  // ---------- Sheets: look at and edit the Google Sheet tabs ----------
+  // The server decides what each sheet allows (sh.data.editable, canDelete, add) and checks every change again.
+  var shDlg = $("shDlg");
+
+  function loadSheetMeta() {
+    return api("/api/admin/sheets").then(function (m) {
+      sh.meta = m;
+      var open = $("shOpen");
+      var ok = typeof m.sheetUrl === "string" && m.sheetUrl.indexOf("https://docs.google.com/") === 0;
+      open.hidden = !ok;
+      if (ok) open.href = m.sheetUrl;
+      renderPicker();
+    });
+  }
+
+  function renderPicker() {
+    var box = $("shPicker");
+    box.replaceChildren();
+    ((sh.meta && sh.meta.sheets) || []).forEach(function (s) {
+      var b = el("button", "sh-pick", s.label);
+      b.type = "button";
+      b.setAttribute("aria-pressed", s.key === sh.key ? "true" : "false");
+      b.addEventListener("click", function () { $("shSearch").value = ""; loadSheet(s.key); });
+      box.appendChild(b);
+    });
+  }
+
+  function loadSheet(key) {
+    sh.key = key;
+    renderPicker();
+    $("shNote").textContent = "Loading...";
+    var seq = ++shSeq;
+    return api("/api/admin/sheets/" + encodeURIComponent(key)).then(function (d) {
+      if (seq !== shSeq) return; // a newer click replaced this one
+      sh.data = d;
+      sh.page = 0;
+      renderSheet();
+    }).catch(function (err) {
+      if (seq !== shSeq) return;
+      if (err.auth) { showLogin(err.message); return; }
+      sh.data = null;
+      $("shTable").replaceChildren();
+      $("shNote").textContent = err.message;
+    });
+  }
+
+  function shVisibleRows() {
+    var d = sh.data;
+    if (!d) return [];
+    var rows = d.rows.slice();
+    if (d.newestFirst) rows.reverse();
+    var term = $("shSearch").value.trim().toLowerCase();
+    if (term) rows = rows.filter(function (r) { return r.cells.join(" ").toLowerCase().indexOf(term) >= 0; });
+    return rows;
+  }
+
+  function renderSheet() {
+    var d = sh.data;
+    if (!d) return;
+    $("shHelp").textContent = d.help;
+    $("shAdd").hidden = !d.add;
+    if (d.add) $("shAdd").textContent = d.add.label;
+    var rows = shVisibleRows();
+    var pages = Math.max(1, Math.ceil(rows.length / SH_PAGE));
+    if (sh.page >= pages) sh.page = pages - 1;
+    var slice = rows.slice(sh.page * SH_PAGE, (sh.page + 1) * SH_PAGE);
+    var canOpen = d.editable.length > 0 || d.canDelete;
+    var head = [{ t: "Row", n: 1 }].concat(d.headers.map(function (h) { return { t: h }; }));
+    table($("shTable"), head, slice.map(function (r) {
+      var first = r.n;
+      if (canOpen) {
+        var b = el("button", "linkbtn", String(r.n));
+        b.type = "button";
+        b.setAttribute("aria-label", (d.editable.length ? "Edit" : "Open") + " row " + r.n);
+        b.addEventListener("click", function () { openRow(r); });
+        first = { node: b };
+      }
+      return [first].concat(r.cells.map(function (c) {
+        var s = el("span", "sh-cell", c);
+        if (c.length > 30) s.title = c;
+        return { node: s };
+      }));
+    }));
+    var term = $("shSearch").value.trim();
+    var note = !d.rows.length ? "This sheet has no rows yet."
+      : term ? rows.length + " of " + d.rows.length + " row(s) match your search."
+      : d.rows.length + " row(s)." + (d.newestFirst ? " Newest first." : "");
+    if (rows.length && !canOpen) note += " This sheet is view only.";
+    if (sh.flash) { note = sh.flash + " " + note; sh.flash = ""; }
+    $("shNote").textContent = note;
+    $("shPage").textContent = "Page " + (sh.page + 1) + " of " + pages;
+    $("shPrev").disabled = sh.page <= 0;
+    $("shNext").disabled = sh.page >= pages - 1;
+    $("shPager").hidden = pages <= 1;
+  }
+
+  // Country changed in the form: offer that country's states / regions in the State box.
+  function fillStates(country) {
+    var dl = $("shStates");
+    if (!dl) return;
+    dl.replaceChildren();
+    if (!country) return;
+    fetch("/api/states?country=" + encodeURIComponent(country))
+      .then(function (r) { return r.json(); })
+      .then(function (list) {
+        var now = $("shStates");
+        if (!now || !Array.isArray(list)) return;
+        now.replaceChildren();
+        list.forEach(function (s) { var o = el("option"); o.value = s; now.appendChild(o); });
+      })
+      .catch(function () {});
+  }
+
+  function buildFields(d, cells) {
+    var box = $("shFields");
+    box.replaceChildren();
+    d.headers.forEach(function (h, i) {
+      var editable = d.editable.indexOf(i) >= 0;
+      var wrap = el("div", "field");
+      wrap.id = "sh-wrap-" + i;
+      var label = el("label", null, h + (editable ? "" : " (locked)"));
+      label.setAttribute("for", "sh-f-" + i);
+      var input;
+      var opts = d.selects && d.selects[i];
+      if (opts) {
+        input = el("select");
+        var list = opts.slice();
+        if (list.indexOf(cells[i]) < 0) list.unshift(cells[i]); // keep a value that is not on the list (older rows)
+        list.forEach(function (o) { var op = el("option", null, o === "" ? "(none)" : o); op.value = o; input.appendChild(op); });
+        input.value = cells[i];
+      } else if (d.multiline && d.multiline.indexOf(i) >= 0) {
+        input = el("textarea");
+        input.value = cells[i];
+      } else {
+        input = el("input");
+        input.type = "text";
+        input.autocomplete = "off";
+        input.spellcheck = false;
+        input.value = cells[i];
+      }
+      input.id = "sh-f-" + i;
+      input.disabled = !editable;
+      if (d.placeholders && d.placeholders[i]) input.placeholder = d.placeholders[i];
+      if (d.key === "students" && i === 12 && editable) input.setAttribute("list", "shStates");
+      if (d.key === "students" && i === 2 && editable) input.addEventListener("change", function () { fillStates(input.value); });
+      var err = el("p", "lk-err");
+      err.id = "sh-err-" + i;
+      err.setAttribute("role", "alert");
+      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(err);
+      box.appendChild(wrap);
+    });
+    if (d.key === "students") {
+      var dl = el("datalist");
+      dl.id = "shStates";
+      box.appendChild(dl);
+      fillStates(cells[2]);
+    }
+  }
+
+  function showShErrors(errs) {
+    if (!sh.data) return;
+    var first = null;
+    sh.data.headers.forEach(function (h, i) {
+      var msg = (errs && errs[i]) || "";
+      var p = $("sh-err-" + i), w = $("sh-wrap-" + i);
+      if (p) p.textContent = msg;
+      if (w) w.classList.toggle("invalid", !!msg);
+      if (msg && !first) first = w;
+    });
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: "nearest" });
+  }
+
+  function openRow(r) {
+    var d = sh.data;
+    sh.mode = "edit";
+    sh.row = r;
+    $("shDlgTitle").textContent = d.label + ": row " + r.n;
+    $("shDlgNote").textContent = d.editable.length
+      ? "Greyed-out fields are locked. Changes are saved straight to the Google Sheet."
+      : "This sheet is view only. You can delete the row if it should not be there.";
+    buildFields(d, r.cells);
+    $("shSave").hidden = !d.editable.length;
+    $("shSave").textContent = "Save changes";
+    $("shDelete").hidden = !d.canDelete;
+    $("shDlgErr").textContent = "";
+    shDlg.showModal();
+  }
+
+  function openAdd() {
+    var d = sh.data;
+    if (!d || !d.add) return;
+    sh.mode = "add";
+    sh.row = null;
+    $("shDlgTitle").textContent = d.add.label;
+    $("shDlgNote").textContent = d.add.help;
+    var box = $("shFields");
+    box.replaceChildren();
+    var wrap = el("div", "field");
+    var label = el("label", null, d.add.label);
+    label.setAttribute("for", "sh-add-text");
+    var ta = el("textarea");
+    ta.id = "sh-add-text";
+    ta.rows = 6;
+    ta.spellcheck = false;
+    ta.autocomplete = "off";
+    wrap.appendChild(label); wrap.appendChild(ta);
+    box.appendChild(wrap);
+    $("shSave").hidden = false;
+    $("shSave").textContent = "Add";
+    $("shDelete").hidden = true;
+    $("shDlgErr").textContent = "";
+    shDlg.showModal();
+    ta.focus();
+  }
+
+  // After a failed change: sign-in problems go to the login, a changed row reloads, anything else shows in the form.
+  function shFail(err) {
+    if (err.auth) { shDlg.close(); showLogin(err.message); return; }
+    if (err.status === 409) { shDlg.close(); sh.flash = err.message; loadSheet(sh.key); return; }
+    showShErrors(err.fields);
+    $("shDlgErr").textContent = err.message;
+  }
+
+  $("shForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var d = sh.data, btn = $("shSave");
+    if (!d) return;
+    btn.disabled = true;
+    $("shDlgErr").textContent = "Saving...";
+    var base = "/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows";
+    var job;
+    if (sh.mode === "add") {
+      job = api(base, "POST", { text: $("sh-add-text").value }).then(function (r) {
+        sh.flash = "Added " + r.added + " code" + (r.added === 1 ? "" : "s") + ".";
+        shDlg.close();
+        $("shSearch").value = "";
+        return loadSheet(d.key);
+      });
+    } else {
+      var row = sh.row, values = {};
+      d.editable.forEach(function (i) { values[i] = $("sh-f-" + i).value; });
+      showShErrors(null);
+      job = api(base + "/" + row.n, "PUT", { original: row.cells, values: values }).then(function (r) {
+        row.cells = r.row;
+        sh.flash = r.changed ? "Saved row " + row.n + "." : "Nothing was changed.";
+        shDlg.close();
+        renderSheet();
+      });
+    }
+    job.catch(shFail).then(function () { btn.disabled = false; });
+  });
+
+  $("shDelete").addEventListener("click", function () {
+    var d = sh.data, row = sh.row, btn = this;
+    if (!d || !row) return;
+    if (!window.confirm("Delete row " + row.n + " from \"" + d.label + "\"? This cannot be undone.")) return;
+    btn.disabled = true;
+    $("shDlgErr").textContent = "Deleting...";
+    api("/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
+      .then(function () {
+        sh.flash = "Deleted row " + row.n + ".";
+        shDlg.close();
+        return loadSheet(d.key);
+      })
+      .catch(shFail)
+      .then(function () { btn.disabled = false; });
+  });
+
+  $("shDlgClose").addEventListener("click", function () { shDlg.close(); });
+  shDlg.addEventListener("click", function (e) { if (e.target === shDlg) shDlg.close(); });
+  shDlg.addEventListener("close", function () { $("shDlgErr").textContent = ""; });
+  $("shSearch").addEventListener("input", function () { sh.page = 0; renderSheet(); });
+  $("shReload").addEventListener("click", function () { loadSheet(sh.key); });
+  $("shAdd").addEventListener("click", openAdd);
+  $("shPrev").addEventListener("click", function () { sh.page--; renderSheet(); });
+  $("shNext").addEventListener("click", function () { sh.page++; renderSheet(); });
+
+  function openSheets() {
+    var go = function () { return loadSheet(sh.key); };
+    Promise.resolve(sh.meta ? go() : loadSheetMeta().then(go)).catch(function (err) {
+      if (err.auth) showLogin(err.message); else $("shNote").textContent = err.message;
+    });
+  }
+
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz", "links", "videos"].forEach(function (n) {
+    ["overview", "quiz", "links", "videos", "sheets"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos";
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "sheets";
+    if (name === "sheets") openSheets();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
@@ -602,6 +897,7 @@
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
+  $("tab-sheets").addEventListener("click", function () { setTab("sheets"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);
@@ -626,6 +922,7 @@
     var b = this;
     b.disabled = true;
     load()
+      .then(function () { if (!$("view-sheets").hidden) return loadSheet(sh.key); })
       .catch(function (err) { if (err.auth) showLogin(err.message); else $("stamp").textContent = err.message; })
       .then(function () { b.disabled = false; });
   });

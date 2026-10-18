@@ -19,7 +19,7 @@ body.adm { background: var(--bone); min-height: 100vh; }
 .adm-login { max-width: 400px; margin: 7vh auto 0; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
 .adm-login h1 { font-family: var(--display); font-size: 1.6rem; margin: 0 0 6px; }
 
-.adm-tabs { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.adm-tabs { display: flex; flex-wrap: wrap; gap: 0 6px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
 .adm-tabs button {
   appearance: none; background: none; border: 0; cursor: pointer; font: inherit; font-weight: 700; color: var(--muted);
   padding: 12px 16px; border-bottom: 3px solid transparent; margin-bottom: -1px;
@@ -123,3 +123,28 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .lk-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
 .lk-bar .primary { width: auto; padding-inline: 28px; }
 .lk-msg { font-size: .9rem; font-weight: 600; color: var(--violet-deep); }
+
+/* ---------- Sheets view (look at and edit the Google Sheet tabs) ---------- */
+.sh-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.sh-pick {
+  appearance: none; font: inherit; font-weight: 700; font-size: .86rem; cursor: pointer; height: auto;
+  padding: 8px 14px; border-radius: 99px; border: 1.5px solid var(--line); background: #fff; color: var(--violet-deep);
+}
+.sh-pick:hover { border-color: var(--violet); }
+.sh-pick[aria-pressed="true"] { background: var(--violet-deep); border-color: var(--violet-deep); color: #fff; }
+.sh-pick:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sh-wrap { max-height: 62dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+.sh-table th { position: sticky; top: 0; background: #fff; }
+.sh-cell { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.filters #shAdd, .filters #shReload { height: 42px; }
+#shOpen { height: 40px; padding: 0 16px; display: inline-flex; align-items: center; text-decoration: none; }
+.sh-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+.sh-pager .btn { height: 38px; padding: 0 16px; }
+.sh-dlg { width: min(640px, calc(100vw - 24px)); }
+.sh-fields { max-width: none; max-height: 52dvh; overflow: auto; padding-right: 4px; }
+.sh-dlg input:disabled, .sh-dlg select:disabled, .sh-dlg textarea:disabled { background: var(--bone); color: var(--muted); cursor: not-allowed; }
+.sh-dlg textarea { min-height: 96px; resize: vertical; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; width: 100%; }
+.sh-dlg .field.invalid input, .sh-dlg .field.invalid select, .sh-dlg .field.invalid textarea { border-color: var(--danger); }
+.sh-dlg .lk-bar .btn { height: 48px; padding: 0 22px; }
+.sh-del { color: var(--danger); border-color: rgba(192, 38, 45, .45); }
+.sh-del:hover { background: rgba(192, 38, 45, .08); }

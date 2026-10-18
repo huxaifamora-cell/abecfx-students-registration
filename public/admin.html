@@ -43,6 +43,7 @@
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
+        <button type="button" role="tab" id="tab-sheets" aria-selected="false" aria-controls="view-sheets">Sheets</button>
       </nav>
 
       <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
@@ -125,8 +126,48 @@
           </div>
         </article>
       </div>
+
+      <div id="view-sheets" role="tabpanel" aria-labelledby="tab-sheets" hidden>
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Google Sheet data</h3>
+            <a class="btn ghost" id="shOpen" href="#" target="_blank" rel="noopener noreferrer" hidden>Open in Google Sheets</a>
+          </div>
+          <div class="sh-picker" id="shPicker" role="group" aria-label="Choose a sheet"></div>
+          <p class="adm-note" id="shHelp"></p>
+          <div class="filters">
+            <input id="shSearch" type="search" placeholder="Search this sheet" aria-label="Search this sheet" />
+            <button type="button" class="btn ghost" id="shAdd" hidden>Add</button>
+            <button type="button" class="btn ghost" id="shReload">Reload</button>
+          </div>
+          <div class="tablewrap sh-wrap"><table class="adm-table sh-table" id="shTable"></table></div>
+          <div class="sh-pager" id="shPager" hidden>
+            <button type="button" class="btn ghost" id="shPrev">Previous</button>
+            <span id="shPage"></span>
+            <button type="button" class="btn ghost" id="shNext">Next</button>
+          </div>
+          <p class="adm-note" id="shNote" role="status"></p>
+        </article>
+      </div>
     </section>
   </main>
+
+  <!-- One sheet row: edit, delete, or add codes -->
+  <dialog id="shDlg" class="adm-drill sh-dlg" aria-labelledby="shDlgTitle">
+    <form id="shForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="shDlgTitle">Row</h2>
+        <button type="button" class="btn ghost" id="shDlgClose">Close</button>
+      </div>
+      <p class="adm-note" id="shDlgNote"></p>
+      <div class="lk-form sh-fields" id="shFields"></div>
+      <p class="formErr" id="shDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="shSave">Save changes</button>
+        <button type="button" class="btn ghost sh-del" id="shDelete" hidden>Delete row</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- The list behind whichever statistic was clicked -->
   <dialog id="drill" class="adm-drill" aria-labelledby="drillTitle">
