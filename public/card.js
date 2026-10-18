@@ -11,7 +11,6 @@
   var STATUS_CLASS = {
     "Uncertified": "s-uncertified",
     "Certified": "s-certified",
-    "Graduate": "s-graduate",
     "Alumni Member": "s-alumni",
     "Mentor": "s-mentor",
     "Staff Member": "s-staff",
@@ -42,7 +41,10 @@
     }));
   }
 
-  // Round stamp: "Certified graduate of ABEC-FX" (Certified and Graduate students) or "Alumni member" (alumni).
+  // What the card calls a status. A Certified student is a certified graduate.
+  function statusLabel(status) { return status === "Certified" ? "Certified Graduate" : status; }
+
+  // Round stamp: "Certified graduate of ABEC-FX" (Certified students) or "Alumni member" (alumni).
   function buildStamp(status, dateText) {
     var isGrad = status !== "Alumni Member";
     var top = isGrad ? "CERTIFIED GRADUATE" : "ALUMNI MEMBER";
@@ -184,17 +186,17 @@
     card.appendChild(el("h3", "idc-name", d.fullName));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 
-    // ---- status (+ stamp for graduates and alumni)
+    // ---- status (+ stamp for certified graduates and alumni)
     var row = el("div", "idc-statusrow");
     var col = el("div", "idc-statuscol");
     var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
-    chip.appendChild(el("span", null, status));
+    chip.appendChild(el("span", null, statusLabel(status)));
     col.appendChild(chip);
     col.appendChild(el("span", "idc-since",
       status === "Uncertified" ? "Awaiting certification"
         : "Since " + (d.statusDate || "date not recorded")));
     row.appendChild(col);
-    if (status === "Graduate" || status === "Certified" || status === "Alumni Member") {
+    if (status === "Certified" || status === "Alumni Member") {
       var stampWrap = el("div", "idc-stamp");
       stampWrap.appendChild(buildStamp(status, d.statusDate));
       row.appendChild(stampWrap);

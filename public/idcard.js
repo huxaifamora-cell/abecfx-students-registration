@@ -47,7 +47,7 @@
 
     var meta = el("dl", "idcard-meta");
     meta.appendChild(item("Gender", d.gender || "Not given"));
-    meta.appendChild(item("Status", el("span", "badge badge-" + slug(status), status)));
+    meta.appendChild(item("Status", el("span", "badge badge-" + slug(status), status === "Certified" ? "Certified Graduate" : status)));
     if (status !== "Uncertified") {
       meta.appendChild(item("Status since", d.statusDate || "Not recorded"));
     }

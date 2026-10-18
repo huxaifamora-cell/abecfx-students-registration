@@ -272,7 +272,6 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   animation: passIn .55s cubic-bezier(.2, .8, .2, 1) both;
 }
 .idc[data-status="certified"] { --accent: #5ee0a4; }
-.idc[data-status="graduate"] { --accent: #e8b64c; }
 .idc[data-status="alumni-member"] { --accent: #f08ad9; }
 .idc[data-status="mentor"] { --accent: #5fd3e8; }
 .idc[data-status="staff-member"] { --accent: #9db4ff; }

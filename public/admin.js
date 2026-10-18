@@ -300,7 +300,7 @@
     var k = $("kpis");
     k.replaceChildren(
       kpi("Total students", s.total, { kind: "all" }),
-      kpi("Certified / graduates", s.graduates, { kind: "graduates" }),
+      kpi("Certified graduates", s.graduates, { kind: "graduates" }),
       kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
       kpi("Mentors, staff and CEO", s.team, { kind: "team" }),
       kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
@@ -308,7 +308,7 @@
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "Certified / graduates = Certified, Graduate and Alumni Member.";
+    $("c-status-note").textContent = "Certified graduates = Certified and Alumni Member.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
