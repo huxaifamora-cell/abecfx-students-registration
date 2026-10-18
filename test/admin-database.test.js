@@ -246,9 +246,9 @@ test("values for locked columns sent when adding are ignored", async () => {
   assert.equal(row[8], "");
 });
 
-test("a graduate added by the editor gets a status date", async () => {
+test("a certified student added by the editor gets a status date", async () => {
   const { svc, store } = setup();
-  await svc.create("students", { values: { ...NEW, 9: "Graduate" } });
+  await svc.create("students", { values: { ...NEW, 9: "Certified" } });
   assert.ok(store.data.students[3][10]);
 });
 
