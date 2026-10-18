@@ -386,7 +386,96 @@ async function getPhoto(reg) {
   return b64;
 }
 
+// ---- Generic tab access for the editor dashboard's "Sheets" view (the rules live in admin-sheets.js) ----
+// The Photos tab is deliberately left out: it holds long image text that nobody should edit by hand.
+const EDITOR_TABS = {
+  students: { title: TAB, headers: HEADERS, lastCol: LAST_COL },
+  codes: { title: CODE_TAB, headers: CODE_HEADERS, lastCol: CODE_LAST_COL },
+  quiz: { title: QUIZ_TAB, headers: QUIZ_HEADERS, lastCol: QUIZ_LAST_COL },
+  progress: { title: PROG_TAB, headers: PROG_HEADERS, lastCol: PROG_LAST_COL },
+  links: { title: LINKS_TAB, headers: LINKS_HEADERS, lastCol: LINKS_LAST_COL },
+  videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
+};
+
+function editorTab(key) {
+  if (!Object.prototype.hasOwnProperty.call(EDITOR_TABS, key)) throw new Error("Unknown sheet: " + key);
+  return EDITOR_TABS[key];
+}
+
+const cellText = (v) => (v == null ? "" : String(v));
+// Google trims empty cells at the end of a row; give every row its full width again.
+function fitRow(row, width) {
+  const r = (row || []).slice(0, width).map(cellText);
+  while (r.length < width) r.push("");
+  return r;
+}
+const colLetter = (i) => String.fromCharCode(65 + i);
+const quoteTab = (title) => "'" + title.replace(/'/g, "''") + "'";
+
+// Forget whatever the website has remembered about a tab, so the next read sees the change.
+function invalidate(key) {
+  if (key === "students") cache.at = 0;
+  else if (key === "quiz") quizCache.at = 0;
+  else if (key === "progress") progCache.at = 0;
+  else if (key === "links") linksCache = { at: 0, values: null };
+  else if (key === "videos") videoCache = { at: 0, values: null };
+}
+
+function sheetUrl() {
+  return SHEET_ID ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/edit` : "";
+}
+
+// Every data row of a tab, always read fresh. `n` is the row number in the sheet (the header is row 1).
+async function tabRows(key) {
+  const t = editorTab(key);
+  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
+}
+
+async function tabRow(key, n) {
+  const t = editorTab(key);
+  const data = await call(`/values/${range(`A${n}:${t.lastCol}${n}`, t.title)}`);
+  return fitRow((data.values || [])[0], t.headers.length);
+}
+
+// Change only the cells that changed ({ columnIndex: text }), so the rest of the row is left exactly as it was.
+// RAW means the text is stored as typed: a value starting with "=" can never run as a formula.
+async function writeTabCells(key, n, changes) {
+  const t = editorTab(key);
+  const data = Object.keys(changes).map((i) => ({
+    range: `${quoteTab(t.title)}!${colLetter(Number(i))}${n}`,
+    values: [[cellText(changes[i])]],
+  }));
+  if (!data.length) return;
+  await call("/values:batchUpdate", { method: "POST", data: { valueInputOption: "RAW", data } });
+  invalidate(key);
+}
+
+async function appendTabRows(key, rows) {
+  const t = editorTab(key);
+  if (!rows.length) return;
+  await call(
+    `/values/${range(`A:${t.lastCol}`, t.title)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    { method: "POST", data: { values: rows.map((r) => fitRow(r, t.headers.length)) } }
+  );
+  invalidate(key);
+}
+
+async function deleteTabRow(key, n) {
+  const t = editorTab(key);
+  const tab = await findTab(t.title);
+  if (!tab) throw new Error("The sheet tab was not found: " + t.title);
+  await call(":batchUpdate", {
+    method: "POST",
+    data: {
+      requests: [{ deleteDimension: { range: { sheetId: tab.sheetId, dimension: "ROWS", startIndex: n - 1, endIndex: n } } }],
+    },
+  });
+  invalidate(key);
+}
+
 module.exports = {
   init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
+  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, invalidate, sheetUrl,
 };

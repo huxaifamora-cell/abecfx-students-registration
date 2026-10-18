@@ -17,6 +17,7 @@ const progress = require("./handbook-progress");
 const pdfLink = require("./pdflink");
 const links = require("./links");
 const videos = require("./videos");
+const adminSheets = require("./admin-sheets");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -743,6 +744,60 @@ app.get("/api/admin/results", adminLimiter, adminAuth, async (_req, res) => {
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
   }
 });
+
+// ---- Sheets view: the editor looks at and edits the Google Sheet tabs from /admin ----
+// What may be changed, and the checks on every change, live in admin-sheets.js. Only a WRONG password counts
+// toward the lock-out here (a mistyped value must not lock the editor out of editing); a second limiter just
+// stops floods, because every call here reads from Google.
+const sheetsAdmin = adminSheets.create(store);
+app.use(
+  "/api/admin/sheets",
+  rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests. Please wait a moment." } }),
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 15,
+    skipSuccessfulRequests: true,
+    requestWasSuccessful: (_req, res) => res.statusCode !== 401,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many attempts. Try again in a few minutes." },
+  }),
+  adminAuth
+);
+
+function sheetsRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof adminSheets.AdminError) {
+        return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      }
+      console.error("Admin sheets failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
+}
+// Changes wait their turn with registrations (or handbook saves), so a row number never moves under a running save.
+const inQueue = (key, task) => (key === "progress" ? exclusiveProgress : exclusive)(task);
+
+app.get("/api/admin/sheets", sheetsRoute(async (_req, res) => res.json(sheetsAdmin.meta())));
+
+app.get("/api/admin/sheets/:key", sheetsRoute(async (req, res) => res.json(await sheetsAdmin.read(req.params.key))));
+
+app.put("/api/admin/sheets/:key/rows/:n", sheetsRoute(async (req, res) => {
+  const b = req.body || {};
+  res.json(await inQueue(req.params.key, () => sheetsAdmin.update(req.params.key, req.params.n, b.original, b.values)));
+}));
+
+app.post("/api/admin/sheets/:key/rows", sheetsRoute(async (req, res) => {
+  res.json(await inQueue(req.params.key, () => sheetsAdmin.add(req.params.key, (req.body || {}).text)));
+}));
+
+app.post("/api/admin/sheets/:key/rows/:n/delete", sheetsRoute(async (req, res) => {
+  res.json(await inQueue(req.params.key, () => sheetsAdmin.remove(req.params.key, req.params.n, (req.body || {}).original)));
+}));
 
 app.listen(PORT, async () => {
   console.log(`ABECFX registration running on port ${PORT}`);

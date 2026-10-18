@@ -1,7 +1,7 @@
 # ABECFX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
-**Last updated:** 15 Oct 2026, 22:02 (Lagos time)
+**Last updated:** 17 Oct 2026 (Lagos time), after change 9 (Sheets view in the editor dashboard). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -15,7 +15,7 @@
 ## 1. Goals
 
 1. Student registration with a unique number `ABECFX/YY/NNNN` (YY = admission year, NNNN = student number), saved in a Google Sheet, deployed on Render.
-2. Registration fields: country, state/region, programme (Forex Mentorship), full name, email, WhatsApp number, gender, passport photo, optional promo code.
+2. Registration fields: country, state/region, programme (Forex Mentorship), full name, email, WhatsApp number, gender, passport photo, **required one-time mentorship code** (replaces the old optional promo code).
 3. Top-of-the-range branding and UI using the purple bull-horn logo.
 4. Student status managed by the sheet editor: Uncertified (default), Certified, Graduate, Alumni Member, Mentor, Staff Member, CEO, with a status date.
 5. Public "find a student" page that shows a student ID card: QR code to the live status, national flag, passport photo, graduate stamp, expiry.
@@ -24,6 +24,10 @@
 8. Editor dashboard: student statistics and quiz results.
 9. Keep the free Render service from sleeping.
 10. Keep this status file current with every code change.
+11. Students take the quiz inside their portal without leaving it (Telegram stays as a second way in).
+12. **Owner's change list of 16 Oct 2026, done one at a time, each approved before the next:** (1) mentorship code at registration [DONE, awaiting live check]; (2) only registered users reach the student portal, while find-a-student stays public [DONE, awaiting live check]; (3) My Portal submenu: Quiz and Mentorship Handbook (the PDF the quiz came from), with a learning-progress bar in percent [DONE, awaiting live check]; (4) every statistic on the admin page clickable and viewable [DONE, awaiting live check]; (5) on computer screens the menu goes to the top left for everyone, not bottom left [DONE, awaiting live check].
+
+13. **Change 9 (owner, 17 Oct 2026): the admin can view and edit the Google Sheet data directly from the admin dashboard** [DONE, awaiting live check].
 
 ## 2. Decisions
 
@@ -31,7 +35,7 @@
 | --- | --- | --- |
 | 2026-10-13 | Google **Sheets** is the database (not Docs) | Docs cannot store rows. Same Google account and Drive. |
 | 2026-10-13 | Numbering restarts at 0001 each year | Matches the `YY` in the format. Flagged to owner, not contradicted. |
-| 2026-10-13 | Public lookup never shows email, WhatsApp or promo code | Privacy. Name, gender, country, state, photo and status are shown. |
+| 2026-10-13 | Public lookup never shows email, WhatsApp or mentorship code (was promo code) | Privacy. Name, gender, country, state, photo and status are shown. |
 | 2026-10-13 | All JavaScript is in external files | The site's security policy (helmet CSP) blocks inline scripts. |
 | 2026-10-14 | Non-graduate IDs expire 2 months after the ID Issue Date; editor renews by typing a new date in column L | Owner request. |
 | 2026-10-14 | **Certified students are graduates**: no expiry, graduate stamp. Only Uncertified expires | Owner clarification. |
@@ -46,50 +50,104 @@
 | 2026-10-15 | Grading: A 70-100, B 60-69, C 50-59, D 45-49, E 40-44, F 0-39 | **Assumed** (common Nigerian scale). Not yet confirmed by owner. One place to change: `grading.js`. |
 | 2026-10-15 | Dashboard "certified/graduates" = Certified + Graduate + Alumni Member; "team" = Mentor + Staff + CEO | Derived from the owner's rule that Certified = graduate. |
 | 2026-10-15 | Dashboard protected by one password (`ADMIN_PASSWORD`); shows no email or phone | Simple and safe for one editor. Off if the variable is missing. |
+| 2026-10-16 | **The student portal is private; find-a-student stays public.** A student signs in with registration number + the email they registered with. The website returns a signed session token (30 days, HMAC, `session.js`), kept in the browser and sent as `Authorization: Bearer`. `/api/portal/me`, `/api/results` and `/api/quiz/session` need it and use the registration number **from the token**, never from the page. `/api/lookup` and `/api/photo` (and so `/status`) stay open. A student who has just registered is signed in automatically. Signing secret is `SESSION_SECRET`, or `QUIZ_API_KEY` if that is not set | Owner request. Registration numbers are sequential and public, so a number alone is no longer enough; this also answers open question 6. One message for "wrong number" and "wrong email" so nobody can probe which numbers exist; only wrong attempts count toward the limit (10 per 15 min). **Assumed:** email as the second check, 30-day sign-in. |
+| 2026-10-16 | **Mentorship code replaces the promo code.** Required, one-time, given by admin/editor. Codes live on a new sheet tab **Mentorship Codes** (A: code, B: created at, C: used by reg number, D: used at). The editor adds codes by typing them in column A. Registration is refused if the code is missing, unknown or already used. The code is claimed inside the same queue that issues registration numbers | Owner request. Code is checked before a reg number is issued and marked used right after the student row is saved. Codes are not case-sensitive (stored and compared in capitals). |
+| 2026-10-16 | Students sheet column I is kept in place but renamed **Mentorship Code**; it stores the code the student used. Old promo values in existing rows stay as they were | Keeps every column position, so nothing else (stats, lookup, dashboard) had to change. **Assumed.** |
+| 2026-10-17 | **On computers the menu is at the top left, for everyone.** The three items (My portal, Register, Find a student) sit directly under the logo as a row of pills, on all three pages that have it (portal, including the sign-in view, register, find a student); the big headline moved to the bottom of the left panel. The left panel is **pinned** (sticky, full window height), so the menu stays in view while a long page such as a handbook chapter scrolls. Phones are unchanged: the bottom tab bar stays | Owner request ("in computer view ... visible on the top left for everyone"). Computer view = windows wider than 900 px, the site's existing breakpoint. **Assumed:** "everyone" means every visitor, signed in or not; the editor dashboard at `/admin` has its own top bar (Refresh, Sign out) and no site menu, so it was left alone. The pinning is an addition so the menu is always visible; if you prefer it to scroll away with the page, delete `position: sticky` in the last block of `styles.css`. Pure CSS: no script, markup or server change. |
+| 2026-10-17 | **Every statistic on the admin page is clickable and opens the list behind it.** Headline tiles, every bar (status, gender, programme, year joined, country, state, grades), every column of "Month joined" and the growth chart, the growth-chart dots (running total), the growth table cells (Month and New students open that month; Total opens everyone who had joined by then), "Show them" for undated students, and all quiz tiles. A pop-up lists the students (or quiz results) with search and a Download CSV button | Owner request ("clickable and viewable"). **Assumed:** a pop-up list rather than a new page, so the editor keeps their place; "viewable" means the people/results behind the number, not another chart. "Change vs last month" is a calculation, so it is not clickable. |
+| 2026-10-17 | The lists come from the server (`GET /api/admin/drill?kind=...&value=...`) and use the **same labelling rules as the counts** (`stats.js` shares one set of key functions), so a number and its list cannot disagree. Tested: all 59 numbers in the test data equal the length of their list | Avoids copying the counting rules into the browser, where they could drift. |
+| 2026-10-17 | The lists show only reg number, name, gender, status, country, state, programme and joined date. **No email, WhatsApp number, photo or mentorship code**, also in the CSV | Keeps the 2026-10-15 rule that the dashboard shows no email or phone. |
+| 2026-10-17 | "Not yet taken" on the quiz tab now counts students who have **no quiz result at all** (before: total students minus people with results, which is wrong if a result belongs to a student row that was later deleted). "Took the quiz" still counts every registration number in the Quiz Results tab | Needed so the number equals its list. Same answer whenever every result belongs to a current student. |
+| 2026-10-17 | `quizEntry` moved from `server.js` to `stats.js` (one copy, used by the student portal, admin results and the new lists) | No behaviour change. |
+| 2026-10-17 | **My portal has a submenu: My ID card, Quiz, Mentorship Handbook.** It sits at the top of the portal content (not in the side menu) and works with addresses `#/card`, `#/quiz`, `#/handbook` and `#/handbook/03`, so a chapter can be opened directly. The quiz results card and the in-portal quiz moved from the ID card page to the Quiz view | Owner request. Kept inside the page so change 5 (menu at the top on computers) does not collide with it. The ID card page keeps the card and shows a small "learning journey" summary that opens the handbook. |
+| 2026-10-17 | **The Mentorship Handbook is read inside the portal**, one section per chapter: Introduction plus chapters 01-12 = **13 steps**. The text and tables come from the owner's PDF "The Edge Handbook, Complete Workbook" (59 pages), stored in `handbook-content.js`. The charts, fill-in workbook pages and signature pages stay in the PDF | Owner request ("interactive"). Workbook pages are for printing and writing on, so they were not rebuilt as forms. **Assumed.** Chapter titles follow the PDF's own contents page. To change the text, edit `handbook-content.js`; progress adjusts itself to the number of chapters. |
+| 2026-10-17 | **Learning progress = chapters marked as read / total chapters, shown as a percent.** A student taps "Mark this chapter as read" (and can undo it). The quiz is separate and does not count | Owner's choice. 1 of 13 = 8%, 7 of 13 = 54%, 13 of 13 = 100%. |
+| 2026-10-17 | **Progress is saved in the Google Sheet**, new tab **Handbook Progress** (one row per student: reg number, name, chapters read, count, total, percent, updated at). It follows the student to any device and the editor can read it | Owner's choice. The row is created on the first "mark as read", not on opening. The editor can fix a student by editing the "Chapters Read" cell (ids like `00,01,03`); numbers without a leading zero are accepted. |
+| 2026-10-17 | **The handbook text and the PDF are for signed-in students only.** The PDF is not in the public folder; a signed-in student asks for a link that is valid for 10 minutes (`pdflink.js`) and `/handbook.pdf` is refused without a valid link | The PDF is the paid mentorship material and registration numbers are public, so it must not be a plain public file. **Assumed.** |
+| 2026-10-17 | Saves use their own queue, separate from registration, and read the sheet fresh before writing | A burst of "mark as read" taps can never slow down issuing registration numbers, and two devices cannot overwrite each other. |
+| 2026-10-17 | Fixed `--purple-soft` (used by the mobile active tab and notice box but never defined) and the phone page grid (`1fr` to `minmax(0, 1fr)`) | Found while testing: the page was 7 px wider than a 375 px phone, and wide handbook tables made it much wider. |
+| 2026-10-17 | **Date of birth is a required field at registration**, right after Country/State and before Gender. It is a date picker (cannot pick a future day); the server checks it is a real date written `YYYY-MM-DD`, not in the future and not before 1920. It is saved in Students **column N, "Date of Birth"**, as plain text `YYYY-MM-DD` | Owner request. **Assumed:** no minimum age is enforced (only plausibility), and the date of birth is **private**: it is not on the public ID card, the find-a-student page, the dashboard lists or the CSVs. Students registered before this change have column N empty. |
+| 2026-10-17 | **Each handbook chapter (01-12) has a video tutorial, linked to YouTube and added by the editor on `/admin` > Chapter videos.** The video plays inside the chapter, above the text, with a "Watch on YouTube" link as backup. A chapter with no address shows "The video for this chapter is coming soon"; the chapter list marks chapters that have a video. The Introduction has no video | Owner request (videos not made yet). **Assumed:** the video does not count toward learning progress; it is shown above the chapter text. |
+| 2026-10-17 | Videos are stored on a new sheet tab **Chapter Videos** (A: chapter, B: title, C: YouTube address), created with 12 empty rows on first start. Only real YouTube video addresses are accepted (youtube.com/watch, youtu.be, shorts, embed, live) and are saved as `https://youtu.be/<id>`. They are sent to the page only inside `GET /api/handbook`, so **only signed-in students get them**. Plays from `youtube-nocookie.com` (privacy mode); the security policy's `frame-src` now allows that one address | The editor can also type the addresses straight into the sheet. A video must allow embedding, or the student sees YouTube's error and uses the "Watch on YouTube" link. |
+| 2026-10-17 | **Social icons, Deriv affiliate button, About and Contact on every public page, editable from `/admin`.** Facebook, WhatsApp channel, TikTok, X, Telegram and YouTube are round icons; "Create your Deriv account" is a button above them (opens the affiliate link); **About** opens a pop-up with the editor's text; **Contact** opens a pop-up with the number, a Call button and a "Chat on WhatsApp" button. They sit at the bottom of the left panel on computers and under the headline on phones, on portal, register and find a student. A box left empty hides that icon (X starts empty) | Owner request. **Assumed:** "about" and "contact" are an editable text and an editable phone number shown in pop-ups, not separate pages. The About text is a **starting draft I wrote** from what the site already says; please replace it with your own on `/admin`. |
+| 2026-10-17 | The links live on a new sheet tab **Site Links** (A: key, B: what it is, C: value), created and filled with the starting links on first start (only when the tab is empty). The editor changes them on `/admin` > **Site links** (Save), or directly in the sheet. `GET /api/links` is public; `GET`/`PUT /api/admin/links` need the editor password. Web addresses must be `https://`; the phone must look like a phone number; the page also re-checks every address, so a wrong paste cannot put a script on the site. If the sheet cannot be read, the public API falls back to the starting links | New files `links.js`, `public/links.js`; changes in `sheets.js`, `server.js`, the three public pages, `admin.html`, `admin.js`, `admin.css`, `styles.css`. Changes show within about 30 seconds on other visitors' devices (server cache; the editor's own save shows at once). |
 | 2026-10-15 | Month charts use the "Registered At" date, not the ID Issue Date | Renewing an ID must not move a student to a new month. |
+| 2026-10-15 | The quiz opens **inside the portal** in a frame; the Telegram link stays as the second choice. Switched on by `QUIZ_APP_URL` (the quiz service's https address) | Owner request: students must not leave the portal. The security policy lets the portal frame that one address only. |
+| 2026-10-15 | Portal-to-quiz sign-in is a short-lived **signed pass**: one registration number, HMAC-signed with `QUIZ_API_KEY`, valid 4 hours, carried after the `#` so it is never sent to a server and is removed from the address bar. The quiz service takes the number from the pass, never from the page | Same principle as the Telegram login. Code: `quiztoken.js` (website) and `verifyPortalToken` in `bot.js`. |
+| 2026-10-15 | Portal results are saved with the word `portal` in the Telegram ID column. A number already linked to a Telegram account cannot save portal results; Telegram can still claim a number that only has portal results | Stops the portal from getting around the earlier Telegram-link rule. **Assumed**, not yet confirmed by owner. |
+| 2026-10-15 | The quiz page itself is not edited for portal mode. `webapp/embed.js`, added to the page by `bot.js`, does it (signs the student in, locks the number, hides the Telegram-only button, tells the portal when a result is saved) | The full 130 KB quiz file was not available. It relies on the ids `reg-input`, `reg-check-btn`, `reg-change-btn`, `save-status`, `grade-line` and on the button text "Send score to chat". If any change, update `embed.js`. |
+| 2026-10-17 | **Change 9: new dashboard tab "Sheets"** to look at and edit the sheet tabs from `/admin`: Students, Mentorship Codes, Quiz Results, Handbook Progress, Site Links, Chapter Videos. Search, 50 rows per page, newest first where it matters, an "Open in Google Sheets" link. The **Photos tab is not shown** | Owner request. Photos are long image text that nobody should edit by hand. |
+| 2026-10-17 | **What may be changed differs per tab, and the server decides** (`admin-sheets.js`). **Students:** edit country, state, programme, name, email, WhatsApp, gender, status, status date, ID issue date, date of birth. **Locked:** registration number, registered-at time, mentorship code used. **No add and no delete** | The registration number ties together photos, quiz results and progress and must never be reused. **Assumed**: tell me if you want deleting students from the dashboard. |
+| 2026-10-17 | Every edit uses the **same rules as the rest of the site**: country from the list, state must belong to that country, email format and no other student with it, phone format, gender, status from the list, real dates (date of birth not in the future), links https only, videos YouTube only. Text starting with `=` is stored as plain text (`valueInputOption=RAW`) | A hand edit in the dashboard must not be able to put bad data in that the registration form would refuse. |
+| 2026-10-17 | **A row is changed only if it still matches what the editor was looking at** (the browser sends the row as it saw it). If someone changed or removed it meanwhile, the save is refused (409), the sheet reloads and the editor tries again. Only the cells that changed are written | Row numbers move when rows are deleted in Google Sheets; this stops a stale screen writing over the wrong student. |
+| 2026-10-17 | **Mentorship codes:** add many at once (one per line or comma separated, made capital letters, duplicates refused as a batch, up to 200); edit or delete a code that is not used yet; **a used code cannot be renamed or deleted** (it is the record of who joined with it). **Quiz results and Handbook progress:** view and delete only (scores are not editable). **Site links and Chapter videos:** only the Value column, with their existing checks | Keeps the records honest while letting the editor remove a test attempt or reset a student's progress. |
+| 2026-10-17 | Sheet changes wait in the same queue as registrations (handbook progress uses its own queue), and the website's short-lived caches are cleared after each change | A row number cannot move under a running save, and the public pages show a fix straight away. |
 
 ## 3. Current state
 
 **Built and tested with a mocked browser/server (not yet verified on live Render + real Google Sheets):**
 
-- Registration form with country, state/region, passport photo (cropped and compressed in the browser), duplicate-email check, honeypot, rate limits.
+- Registration form with country, state/region, **required mentorship code**, passport photo (cropped and compressed in the browser), duplicate-email check, honeypot, rate limits.
 - ID card with QR, flag, photo, status chip, graduate stamp, expiry, EXPIRED mark, print.
+- **Private student portal**: sign-in with registration number + registered email, 30-day session, Sign out button; find-a-student open to all.
 - Portal home (`/`), register (`/register`), find a student (`/status`), mobile bottom navigation.
 - Status system and dropdown in the sheet; Certified = graduate rules.
 - Keep-alive self-ping.
 - **New:** quiz results in the portal (grade badge, score, history, grading scale, "Take the quiz on Telegram" button).
 - **New:** quiz bot asks for registration number, shows the student's name, Full length default, saves finished results with an A-F grade.
 - **New:** editor dashboard at `/admin` (statistics and quiz results, CSV download).
+- **New (change 5):** on computers the menu is a row at the top left under the logo on every page that has it, and stays in view while scrolling; narrow computer windows (about 900 px) wrap it to two lines. Phones keep the bottom bar.
+- **New (change 4):** the dashboard hint line says "Tap or click any number, bar or chart column to see the students behind it". Every number, bar and chart column opens a pop-up with the list (students, or quiz results), a search box, "Download CSV" (the searched list) and Close (button, Escape, or a click outside). Works by keyboard (Tab, Enter, Space) and on phones. A second click replaces a slower first one.
+- **New (change 3):** My portal submenu (My ID card, Quiz, Mentorship Handbook). Handbook reader with 13 chapters, "Mark as read", previous/next, and a learning-progress bar (percent) that is saved in the sheet, shown on the handbook page, inside each chapter and as a summary on the ID card page. At 100% a "final word" and a link to the quiz appear. "Open the full handbook PDF" opens a private 10-minute link.
+- **New:** the quiz runs inside the student portal ("Take the quiz here"): the student is signed in automatically, cannot switch to another number, the result is graded and saved, and the portal's results card refreshes by itself. "Close quiz" and "Not you?" remove the running quiz. Telegram still works as before.
 
 **Pages and endpoints (registration site):**
 
 | Address | Purpose |
 | --- | --- |
-| `/`, `/register`, `/status`, `/admin` | Pages |
+| `/`, `/register`, `/status`, `/admin` | Pages (`/` shows only a sign-in form until the student signs in) |
 | `GET /api/lookup`, `/api/photo`, `/api/results`, `/api/countries`, `/api/states`, `/api/config` | Public |
+| `POST /api/portal/login` | Public, rate limited (wrong attempts only). Registration number + email in, session token + card out |
+| `GET /api/handbook`, `/api/handbook/progress`, `/api/handbook/pdf-link`; `POST /api/handbook/progress` | **Signed-in student only.** `/api/handbook` gives the chapters and the student's progress; `POST` takes `{chapter, read}` and saves for the student in the token. 120 requests per 10 min |
+| `GET /handbook.pdf?t=...` | Only with a valid 10-minute link from `/api/handbook/pdf-link` |
+| `GET /api/portal/me`, `/api/results`, `/api/quiz/session` | **Signed-in student only** (Bearer token). `/api/quiz/session` gives the quiz address plus a signed pass for the student's own number |
 | `POST /api/register` | Public, rate limited |
-| `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`) |
+| `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`). The result route accepts either a Telegram id or `source: "portal"` |
 | `GET /api/admin/stats`, `/api/admin/results` | Editor only (Bearer password) |
+| `GET /api/admin/drill?kind=...&value=...` | Editor only. The list behind one number. `kind` is one of `all`, `graduates`, `uncertified`, `team`, `status`, `gender`, `country`, `state`, `programme`, `year`, `month` (YYYY-MM), `upto` (YYYY-MM, joined by the end of that month), `undated`, `quiz-students`, `quiz-avg`, `quiz-not-taken`, `quiz-attempts`, `grade` (A-F). Anything else is refused (400). At most 5000 rows |
+| `GET /api/admin/sheets`, `GET /api/admin/sheets/:key`, `PUT /api/admin/sheets/:key/rows/:n`, `POST /api/admin/sheets/:key/rows`, `POST /api/admin/sheets/:key/rows/:n/delete` | Editor only (Bearer password). `:key` is `students`, `codes`, `quiz`, `progress`, `links` or `videos` (anything else is 404). `PUT` takes `{original, values}`, `POST .../rows` takes `{text}` (codes only), delete takes `{original}`. 400 with per-column messages for bad values, 403 when that tab does not allow the action, 409 when the row changed. Only a wrong password counts toward the lock-out |
 
-**Sheet tabs:** Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, promo, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K).
+**Sheet tabs:** Handbook Progress (A-G, new: reg number, full name, chapters read, count, total, percent, updated at), Mentorship Codes (A-D), Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, mentorship code, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
 
 **Environment variables:**
 
 | Where | Variable | Purpose |
 | --- | --- | --- |
 | Website | `GOOGLE_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` | Sheet access |
-| Website | `QUIZ_API_KEY` | Shared secret with the quiz bot |
+| Website | `QUIZ_API_KEY` | Shared secret with the quiz bot (also signs portal sign-ins unless `SESSION_SECRET` is set) |
+| Website | `SESSION_SECRET` | Optional. Own secret for portal sign-ins. Changing it signs every student out |
 | Website | `ADMIN_PASSWORD` | Editor dashboard password |
 | Website | `QUIZ_BOT_URL` | Telegram link shown in the portal |
+| Website | `QUIZ_APP_URL` | Quiz service's own https address (e.g. `https://abecfx-quiz-bot.onrender.com`); turns on the in-portal quiz |
 | Website | `KEEP_AWAKE=off` | Optional: turn off self-ping |
+| Website | `GOOGLE_PROGRESS_TAB` | Optional: name of the progress tab (default Handbook Progress) |
 | Quiz bot | `BOT_TOKEN` | From BotFather |
 | Quiz bot | `REG_SITE_URL` | Website address |
 | Quiz bot | `QUIZ_API_KEY` | Same value as on the website |
 
-**Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy.
-**Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them).
+**Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy. **Added for the in-portal quiz:** 32 checks on the pass (tampering, other number, expiry, wrong key) and the website routes (including the Telegram-link rules and the security policy), 17 checks on the quiz service (the number comes from the pass, bad passes never reach the website, Telegram login unchanged, limits), and 23 checks in a real Chromium browser over https with the real `server.js`, `bot.js` and `portal.js` (portal opens the quiz in the page, automatic sign-in, save and live refresh, close, "Not you?", Telegram-linked refusal, damaged pass, phone width).
+**Change 9 (Sheets view) checks:** `npm test` runs 19 unit checks on `admin-sheets.js` against an in-memory sheet (`test/`): locked columns, every field rule, duplicate email, country and state, stale rows (409), used codes, bulk adding and refusing codes, view-only tabs, links and video checks, formulas kept as plain text. The real `server.js` and the dashboard were then run with an in-memory sheet and a stand-in for Express (the build sandbox cannot reach npm): 11 checks over HTTP and **31 checks in a headless browser** (login, paging, search, editing, error messages on the right fields, state list following the country, stale edit refused, codes added and deleted, view-only quiz tab, unsafe link refused, sign-out clears the table, no console errors, no sideways scroll on a phone). That run found and fixed one bug: the fifth tab made the page wider than a phone, so the tab bar now wraps. **Not tested:** real Google Sheets (the exact calls `values:batchUpdate`, `deleteDimension` and append were written from the Google Sheets API but never sent), `npm install`, Render.
+**Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 ## 4. Next steps
+
+**Owner action for change 9:** push the new `admin-sheets.js` and the `test/` folder, and the changed `server.js`, `sheets.js`, `package.json`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`, `status/build.js`. No new Render variable and no new package. Then open `/admin`, sign in, open **Sheets**, change one student's status and check the Google Sheet shows it, add a test mentorship code and delete it again. The service account already has edit access (the site writes to the sheet today).
+
+**Owner action for change 8:** push `server.js`, `sheets.js`, `public/register.html`, `public/app.js`, `status/STATUS-SOURCE.md`. No new Render variable. On startup the site adds the **Date of Birth** heading to column N of the Students tab. Then register a test student with a date of birth and check column N, and try a future date (it must be refused).
+
+**Owner action for change 7:** push the new `videos.js` and the changed `server.js`, `sheets.js`, `public/handbook.js`, `public/admin.html`, `public/admin.js`, `public/styles.css`, `status/build.js`, `status/STATUS-SOURCE.md`. No new Render variable. On startup the site creates the **Chapter Videos** tab. Then: sign in to the portal > Mentorship Handbook (chapters show "coming soon"), open `/admin` > **Chapter videos**, paste one YouTube address, Save, reload the portal and open that chapter (the video plays), try a non-YouTube address (it must be refused).
+
+**Owner action for change 6:** push the new files `links.js` and `public/links.js`, and the changed `server.js`, `sheets.js`, `public/portal.html`, `public/register.html`, `public/status.html`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `status/build.js`, `status/STATUS-SOURCE.md`. No new Render variable. On startup the site creates the **Site Links** tab and fills it. Then: open `/register` (icons and the Deriv button must show), open About and Contact, open `/admin` > **Site links**, paste the X address, Save, reload `/register` (an X icon appears), try a bad address such as `hello` (it must be refused).
 
 **To switch the quiz link on (owner actions):**
 
@@ -99,7 +157,28 @@
 4. Open the bot in Telegram, enter a real registration number, finish a quiz, then check the portal and `/admin`.
 5. Set up the UptimeRobot monitor on the website's `/healthz` (and on the bot's `/healthz`, which is new).
 
+**Then, to switch the in-portal quiz on (owner actions, after the steps above):**
+
+1. On the **website** Render service add `QUIZ_APP_URL` = the quiz service's own https address (the address shown on the quiz bot's Render page). Use the exact same `QUIZ_API_KEY` on both services.
+2. Push the website code (new file `quiztoken.js`) and the quiz bot code (updated `bot.js` and the new `webapp/embed.js`; `webapp/index.html` does not change). Both services redeploy.
+3. Open the portal, sign in, tap **Take the quiz here**, finish a quiz and check the result appears in the portal and in `/admin`.
+
+**Owner action for change 1:** push `server.js`, `sheets.js` and `public/register.html`. On startup the site creates the **Mentorship Codes** tab. Type a few codes in column A (letters, numbers, - or _; 4-40 characters, e.g. `MENTOR-7K2Q`), then try registering with one, and again with the same code (it must be refused).
+
+**Owner action for change 2:** push `session.js`, `server.js`, `.env.example` (comment only), `public/portal.html`, `public/portal.js`, `public/app.js`, `status/build.js`. No new Render variable is needed (it reuses `QUIZ_API_KEY`). Then: open the portal in a private window (must show the sign-in form), sign in with a real number and email, check the card, quiz results and quiz open, then open `/status` signed out (must still work). Students already signed in on a device must sign in once more, now with their email.
+
+**Owner action for change 3:** push the new files `handbook-content.js`, `handbook-progress.js`, `pdflink.js`, `public/handbook.js` and the **`private/handbook.pdf`** folder, plus the changed `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `status/build.js`. No new Render variable is needed. On startup the site creates the **Handbook Progress** tab. Then: sign in to the portal, check the three submenu items, open the handbook, mark two chapters read (bar shows 15%), reload and check it is still 15%, look at the Handbook Progress tab in the sheet, open "Open the full handbook PDF", then sign in as a second student and check they start at 0%. Check that `https://your-site/handbook.pdf` opened without a link says the link has expired.
+
+**Owner action for change 4:** push `stats.js`, `server.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`. No new Render variable. Then open `/admin`, sign in, click "Total students" (the list must show everyone), click a gender bar and compare the count with the list, click a chart column and a growth-table number, switch to Quiz results and click "Not yet taken" and a grade, search inside a list and download its CSV.
+
+**Owner action for change 5:** push `public/styles.css` and `status/STATUS-SOURCE.md`. Then, on a computer, open `/`, `/register` and `/status`: the menu must be under the logo at the top left; scroll a long page (a handbook chapter) and check the menu stays; narrow the window to about 900 px and check it wraps; on a phone check the bottom bar is still there.
+
+**The owner's change list of 16 Oct 2026 is complete (changes 1 to 5).** Each is "done, awaiting live check": none has been tried on live Render with the real Google Sheet yet. Suggested order for the live check: change 1 (register with a code), 2 (sign in), 3 (handbook and progress), 4 (admin lists), 5 (menu).
+
 **Suggested next work (not started, awaiting owner):**
+- Show each student's handbook progress on the admin page (it is in the sheet tab now): for example a "Handbook progress" card (average percent, how many finished) whose bars open lists, now that lists exist.
+- Optional: let the quiz unlock after the handbook is fully read, or count the quiz toward the percent.
+- A "Generate codes" button on the admin page, so codes need not be typed in the sheet.
 
 - Confirm or change the A-F boundaries.
 - Decide whether to keep both "Certified" and "Graduate" or merge them.
@@ -110,16 +189,40 @@
 
 ## 5. Open questions
 
+0. **Change 2 asks for the registered email as the second check at sign-in.** Is email right, or would you prefer WhatsApp number or a one-time code sent to them? (Answered question 6 below in the meantime.)
+
 1. Is the assumed grading scale right?
 2. Keep or merge Certified and Graduate?
 3. Should shorter quiz lengths stay selectable, or should the official quiz always be Full?
 4. Should a student be allowed unlimited retakes (currently yes; every attempt is stored, the portal shows the latest and best)?
 5. Is `idcard.js` / `apple-touch-icon.png` in the project yours? (Unused; left in place.)
+6. **Portal sign-in is only the registration number**, and numbers are sequential and shown on the public find-a-student page. So anyone who knows a number can open that student's portal and take the quiz under it. Add a second check (email or WhatsApp last 4 digits) before the quiz, or accept this for now?
+7. A number linked to a Telegram account cannot save portal results (and the reverse is open). Is that the right rule, or should a student be able to use both?
+8. Mentorship codes: is one code per student right (yes, as built), and are you happy typing them into the sheet for now, or should I add a generator to the admin page?
+9. Existing students registered before this change have no mentorship code and can still use the portal. Is that fine?
+10. Progress counts **chapters read only** (your choice). Should passing the quiz ever count toward the percent, or should the quiz stay separate?
+11. A student taps "Mark as read" themselves, so it records what they say, not that they actually read it. Is that enough, or should a chapter only count after a short quiz or a minimum time on the page?
+12. The charts and the fill-in workbook pages are only in the PDF. Do you want the workbook questions turned into forms inside the portal later?
+15. The menu stays pinned at the top left while a page scrolls (computers). Keep that, or let it scroll away with the page?
+14. Clickable statistics open a pop-up list. Would you like sorting by column, or a "Print" button, in the list?
+13. The handbook PDF is private (10-minute links). Is that right, or should it be a normal public download?
+16. Should the dashboard also be able to **delete a student** (today only in Google Sheets, on purpose, because the number is used by photos, quiz results and progress), or **change a student's photo**?
+17. Should the quiz score and progress be editable from the dashboard, or stay view and delete only?
 
 ## 6. Change log (newest first)
 
 | Date | Change |
 | --- | --- |
+| 2026-10-17 | **Change 9: Sheets view in the editor dashboard.** New `admin-sheets.js` (what each tab allows, every check); `sheets.js` gains generic tab read, cell write, append and row delete; five `/api/admin/sheets...` routes in `server.js`; new **Sheets** tab (`public/admin.html`, `admin.js`, `admin.css`); `npm test` and `test/`; dashboard tab bar wraps on phones. |
+| 2026-10-17 | **Change 8: date of birth at registration.** Required date field on `register.html`; checked in `server.js` (`validDob`); stored in Students column N (`sheets.js`: header and range now A-N). Not shown publicly. |
+| 2026-10-17 | **Change 7: chapter video tutorials.** New `videos.js`; sheet tab Chapter Videos; `GET`/`PUT /api/admin/videos`; `/api/handbook` now includes `videos`; embedded player and "coming soon" in each chapter (`public/handbook.js`); "Chapter videos" tab on the dashboard; CSP `frame-src` allows youtube-nocookie.com. |
+| 2026-10-17 | **Change 6: social icons, Deriv affiliate button, About and Contact, editable from `/admin`.** New `links.js`, `public/links.js`; new sheet tab Site Links; `GET /api/links`, `GET`/`PUT /api/admin/links`; "Site links" tab on the dashboard; icons on portal, register and find a student. |
+| 2026-10-17 | **Change 5: menu at the top left on computers.** Under the logo, as a row of pills, on portal, register and find a student; headline moved to the bottom of the panel; the panel is pinned so the menu stays in view; phones unchanged. One CSS block added at the end of `public/styles.css`. |
+| 2026-10-17 | **Change 4: clickable admin statistics.** Every tile, bar, chart column, chart dot and growth-table number opens a list (search, CSV, no email/phone) via new `GET /api/admin/drill`; `stats.js` now shares its labelling rules between counts and lists and exports `drill` and `quizEntry`; "Not yet taken" counts students with no result at all. Changes in `stats.js`, `server.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`. |
+| 2026-10-17 | **Change 3: My portal submenu, Mentorship Handbook and learning-progress bar.** Submenu (My ID card, Quiz, Mentorship Handbook) with deep links; handbook reader (13 chapters from the owner's PDF) with mark-as-read and a percent progress bar saved in a new **Handbook Progress** sheet tab; private 10-minute PDF link; quiz results and in-portal quiz moved into the Quiz view; ID card page shows a journey summary. New `handbook-content.js`, `handbook-progress.js`, `pdflink.js`, `public/handbook.js`, `private/handbook.pdf`; changes in `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `status/build.js`. Also fixed the undefined `--purple-soft` colour and a 7 px phone overflow. |
+| 2026-10-16 | **Change 2: private student portal.** Sign-in with registration number + registered email; signed 30-day session token; `/api/portal/login`, `/api/portal/me`; `/api/results` and `/api/quiz/session` now need sign-in and use the number from the token; find-a-student stays public; new users are signed in right after registering. New `session.js`; changes in `server.js`, `portal.html`, `portal.js`, `app.js`, `.env.example`, `status/build.js`. |
+| 2026-10-16 | **Change 1: mentorship code.** Required one-time code at registration, replaces the promo code. New sheet tab Mentorship Codes, `findFreeCode` and `markCodeUsed` in `sheets.js`, check in `/api/register` (`server.js`), new field on `register.html`; Students column I renamed Mentorship Code. |
+| 2026-10-15 | **Quiz inside the student portal**: "Take the quiz here" opens the quiz in the page with automatic sign-in by a signed short-lived pass; results save with a grade and refresh the results card; Telegram stays as a second choice. New `quiztoken.js`, `/api/quiz/session`, `QUIZ_APP_URL`, `webapp/embed.js`; `bot.js` accepts the pass. |
 | 2026-10-15 | Quiz bot linked to the website (reg-number sign-in, Full default, saved graded results), results in the student portal, editor dashboard at `/admin`, **this status file and its generator**. |
 | 2026-10-15 | Fixed photo upload "We could not read that photo" (CSP blocked `blob:` images). |
 | 2026-10-15 | Added keep-awake self-ping and README setup for an external pinger. |
@@ -132,11 +235,11 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 15 Oct 2026, 22:02. Data files (`countries.js`, `countryCodes.js`, `states.json`), images and README files are listed but not embedded.
+Generated by `node status/build.js` on 18 Oct 2026, 01:11 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
-Not embedded (data): `countries.js` (2 KB), `countryCodes.js` (4 KB), `states.json` (49 KB).
+Not embedded (data): `countries.js` (2 KB), `countryCodes.js` (4 KB), `states.json` (49 KB), `private/handbook.pdf` (491 KB).
 
 #### `server.js`
 
@@ -151,8 +254,28 @@ const states = require("./states.json"); // country -> list of states / province
 const store = require("./sheets");
 const idrules = require("./idrules");
 const grading = require("./grading");
-const { buildStats } = require("./stats");
+const { buildStats, drill, quizEntry } = require("./stats");
 const crypto = require("crypto");
+const quizToken = require("./quiztoken");
+const session = require("./session");
+const handbook = require("./handbook-content");
+const progress = require("./handbook-progress");
+const pdfLink = require("./pdflink");
+const links = require("./links");
+const videos = require("./videos");
+const adminSheets = require("./admin-sheets");
+
+// The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
+// address (https only); the security policy below lets the portal frame that one address and no other.
+function httpsOrigin(u) {
+  try {
+    const x = new URL(String(u || ""));
+    return x.protocol === "https:" ? x.origin : "";
+  } catch (e) {
+    return "";
+  }
+}
+const QUIZ_APP_ORIGIN = httpsOrigin(process.env.QUIZ_APP_URL);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -167,6 +290,8 @@ app.use(
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         // national flags on the ID card come from flagcdn.com
         "img-src": ["'self'", "data:", "https://flagcdn.com"],
+        // the quiz is shown inside the student portal
+        "frame-src": ["'self'", "https://www.youtube-nocookie.com", ...(QUIZ_APP_ORIGIN ? [QUIZ_APP_ORIGIN] : [])],
       },
     },
   })
@@ -212,6 +337,16 @@ function checkPhoto(p) {
   return p;
 }
 
+// Date of birth as YYYY-MM-DD: a real calendar date, not in the future, not before 1920.
+function validDob(v, todayISO) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (!m) return false;
+  const y = +m[1], mo = +m[2], da = +m[3];
+  const dt = new Date(Date.UTC(y, mo - 1, da));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== da) return false;
+  return y >= 1920 && v <= todayISO;
+}
+
 function validate(body) {
   const d = {
     country: clean(body.country),
@@ -221,7 +356,8 @@ function validate(body) {
     email: clean(body.email, 254).toLowerCase(),
     whatsapp: clean(body.whatsapp, 25),
     gender: clean(body.gender),
-    promoCode: clean(body.promoCode, 30).toUpperCase(),
+    dob: clean(body.dob, 10),
+    mentorshipCode: clean(body.mentorshipCode, 40).toUpperCase(),
     photo: checkPhoto(body.photo),
   };
   const errors = {};
@@ -242,9 +378,12 @@ function validate(body) {
   const digits = d.whatsapp.replace(/[^\d]/g, "");
   if (!/^\+?[\d\s\-()]+$/.test(d.whatsapp) || digits.length < 7 || digits.length > 15)
     errors.whatsapp = "Enter a valid WhatsApp number with country code, e.g. +234 801 234 5678.";
+  if (!d.dob) errors.dob = "Please enter your date of birth.";
+  else if (!validDob(d.dob, idrules.lagosToday())) errors.dob = "Enter a real date of birth (not in the future), e.g. 1995-03-27.";
   if (!GENDERS.includes(d.gender)) errors.gender = "Please select your gender.";
-  if (d.promoCode && !/^[A-Z0-9_-]{2,30}$/.test(d.promoCode))
-    errors.promoCode = "Promo code can only contain letters, numbers, - and _.";
+  if (!d.mentorshipCode) errors.mentorshipCode = "Enter the mentorship code you were given.";
+  else if (!/^[A-Z0-9_-]{4,40}$/.test(d.mentorshipCode))
+    errors.mentorshipCode = "That mentorship code is not valid. Check it and try again.";
   if (!d.photo) errors.photo = "Add a passport photograph. Choose a clear photo of your face.";
   return { d, errors };
 }
@@ -305,6 +444,15 @@ app.post("/api/register", limiter, async (req, res) => {
         throw err;
       }
 
+      // The mentorship code is required, works once, and is checked here (inside the queue) so two
+      // people can never use the same code at the same time.
+      const free = await store.findFreeCode(d.mentorshipCode);
+      if (!free) {
+        const err = new Error("badcode");
+        err.code = "BADCODE";
+        throw err;
+      }
+
       const yy = admissionYY();
       const prefix = `ABECFX/${yy}/`;
       let max = 0;
@@ -325,13 +473,19 @@ app.post("/api/register", limiter, async (req, res) => {
         d.email,
         d.whatsapp,
         d.gender,
-        d.promoCode,
+        free.code,
         "Uncertified",
         "",
         idrules.lagosToday(), // ID Issue Date. An editor can set a new date here to renew an expired ID.
         d.state,
+        d.dob, // Date of Birth (column N). Never shown on the public ID card or the dashboard lists.
       ];
       await store.appendRow(row);
+      try {
+        await store.markCodeUsed(free.sheetRow, reg, lagosTimestamp());
+      } catch (e) {
+        console.error("Could not mark mentorship code used for", reg, e.message);
+      }
 
       // The student row is saved. Save the photo too, retrying once; if it still fails the
       // registration stands and the ID card shows the student's initials instead.
@@ -347,8 +501,20 @@ app.post("/api/register", limiter, async (req, res) => {
       return cardFromRow(row);
     });
 
-    res.json({ regNumber: card.regNumber, fullName: card.fullName, card });
+    // A student who has just registered is signed in straight away.
+    const secret = sessionSecret();
+    res.json({
+      regNumber: card.regNumber,
+      fullName: card.fullName,
+      card,
+      token: secret ? session.sign(card.regNumber, secret) : "",
+    });
   } catch (err) {
+    if (err.code === "BADCODE") {
+      return res.status(400).json({
+        errors: { mentorshipCode: "This mentorship code is not valid or has already been used. Ask your mentor for a new one." },
+      });
+    }
     if (err.code === "DUPLICATE") {
       return res.status(409).json({
         errors: { email: "This email address is already registered with ABECFX." },
@@ -413,6 +579,162 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
   }
 });
 
+// ---- Student portal sign-in ----
+// The portal is for registered students only. A student signs in with their registration number
+// and the email they registered with. Find-a-student (/status, /api/lookup, /api/photo) stays public.
+// The signing secret is SESSION_SECRET, or QUIZ_API_KEY when SESSION_SECRET is not set.
+function sessionSecret() {
+  return process.env.SESSION_SECRET || process.env.QUIZ_API_KEY || "";
+}
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true, // only wrong attempts count
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many sign-in attempts. Please try again in a few minutes." },
+});
+
+function studentAuth(req, res, next) {
+  res.set("Cache-Control", "no-store");
+  const secret = sessionSecret();
+  if (!secret) return res.status(503).json({ error: "Student sign-in is not set up on the website yet." });
+  const given = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const reg = session.verify(given, secret);
+  if (!reg) return res.status(401).json({ error: "Please sign in to your student portal." });
+  req.studentReg = reg;
+  next();
+}
+
+app.post("/api/portal/login", loginLimiter, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const secret = sessionSecret();
+  if (!secret) return res.status(503).json({ error: "Student sign-in is not set up on the website yet." });
+  const reg = normaliseReg((req.body || {}).reg);
+  const email = clean((req.body || {}).email, 254).toLowerCase();
+  if (!reg || !email) {
+    return res.status(400).json({ error: "Enter your registration number and the email you registered with." });
+  }
+  try {
+    const rows = await store.readCached(5000);
+    const r = rows.find((row) => (row[0] || "").toUpperCase() === reg);
+    // One message for "no such number" and "wrong email", so nobody can probe which numbers exist.
+    if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
+      return res.status(401).json({ error: "That registration number and email do not match our records." });
+    }
+    res.json({ token: session.sign(reg, secret), card: cardFromRow(r) });
+  } catch (err) {
+    console.error("Portal sign-in failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// The signed-in student's own card.
+app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
+  try {
+    const rows = await store.readCached();
+    const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
+    if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
+    res.json(cardFromRow(r));
+  } catch (err) {
+    console.error("Portal card failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// ---- Mentorship Handbook (signed-in students only) ----
+// The handbook text is served from the website and each student's progress is kept in the sheet tab
+// "Handbook Progress". Progress = chapters marked as read / total chapters.
+const handbookLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again in a few minutes." },
+});
+
+// Saves for different students never wait on registrations, only on each other.
+let progressQueue = Promise.resolve();
+function exclusiveProgress(task) {
+  const run = progressQueue.then(task, task);
+  progressQueue = run.catch(() => {});
+  return run;
+}
+
+async function progressFor(reg, ttlMs) {
+  return progress.summary(progress.parseRead(await store.getProgressCell(reg, ttlMs)));
+}
+
+// The student's own progress only (the home page shows it as a small summary).
+app.get("/api/handbook/progress", handbookLimiter, studentAuth, async (req, res) => {
+  try {
+    res.json(await progressFor(req.studentReg));
+  } catch (err) {
+    console.error("Handbook progress read failed:", err.message);
+    res.status(500).json({ error: "We could not load your progress just now. Please try again." });
+  }
+});
+
+// The handbook chapters plus the student's progress.
+app.get("/api/handbook", handbookLimiter, studentAuth, async (req, res) => {
+  try {
+    let vids = {};
+    try { vids = videos.forStudents(await store.readVideos()); } catch (e) { console.error("Chapter videos read failed:", e.message); }
+    res.json({ chapters: handbook.CHAPTERS, final: handbook.FINAL, progress: await progressFor(req.studentReg), videos: vids });
+  } catch (err) {
+    console.error("Handbook read failed:", err.message);
+    res.status(500).json({ error: "We could not load the handbook just now. Please try again." });
+  }
+});
+
+// Mark one chapter as read (or unread). The student comes from the sign-in, never from the page.
+app.post("/api/handbook/progress", handbookLimiter, studentAuth, async (req, res) => {
+  const b = req.body || {};
+  const chapter = clean(b.chapter, 4);
+  if (!handbook.IDS.includes(chapter) || typeof b.read !== "boolean") {
+    return res.status(400).json({ error: "That chapter could not be found." });
+  }
+  const reg = req.studentReg;
+  try {
+    const out = await exclusiveProgress(async () => {
+      const students = await store.readCached(5000);
+      const stu = students.find((r) => (r[0] || "").toUpperCase() === reg);
+      if (!stu) return { status: 401, body: { error: "Please sign in to your student portal." } };
+      const current = progress.parseRead(await store.getProgressCell(reg, 0)); // fresh, so two devices never overwrite each other
+      const next = progress.setRead(current, chapter, b.read);
+      const sum = progress.summary(next);
+      if (next.join(",") !== current.join(",")) {
+        await store.saveProgress(reg, stu[4] || "", sum.read, sum.total, sum.percent, lagosTimestamp());
+      }
+      return { status: 200, body: sum };
+    });
+    res.status(out.status).json(out.body);
+  } catch (err) {
+    console.error("Handbook progress save failed:", err.message);
+    res.status(500).json({ error: "We could not save your progress just now. Please try again." });
+  }
+});
+
+// The full handbook PDF (with the workbook pages). It is not in the public folder: a signed-in student
+// asks for a link that works for 10 minutes, and the PDF is only served for a valid link.
+app.get("/api/handbook/pdf-link", handbookLimiter, studentAuth, (req, res) => {
+  res.json({ url: "/handbook.pdf?t=" + encodeURIComponent(pdfLink.sign(req.studentReg, sessionSecret())) });
+});
+
+app.get("/handbook.pdf", handbookLimiter, (req, res) => {
+  const secret = sessionSecret();
+  const reg = secret ? pdfLink.verify(String(req.query.t || ""), secret) : null;
+  if (!reg) {
+    return res.status(401).type("text/plain").send("This link has expired. Open the Mentorship Handbook in your student portal and try again.");
+  }
+  res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
+  res.type("application/pdf");
+  res.sendFile(path.join(__dirname, "private", "handbook.pdf"), {
+    headers: { "Content-Disposition": 'inline; filename="ABECFX-Edge-Handbook.pdf"' },
+  });
+});
+
 app.get("/api/photo", photoLimiter, async (req, res) => {
   const reg = normaliseReg(req.query.reg);
   if (!reg) return res.status(400).end();
@@ -461,22 +783,45 @@ function adminAuth(req, res, next) {
   next();
 }
 
-function quizEntry(q) {
-  const g = grading.gradeFor(Number(q[5]));
-  return {
-    date: (q[0] || "").split(",")[0],
-    regNumber: q[1] || "",
-    fullName: q[2] || "",
-    score: Number(q[3]) || 0,
-    total: Number(q[4]) || 0,
-    pct: Number(q[5]) || 0,
-    grade: q[6] || g.grade,
-    label: g.label,
-    attempt: Number(q[7]) || 1,
-  };
-}
+app.get("/api/config", (_req, res) =>
+  res.json({
+    quizUrl: process.env.QUIZ_BOT_URL || "",
+    quizEmbed: Boolean(QUIZ_APP_ORIGIN && process.env.QUIZ_API_KEY),
+  })
+);
 
-app.get("/api/config", (_req, res) => res.json({ quizUrl: process.env.QUIZ_BOT_URL || "" }));
+// Social icons, affiliate link, contact number and About text. Public (they are shown to everyone).
+const linksLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false });
+app.get("/api/links", linksLimiter, async (_req, res) => {
+  res.set("Cache-Control", "no-cache");
+  try {
+    res.json(await store.readLinks());
+  } catch (err) {
+    console.error("Links read failed:", err.message);
+    res.json(links.DEFAULTS); // the sheet is unreachable: show the starting links rather than none
+  }
+});
+
+// Student portal: open the quiz inside the portal. Returns the quiz address with a short-lived,
+// signed pass for this registration number (in the part after #, which is never sent to a server).
+app.get("/api/quiz/session", lookupLimiter, studentAuth, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!QUIZ_APP_ORIGIN || !process.env.QUIZ_API_KEY) {
+    return res.status(503).json({ error: "The quiz is not available inside the portal yet." });
+  }
+  const reg = req.studentReg; // taken from the sign-in, never from the page
+  try {
+    const rows = await store.readCached(5000);
+    if (!rows.some((row) => (row[0] || "").toUpperCase() === reg)) {
+      return res.status(404).json({ error: "No student found with that registration number." });
+    }
+    const token = quizToken.sign(reg, process.env.QUIZ_API_KEY);
+    res.json({ url: QUIZ_APP_ORIGIN + "/#t=" + token });
+  } catch (err) {
+    console.error("Quiz session failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
 
 // Quiz bot: look up a student's name by registration number (so the quiz can greet and label them).
 app.get("/api/quiz/student", botAuth, async (req, res) => {
@@ -499,11 +844,12 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
   const reg = normaliseReg(b.reg);
   const score = Number(b.score);
   const total = Number(b.total);
-  const tgId = clean(b.telegramId, 20);
+  const viaPortal = b.source === "portal"; // sent by the quiz service for a quiz taken inside the portal
+  const tgId = viaPortal ? "portal" : clean(b.telegramId, 20);
   if (!reg || !Number.isInteger(score) || !Number.isInteger(total) || total < 1 || total > 500 || score < 0 || score > total) {
     return res.status(400).json({ error: "That result could not be read." });
   }
-  if (!/^\d{1,20}$/.test(tgId)) return res.status(400).json({ error: "Missing Telegram account." });
+  if (!viaPortal && !/^\d{1,20}$/.test(tgId)) return res.status(400).json({ error: "Missing Telegram account." });
   let breakdown = "";
   try { breakdown = JSON.stringify(b.breakdown || {}).slice(0, 3000); } catch (e) { breakdown = ""; }
 
@@ -516,8 +862,12 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
       const quizRows = await store.readQuiz(0);
       const mine = quizRows.filter((q) => q[1] === reg);
       // First Telegram account to take the quiz for a number keeps it, so others can't post results under it.
-      const owner = mine.find((q) => q[8]);
-      if (owner && owner[8] !== tgId) {
+      // A portal quiz is not tied to a Telegram account, so it cannot be used to get around that link.
+      const owner = mine.find((q) => /^\d+$/.test(q[8] || ""));
+      if (viaPortal && owner) {
+        return { status: 403, body: { error: "This registration number is linked to a Telegram account. Please take the quiz on Telegram, or contact ABECFX." } };
+      }
+      if (!viaPortal && owner && owner[8] !== tgId) {
         return { status: 403, body: { error: "This registration number is already linked to another Telegram account. Contact ABECFX." } };
       }
       // Ignore an accidental double submit (same result within 2 minutes).
@@ -543,9 +893,8 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
 });
 
 // Student portal: a student's own quiz results.
-app.get("/api/results", lookupLimiter, async (req, res) => {
-  const reg = normaliseReg(req.query.reg);
-  if (!reg) return res.status(400).json({ error: "Enter a valid registration number." });
+app.get("/api/results", lookupLimiter, studentAuth, async (req, res) => {
+  const reg = req.studentReg; // a student can only ever see their own results
   try {
     const rows = await store.readQuiz();
     const attempts = rows.filter((q) => q[1] === reg).map(quizEntry).reverse(); // newest first
@@ -570,6 +919,68 @@ app.get("/api/admin/stats", adminLimiter, adminAuth, async (_req, res) => {
   }
 });
 
+// The list behind one dashboard number, e.g. ?kind=gender&value=Female. Editor only; no email or phone.
+app.get("/api/admin/drill", adminLimiter, adminAuth, async (req, res) => {
+  const kind = clean(req.query.kind, 30);
+  const value = clean(req.query.value, 120);
+  try {
+    const [rows, quiz] = await Promise.all([store.readCached(), store.readQuiz()]);
+    const out = drill(rows, quiz, kind, value);
+    if (!out) return res.status(400).json({ error: "That statistic could not be found." });
+    res.set("Cache-Control", "no-store");
+    res.json(out);
+  } catch (err) {
+    console.error("Admin drill failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+// The editor reads and changes the site links here.
+app.get("/api/admin/links", adminLimiter, adminAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ fields: links.FIELDS, values: await store.readLinks(0) });
+  } catch (err) {
+    console.error("Admin links read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+app.put("/api/admin/links", adminLimiter, adminAuth, async (req, res) => {
+  const { values, errors } = links.sanitize(req.body);
+  if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
+  try {
+    await store.saveLinks(values);
+    res.json({ ok: true, values });
+  } catch (err) {
+    console.error("Admin links save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
+  }
+});
+
+// The editor reads and changes the chapter video addresses here.
+app.get("/api/admin/videos", adminLimiter, adminAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ chapters: videos.VIDEO_CHAPTERS, values: await store.readVideos(0) });
+  } catch (err) {
+    console.error("Admin videos read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+app.put("/api/admin/videos", adminLimiter, adminAuth, async (req, res) => {
+  const { values, errors } = videos.sanitize(req.body);
+  if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
+  try {
+    await store.saveVideos(values);
+    res.json({ ok: true, values });
+  } catch (err) {
+    console.error("Admin videos save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
+  }
+});
+
 app.get("/api/admin/results", adminLimiter, adminAuth, async (_req, res) => {
   try {
     const quiz = await store.readQuiz();
@@ -579,6 +990,60 @@ app.get("/api/admin/results", adminLimiter, adminAuth, async (_req, res) => {
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
   }
 });
+
+// ---- Sheets view: the editor looks at and edits the Google Sheet tabs from /admin ----
+// What may be changed, and the checks on every change, live in admin-sheets.js. Only a WRONG password counts
+// toward the lock-out here (a mistyped value must not lock the editor out of editing); a second limiter just
+// stops floods, because every call here reads from Google.
+const sheetsAdmin = adminSheets.create(store);
+app.use(
+  "/api/admin/sheets",
+  rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests. Please wait a moment." } }),
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 15,
+    skipSuccessfulRequests: true,
+    requestWasSuccessful: (_req, res) => res.statusCode !== 401,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many attempts. Try again in a few minutes." },
+  }),
+  adminAuth
+);
+
+function sheetsRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof adminSheets.AdminError) {
+        return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      }
+      console.error("Admin sheets failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
+}
+// Changes wait their turn with registrations (or handbook saves), so a row number never moves under a running save.
+const inQueue = (key, task) => (key === "progress" ? exclusiveProgress : exclusive)(task);
+
+app.get("/api/admin/sheets", sheetsRoute(async (_req, res) => res.json(sheetsAdmin.meta())));
+
+app.get("/api/admin/sheets/:key", sheetsRoute(async (req, res) => res.json(await sheetsAdmin.read(req.params.key))));
+
+app.put("/api/admin/sheets/:key/rows/:n", sheetsRoute(async (req, res) => {
+  const b = req.body || {};
+  res.json(await inQueue(req.params.key, () => sheetsAdmin.update(req.params.key, req.params.n, b.original, b.values)));
+}));
+
+app.post("/api/admin/sheets/:key/rows", sheetsRoute(async (req, res) => {
+  res.json(await inQueue(req.params.key, () => sheetsAdmin.add(req.params.key, (req.body || {}).text)));
+}));
+
+app.post("/api/admin/sheets/:key/rows/:n/delete", sheetsRoute(async (req, res) => {
+  res.json(await inQueue(req.params.key, () => sheetsAdmin.remove(req.params.key, req.params.n, (req.body || {}).original)));
+}));
 
 app.listen(PORT, async () => {
   console.log(`ABECFX registration running on port ${PORT}`);
@@ -598,6 +1063,8 @@ app.listen(PORT, async () => {
 ```js
 // Thin Google Sheets storage layer (service account + REST API).
 const { JWT } = require("google-auth-library");
+const links = require("./links");
+const videos = require("./videos");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -623,13 +1090,14 @@ const HEADERS = [
   "Email",
   "WhatsApp Number",
   "Gender",
-  "Promo Code",
+  "Mentorship Code",
   "Status",
   "Status Date",
   "ID Issue Date",
   "State / Region",
+  "Date of Birth",
 ];
-const LAST_COL = "M";
+const LAST_COL = "N";
 const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)"];
 const QUIZ_TAB = process.env.GOOGLE_QUIZ_TAB || "Quiz Results";
 const QUIZ_HEADERS = [
@@ -646,6 +1114,26 @@ const QUIZ_HEADERS = [
   "Submitted (UTC)",
 ];
 const QUIZ_LAST_COL = "K";
+
+// Mentorship codes: one row per code. The editor types new codes into column A; a code works once.
+const CODE_TAB = process.env.GOOGLE_CODE_TAB || "Mentorship Codes";
+const CODE_HEADERS = ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"];
+const CODE_LAST_COL = "D";
+
+// Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
+const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
+const PROG_HEADERS = ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"];
+const PROG_LAST_COL = "G";
+
+// Site links (social icons, affiliate link, contact, About text): one row per setting, edited from /admin.
+const LINKS_TAB = process.env.GOOGLE_LINKS_TAB || "Site Links";
+const LINKS_HEADERS = ["Key (do not edit)", "What it is", "Value"];
+const LINKS_LAST_COL = "C";
+
+// Chapter videos: one row per handbook chapter 01-12 with its YouTube address, edited from /admin.
+const VIDEO_TAB = process.env.GOOGLE_VIDEO_TAB || "Chapter Videos";
+const VIDEO_HEADERS = ["Chapter", "Chapter title", "YouTube video address"];
+const VIDEO_LAST_COL = "C";
 
 function loadCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
@@ -724,6 +1212,33 @@ async function init() {
   await ensureTab(QUIZ_TAB);
   await ensureHeaders(QUIZ_TAB, QUIZ_HEADERS, QUIZ_LAST_COL);
 
+  await ensureTab(CODE_TAB);
+  await ensureHeaders(CODE_TAB, CODE_HEADERS, CODE_LAST_COL);
+
+  await ensureTab(PROG_TAB);
+  await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
+
+  await ensureTab(LINKS_TAB);
+  await ensureHeaders(LINKS_TAB, LINKS_HEADERS, LINKS_LAST_COL);
+  // First run only: fill the tab with the starting links. After that the sheet / dashboard is the truth.
+  const existing = await call(`/values/${range(`A2:A`, LINKS_TAB)}`);
+  if (!(existing.values && existing.values.length)) {
+    await call(`/values/${range(`A2:${LINKS_LAST_COL}${links.FIELDS.length + 1}`, LINKS_TAB)}?valueInputOption=RAW`, {
+      method: "PUT",
+      data: { values: links.toRows(links.DEFAULTS) },
+    });
+  }
+
+  await ensureTab(VIDEO_TAB);
+  await ensureHeaders(VIDEO_TAB, VIDEO_HEADERS, VIDEO_LAST_COL);
+  const vExisting = await call(`/values/${range(`A2:A`, VIDEO_TAB)}`);
+  if (!(vExisting.values && vExisting.values.length)) {
+    await call(`/values/${range(`A2:${VIDEO_LAST_COL}${videos.VIDEO_CHAPTERS.length + 1}`, VIDEO_TAB)}?valueInputOption=RAW`, {
+      method: "PUT",
+      data: { values: videos.toRows({}) },
+    });
+  }
+
   await call(":batchUpdate", {
     method: "POST",
     data: {
@@ -795,6 +1310,103 @@ async function appendQuiz(row) {
   quizCache.at = 0;
 }
 
+// ---- Handbook progress (one row per student; saved by the portal's "Mark as read" button) ----
+let progCache = { at: 0, rows: [] };
+async function readProgress(ttlMs = 5000) {
+  if (Date.now() - progCache.at > ttlMs) {
+    const data = await call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`);
+    progCache = { rows: data.values || [], at: Date.now() };
+  }
+  return progCache.rows;
+}
+
+// The cell holding the chapters a student has read, or "" if the student has no row yet.
+async function getProgressCell(reg, ttlMs) {
+  const rows = await readProgress(ttlMs);
+  const r = rows.find((x) => (x[0] || "") === reg);
+  return r ? r[2] || "" : "";
+}
+
+// Create or update the student's row. Callers serialise writes so two saves cannot create two rows.
+async function saveProgress(reg, fullName, readIds, total, percent, updatedAt) {
+  const rows = await readProgress(0);
+  const i = rows.findIndex((x) => (x[0] || "") === reg);
+  const row = [reg, fullName, readIds.join(","), readIds.length, total, percent, updatedAt];
+  if (i >= 0) {
+    await call(`/values/${range(`A${i + 2}:${PROG_LAST_COL}${i + 2}`, PROG_TAB)}?valueInputOption=RAW`, {
+      method: "PUT",
+      data: { values: [row] },
+    });
+  } else {
+    await call(
+      `/values/${range(`A:${PROG_LAST_COL}`, PROG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      { method: "POST", data: { values: [row] } }
+    );
+  }
+  progCache.at = 0;
+}
+
+// ---- Mentorship codes (always read fresh: a code must never be accepted twice) ----
+const normCode = (v) => String(v || "").trim().toUpperCase();
+
+// Returns { row, sheetRow } for an unused code, or null if the code is unknown or already used.
+async function findFreeCode(code) {
+  const want = normCode(code);
+  if (!want) return null;
+  const data = await call(`/values/${range(`A2:${CODE_LAST_COL}`, CODE_TAB)}`);
+  const rows = data.values || [];
+  for (let i = 0; i < rows.length; i++) {
+    if (normCode(rows[i][0]) === want) {
+      if ((rows[i][2] || "").trim()) return null; // already used
+      return { code: want, sheetRow: i + 2 };
+    }
+  }
+  return null;
+}
+
+async function markCodeUsed(sheetRow, reg, usedAt) {
+  await call(`/values/${range(`C${sheetRow}:D${sheetRow}`, CODE_TAB)}?valueInputOption=RAW`, {
+    method: "PUT",
+    data: { values: [[reg, usedAt]] },
+  });
+}
+
+// ---- Site links ----
+let linksCache = { at: 0, values: null };
+async function readLinks(ttlMs = 30000) {
+  if (!linksCache.values || Date.now() - linksCache.at > ttlMs) {
+    const data = await call(`/values/${range(`A2:${LINKS_LAST_COL}`, LINKS_TAB)}`);
+    linksCache = { values: links.fromRows(data.values || []), at: Date.now() };
+  }
+  return linksCache.values;
+}
+
+async function saveLinks(values) {
+  await call(`/values/${range(`A2:${LINKS_LAST_COL}${links.FIELDS.length + 1}`, LINKS_TAB)}?valueInputOption=RAW`, {
+    method: "PUT",
+    data: { values: links.toRows(values) },
+  });
+  linksCache = { at: Date.now(), values };
+}
+
+// ---- Chapter videos ----
+let videoCache = { at: 0, values: null };
+async function readVideos(ttlMs = 30000) {
+  if (!videoCache.values || Date.now() - videoCache.at > ttlMs) {
+    const data = await call(`/values/${range(`A2:${VIDEO_LAST_COL}`, VIDEO_TAB)}`);
+    videoCache = { values: videos.fromRows(data.values || []), at: Date.now() };
+  }
+  return videoCache.values;
+}
+
+async function saveVideos(values) {
+  await call(`/values/${range(`A2:${VIDEO_LAST_COL}${videos.VIDEO_CHAPTERS.length + 1}`, VIDEO_TAB)}?valueInputOption=RAW`, {
+    method: "PUT",
+    data: { values: videos.toRows(values) },
+  });
+  videoCache = { at: Date.now(), values };
+}
+
 // ---- Passport photos (kept on their own tab so student reads stay small and fast) ----
 let photoIndex = { at: 0, regs: [] };
 async function photoRegs(ttlMs) {
@@ -837,9 +1449,441 @@ async function getPhoto(reg) {
   return b64;
 }
 
-module.exports = {
-  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, HEADERS, STATUSES,
+// ---- Generic tab access for the editor dashboard's "Sheets" view (the rules live in admin-sheets.js) ----
+// The Photos tab is deliberately left out: it holds long image text that nobody should edit by hand.
+const EDITOR_TABS = {
+  students: { title: TAB, headers: HEADERS, lastCol: LAST_COL },
+  codes: { title: CODE_TAB, headers: CODE_HEADERS, lastCol: CODE_LAST_COL },
+  quiz: { title: QUIZ_TAB, headers: QUIZ_HEADERS, lastCol: QUIZ_LAST_COL },
+  progress: { title: PROG_TAB, headers: PROG_HEADERS, lastCol: PROG_LAST_COL },
+  links: { title: LINKS_TAB, headers: LINKS_HEADERS, lastCol: LINKS_LAST_COL },
+  videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
 };
+
+function editorTab(key) {
+  if (!Object.prototype.hasOwnProperty.call(EDITOR_TABS, key)) throw new Error("Unknown sheet: " + key);
+  return EDITOR_TABS[key];
+}
+
+const cellText = (v) => (v == null ? "" : String(v));
+// Google trims empty cells at the end of a row; give every row its full width again.
+function fitRow(row, width) {
+  const r = (row || []).slice(0, width).map(cellText);
+  while (r.length < width) r.push("");
+  return r;
+}
+const colLetter = (i) => String.fromCharCode(65 + i);
+const quoteTab = (title) => "'" + title.replace(/'/g, "''") + "'";
+
+// Forget whatever the website has remembered about a tab, so the next read sees the change.
+function invalidate(key) {
+  if (key === "students") cache.at = 0;
+  else if (key === "quiz") quizCache.at = 0;
+  else if (key === "progress") progCache.at = 0;
+  else if (key === "links") linksCache = { at: 0, values: null };
+  else if (key === "videos") videoCache = { at: 0, values: null };
+}
+
+function sheetUrl() {
+  return SHEET_ID ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/edit` : "";
+}
+
+// Every data row of a tab, always read fresh. `n` is the row number in the sheet (the header is row 1).
+async function tabRows(key) {
+  const t = editorTab(key);
+  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
+}
+
+async function tabRow(key, n) {
+  const t = editorTab(key);
+  const data = await call(`/values/${range(`A${n}:${t.lastCol}${n}`, t.title)}`);
+  return fitRow((data.values || [])[0], t.headers.length);
+}
+
+// Change only the cells that changed ({ columnIndex: text }), so the rest of the row is left exactly as it was.
+// RAW means the text is stored as typed: a value starting with "=" can never run as a formula.
+async function writeTabCells(key, n, changes) {
+  const t = editorTab(key);
+  const data = Object.keys(changes).map((i) => ({
+    range: `${quoteTab(t.title)}!${colLetter(Number(i))}${n}`,
+    values: [[cellText(changes[i])]],
+  }));
+  if (!data.length) return;
+  await call("/values:batchUpdate", { method: "POST", data: { valueInputOption: "RAW", data } });
+  invalidate(key);
+}
+
+async function appendTabRows(key, rows) {
+  const t = editorTab(key);
+  if (!rows.length) return;
+  await call(
+    `/values/${range(`A:${t.lastCol}`, t.title)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    { method: "POST", data: { values: rows.map((r) => fitRow(r, t.headers.length)) } }
+  );
+  invalidate(key);
+}
+
+async function deleteTabRow(key, n) {
+  const t = editorTab(key);
+  const tab = await findTab(t.title);
+  if (!tab) throw new Error("The sheet tab was not found: " + t.title);
+  await call(":batchUpdate", {
+    method: "POST",
+    data: {
+      requests: [{ deleteDimension: { range: { sheetId: tab.sheetId, dimension: "ROWS", startIndex: n - 1, endIndex: n } } }],
+    },
+  });
+  invalidate(key);
+}
+
+module.exports = {
+  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
+  getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
+  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, invalidate, sheetUrl,
+};
+```
+
+#### `admin-sheets.js`
+
+```js
+// The editor dashboard's "Sheets" view: look at the Google Sheet tabs and change them without leaving /admin.
+//
+// Every change is checked HERE, never trusted from the browser, and uses the same rules as the rest of the
+// site (the registration form, the status list, the links and video checks). What the editor may do differs
+// per tab, on purpose:
+//   Students        edit most columns. The registration number, the sign-up time and the mentorship code used are
+//                   locked, and rows cannot be deleted here, because the number is used by photos, quiz results
+//                   and progress and must never be handed out twice. (Delete in Google Sheets if you must.)
+//   Mentorship Codes  add codes (many at once), edit, and delete codes that have not been used yet.
+//   Quiz Results, Handbook Progress   look, and delete a row (e.g. a test attempt). Scores are not editable.
+//   Site Links, Chapter Videos        change the Value column only, with the same checks as their own dashboard tabs.
+// The Photos tab is not shown at all.
+//
+// A row is only changed when it still matches what the editor was looking at (`original`). If someone else
+// changed or removed it in the meantime, the change is refused and the editor reloads, so a stale screen can
+// never write over the wrong row.
+
+const countries = require("./countries");
+const states = require("./states.json");
+const idrules = require("./idrules");
+const links = require("./links");
+const videos = require("./videos");
+
+const GENDERS = ["Male", "Female"];
+const REG_RE = /^ABECFX\/\d{2}\/\d{4}$/;
+const CODE_RE = /^[A-Z0-9_-]{4,40}$/;
+const MAX_CODES_AT_ONCE = 200;
+const MAX_CELL = 5000;
+
+class AdminError extends Error {
+  constructor(status, message, fields) {
+    super(message);
+    this.status = status;
+    this.fields = fields || null; // { columnIndex: message }
+  }
+}
+
+// One line, no control characters, trimmed and capped.
+function clean(v, max = 120) {
+  return String(v == null ? "" : v)
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+function lagosTimestamp() {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "medium" }).format(new Date());
+}
+
+function realDate(v) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (!m) return false;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
+function create(store) {
+  const TABS = {
+    students: {
+      label: "Students",
+      help: "One row per student. The registration number, sign-up time and mentorship code are locked. To change a student's photo or remove a student, use Google Sheets.",
+      editable: [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13],
+      selects: { 2: countries, 7: GENDERS, 9: store.STATUSES },
+      placeholders: { 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      newestFirst: true,
+      needsRows: true,
+      check(p, cur, rows) {
+        const errors = {};
+        const changed = (i) => p[i] !== cur[i];
+        if (changed(2)) {
+          p[2] = clean(p[2]);
+          if (!countries.includes(p[2])) errors[2] = "Choose a country from the list.";
+        }
+        if (changed(2) || changed(12)) {
+          p[12] = clean(p[12], 60);
+          if (!errors[2]) {
+            const list = states[p[2]];
+            if (list) {
+              if (!list.includes(p[12])) errors[12] = "Choose a state or region that belongs to " + p[2] + ".";
+            } else if (p[12].length < 2) {
+              errors[12] = "Enter the state, province or region.";
+            }
+          }
+        }
+        if (changed(3)) {
+          p[3] = clean(p[3]);
+          if (!p[3]) errors[3] = "Enter the programme.";
+        }
+        if (changed(4)) {
+          p[4] = clean(p[4]);
+          if (p[4].length < 3 || !/\s/.test(p[4])) errors[4] = "Enter the full name (first and last name).";
+        }
+        if (changed(5)) {
+          p[5] = clean(p[5], 254).toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p[5])) errors[5] = "Enter a valid email address.";
+          else if (rows.some((r) => (r[5] || "").toLowerCase() === p[5])) errors[5] = "Another student already uses this email address.";
+        }
+        if (changed(6)) {
+          p[6] = clean(p[6], 25);
+          const digits = p[6].replace(/[^\d]/g, "");
+          if (!/^\+?[\d\s\-()]+$/.test(p[6]) || digits.length < 7 || digits.length > 15) {
+            errors[6] = "Enter a WhatsApp number with country code, e.g. +234 801 234 5678.";
+          }
+        }
+        if (changed(7)) {
+          p[7] = clean(p[7]);
+          if (!GENDERS.includes(p[7])) errors[7] = "Choose Male or Female.";
+        }
+        if (changed(9)) {
+          p[9] = clean(p[9]);
+          if (!store.STATUSES.includes(p[9])) errors[9] = "Choose a status from the list.";
+        }
+        if (changed(10)) p[10] = clean(p[10], 40);
+        if (changed(11)) {
+          p[11] = clean(p[11], 10);
+          if (p[11] && !(realDate(p[11]) && p[11] >= "2000-01-01" && p[11] <= "2100-12-31")) errors[11] = "Enter a real date as YYYY-MM-DD, or leave it empty.";
+        }
+        if (changed(13)) {
+          p[13] = clean(p[13], 10);
+          if (p[13] && !(realDate(p[13]) && p[13] >= "1920-01-01" && p[13] <= idrules.lagosToday())) {
+            errors[13] = "Enter a real date of birth as YYYY-MM-DD (not in the future), or leave it empty.";
+          }
+        }
+        return errors;
+      },
+    },
+
+    codes: {
+      label: "Mentorship codes",
+      help: "A code works once. Add new codes here (or type them in the sheet). A code that a student has used is kept as a record and cannot be deleted.",
+      editable: [0, 2, 3],
+      selects: {},
+      placeholders: { 2: "ABECFX/26/0001 (empty = not used)", 3: "e.g. 15 Oct 2026, 10:30:00" },
+      newestFirst: true,
+      needsRows: true,
+      add: { label: "Add codes", help: "Type or paste new codes: one per line, or separated by commas. Letters, numbers, - and _ only, 4 to 40 characters. Letters are made capital." },
+      check(p, cur, rows) {
+        const errors = {};
+        if (p[0] !== cur[0]) {
+          p[0] = clean(p[0], 40).toUpperCase();
+          if ((cur[2] || "").trim()) errors[0] = "This code has already been used, so its name cannot be changed.";
+          else if (!CODE_RE.test(p[0])) errors[0] = "Use 4 to 40 letters, numbers, - or _.";
+          else if (rows.some((r) => (r[0] || "").trim().toUpperCase() === p[0])) errors[0] = "This code is already in the list.";
+        }
+        if (p[2] !== cur[2]) {
+          p[2] = clean(p[2], 20).toUpperCase();
+          if (p[2] && !REG_RE.test(p[2])) errors[2] = "Enter a registration number like ABECFX/26/0001, or leave it empty.";
+        }
+        if (p[3] !== cur[3]) p[3] = clean(p[3], 40);
+        if (!p[2]) p[3] = ""; // an unused code has no "used at" time
+        return errors;
+      },
+      removeBlock: (cur) => ((cur[2] || "").trim() ? "This code has already been used by a student, so it is kept as a record." : ""),
+      // text -> rows to append
+      prepareAdd(text, rows) {
+        const wanted = String(text == null ? "" : text).split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean);
+        if (!wanted.length) throw new AdminError(400, "Type at least one code.");
+        if (wanted.length > MAX_CODES_AT_ONCE) throw new AdminError(400, "Add at most " + MAX_CODES_AT_ONCE + " codes at a time.");
+        const bad = wanted.filter((c) => !CODE_RE.test(c));
+        if (bad.length) throw new AdminError(400, "These are not valid codes (use 4 to 40 letters, numbers, - or _): " + bad.slice(0, 5).join(", ") + (bad.length > 5 ? "..." : ""));
+        const have = new Set(rows.map((r) => (r[0] || "").trim().toUpperCase()));
+        const seen = new Set();
+        const dup = [];
+        for (const c of wanted) {
+          if (have.has(c) || seen.has(c)) dup.push(c);
+          seen.add(c);
+        }
+        if (dup.length) throw new AdminError(400, "Already in the list or typed twice: " + [...new Set(dup)].slice(0, 5).join(", ") + (dup.length > 5 ? "..." : ""));
+        const at = lagosTimestamp();
+        return [...seen].map((c) => [c, at, "", ""]);
+      },
+    },
+
+    quiz: {
+      label: "Quiz results",
+      help: "Every finished quiz attempt. Scores cannot be edited. You can delete a row, for example a test attempt.",
+      editable: [],
+      selects: {},
+      newestFirst: true,
+      canDelete: true,
+    },
+
+    progress: {
+      label: "Handbook progress",
+      help: "Which handbook chapters each student has marked as read. Delete a row to reset that student's progress.",
+      editable: [],
+      selects: {},
+      newestFirst: false,
+      canDelete: true,
+    },
+
+    links: {
+      label: "Site links",
+      help: "The icons and text shown on the website. Only the Value column can be changed, with the same checks as the Site links tab.",
+      editable: [2],
+      selects: {},
+      multiline: [2],
+      newestFirst: false,
+      check(p, cur) {
+        const key = (cur[0] || "").trim().toLowerCase();
+        if (!links.FIELDS.some((f) => f.key === key)) return { 2: "This row is not one of the website's links, so it cannot be changed here." };
+        const out = links.sanitize({ [key]: p[2] });
+        if (out.errors[key]) return { 2: out.errors[key] };
+        p[2] = out.values[key];
+        return {};
+      },
+    },
+
+    videos: {
+      label: "Chapter videos",
+      help: "The YouTube video for each handbook chapter. Only the address can be changed, with the same checks as the Chapter videos tab.",
+      editable: [2],
+      selects: {},
+      placeholders: { 2: "https://youtu.be/..." },
+      newestFirst: false,
+      check(p, cur) {
+        const key = (cur[0] || "").trim().padStart(2, "0");
+        if (!videos.VIDEO_CHAPTERS.some((c) => c.id === key)) return { 2: "This row is not one of the handbook chapters, so it cannot be changed here." };
+        const out = videos.sanitize({ [key]: p[2] });
+        if (out.errors[key]) return { 2: out.errors[key] };
+        p[2] = out.values[key];
+        return {};
+      },
+    },
+  };
+
+  const ORDER = ["students", "codes", "quiz", "progress", "links", "videos"];
+
+  function tabOf(key) {
+    if (!Object.prototype.hasOwnProperty.call(TABS, key)) throw new AdminError(404, "That sheet could not be found.");
+    return TABS[key];
+  }
+
+  function rowNumber(n) {
+    const v = Number(n);
+    if (!Number.isInteger(v) || v < 2 || v > 1000000) throw new AdminError(400, "That row could not be found.");
+    return v;
+  }
+
+  function describe(key) {
+    const t = TABS[key];
+    return {
+      key,
+      label: t.label,
+      help: t.help,
+      headers: store.EDITOR_TABS[key].headers,
+      editable: t.editable,
+      selects: t.selects || {},
+      multiline: t.multiline || [],
+      placeholders: t.placeholders || {},
+      add: t.add || null,
+      canDelete: Boolean(t.canDelete || t.removeBlock),
+      newestFirst: Boolean(t.newestFirst),
+    };
+  }
+
+  const same = (a, b) => String(a == null ? "" : a).trim() === String(b == null ? "" : b).trim();
+  function assertUnchanged(current, original, width) {
+    const ok = Array.isArray(original) && current.length === width && current.every((c, i) => same(c, original[i]));
+    if (!ok) {
+      throw new AdminError(409, "This row was changed or removed in the sheet since you opened it. The latest version has been loaded.");
+    }
+  }
+
+  async function otherRows(key, skipN) {
+    return (await store.tabRows(key)).filter((r) => r.n !== skipN).map((r) => r.cells);
+  }
+
+  return {
+    TABS,
+    ORDER,
+
+    // What the dashboard needs to draw the tab picker and the forms.
+    meta() {
+      return { sheets: ORDER.map(describe), sheetUrl: store.sheetUrl ? store.sheetUrl() : "" };
+    },
+
+    async read(key) {
+      tabOf(key);
+      return { ...describe(key), rows: await store.tabRows(key) };
+    },
+
+    async update(key, n, original, values) {
+      const t = tabOf(key);
+      if (!t.editable.length) throw new AdminError(403, "This sheet cannot be edited here.");
+      n = rowNumber(n);
+      const width = store.EDITOR_TABS[key].headers.length;
+      const current = await store.tabRow(key, n);
+      assertUnchanged(current, original, width);
+
+      const p = current.slice();
+      const errors = {};
+      for (const [k, raw] of Object.entries(values && typeof values === "object" ? values : {})) {
+        const i = Number(k);
+        if (!Number.isInteger(i) || i < 0 || i >= width) continue;
+        const v = String(raw == null ? "" : raw).slice(0, MAX_CELL);
+        if (t.editable.includes(i)) p[i] = v;
+        else if (!same(v, current[i])) errors[i] = "This column is locked and cannot be changed here.";
+      }
+      if (!Object.keys(errors).length) {
+        Object.assign(errors, t.check(p, current, t.needsRows ? await otherRows(key, n) : []));
+      }
+      if (Object.keys(errors).length) throw new AdminError(400, "Please fix the highlighted fields.", errors);
+
+      const changes = {};
+      p.forEach((v, i) => { if (v !== current[i]) changes[i] = v; });
+      if (!Object.keys(changes).length) return { row: current, changed: false };
+      await store.writeTabCells(key, n, changes);
+      return { row: p, changed: true };
+    },
+
+    async add(key, text) {
+      const t = tabOf(key);
+      if (!t.add) throw new AdminError(403, "Rows cannot be added to this sheet here.");
+      const rows = t.prepareAdd(text, await otherRows(key, -1));
+      await store.appendTabRows(key, rows);
+      return { added: rows.length };
+    },
+
+    async remove(key, n, original) {
+      const t = tabOf(key);
+      if (!(t.canDelete || t.removeBlock)) throw new AdminError(403, "Rows cannot be deleted from this sheet here.");
+      n = rowNumber(n);
+      const width = store.EDITOR_TABS[key].headers.length;
+      const current = await store.tabRow(key, n);
+      assertUnchanged(current, original, width);
+      const blocked = t.removeBlock ? t.removeBlock(current) : "";
+      if (blocked) throw new AdminError(400, blocked);
+      await store.deleteTabRow(key, n);
+      return { ok: true };
+    },
+  };
+}
+
+module.exports = { create, AdminError };
 ```
 
 #### `idrules.js`
@@ -955,7 +1999,23 @@ const GRADUATE_STATUSES = ["Certified", "Graduate", "Alumni Member"];
 const TEAM_STATUSES = ["Mentor", "Staff Member", "CEO"];
 const STATUS_ORDER = ["Uncertified", "Certified", "Graduate", "Alumni Member", "Mentor", "Staff Member", "CEO"];
 
-function tally(values, blank = "Not recorded") {
+// The label each student is counted under, for every breakdown. Used by the counts AND by the lists
+// behind them, so a number on the dashboard and the list it opens can never disagree.
+const BLANK = "Not recorded";
+const KEYS = {
+  gender: (r) => r[7],
+  country: (r) => r[2],
+  programme: (r) => r[3],
+  state: (r) => (r[12] ? `${r[12]}${r[2] ? ", " + r[2] : ""}` : ""),
+  year: (r) => {
+    // year joined = the registration number's year, which is the admission year
+    const yy = parseInt(String(r[0] || "").split("/")[1], 10);
+    return Number.isNaN(yy) ? "" : String(2000 + yy);
+  },
+};
+const labelOf = (kind, r) => (KEYS[kind](r) || "").trim() || BLANK;
+
+function tally(values, blank = BLANK) {
   const m = new Map();
   for (const v of values) {
     const k = (v || "").trim() || blank;
@@ -1018,12 +2078,7 @@ function buildStats(rows, quizRows, todayISO) {
   }
 
   // year joined: the registration number's year, which is the admission year
-  const byYear = tally(
-    rows.map((r) => {
-      const yy = parseInt(String(r[0] || "").split("/")[1], 10);
-      return Number.isNaN(yy) ? "" : String(2000 + yy);
-    })
-  ).sort((a, b) => a.label.localeCompare(b.label));
+  const byYear = tally(rows.map(KEYS.year)).sort((a, b) => a.label.localeCompare(b.label));
 
   // ---- quiz ----
   const latest = new Map(); // reg -> most recent attempt
@@ -1046,10 +2101,10 @@ function buildStats(rows, quizRows, todayISO) {
 
   return {
     total,
-    gender: tally(rows.map((r) => r[7])),
-    country: tally(rows.map((r) => r[2])),
-    state: tally(rows.map((r) => (r[12] ? `${r[12]}${r[2] ? ", " + r[2] : ""}` : ""))),
-    programme: tally(rows.map((r) => r[3])),
+    gender: tally(rows.map(KEYS.gender)),
+    country: tally(rows.map(KEYS.country)),
+    state: tally(rows.map(KEYS.state)),
+    programme: tally(rows.map(KEYS.programme)),
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
     graduates: sum(GRADUATE_STATUSES), // Certified + Graduate + Alumni Member
     uncertified: statusCounts.Uncertified,
@@ -1061,14 +2116,114 @@ function buildStats(rows, quizRows, todayISO) {
     quiz: {
       attempts: quizRows.length,
       students: latest.size,
-      notTaken: Math.max(0, total - latest.size),
+      notTaken: rows.filter((r) => !latest.has(r[0])).length, // students with no quiz result at all
       avgPct,
       gradeDist,
     },
   };
 }
 
-module.exports = { buildStats, GRADUATE_STATUSES, TEAM_STATUSES };
+// ---------------------------------------------------------------------------
+// The list behind a number: click a statistic on the dashboard, get these rows.
+// No email, WhatsApp number, photo or mentorship code is ever included.
+// ---------------------------------------------------------------------------
+const MAX_ROWS = 5000;
+const YM = /^\d{4}-(0[1-9]|1[0-2])$/;
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function quizEntry(q) {
+  const g = grading.gradeFor(Number(q[5]));
+  return {
+    date: (q[0] || "").split(",")[0],
+    regNumber: q[1] || "",
+    fullName: q[2] || "",
+    score: Number(q[3]) || 0,
+    total: Number(q[4]) || 0,
+    pct: Number(q[5]) || 0,
+    grade: q[6] || g.grade,
+    label: g.label,
+    attempt: Number(q[7]) || 1,
+  };
+}
+
+function studentOut(r) {
+  const iso = idrules.parseRegistered(r);
+  return {
+    regNumber: r[0] || "",
+    fullName: r[4] || "",
+    gender: r[7] || "",
+    country: r[2] || "",
+    state: r[12] || "",
+    programme: r[3] || "",
+    status: statusOf(r),
+    joined: iso ? idrules.formatISO(iso) : "",
+  };
+}
+
+function monthTitle(ym) {
+  const [y, m] = ym.split("-");
+  return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
+}
+
+// kind: which statistic; value: which bar / column / grade (for the kinds that need one).
+// Returns { title, type: "students" | "quiz", rows, truncated, count } or null when kind/value is not valid.
+function drill(rows, quizRows, kind, value) {
+  const val = String(value == null ? "" : value).slice(0, 120);
+  let title, pick, type = "students";
+
+  const latest = new Map();
+  for (const q of quizRows) latest.set(q[1], q);
+  const latestList = () => [...latest.values()].sort((a, b) => (Number(b[5]) || 0) - (Number(a[5]) || 0) || String(a[1]).localeCompare(String(b[1])));
+
+  switch (kind) {
+    case "all": title = "All students"; pick = () => true; break;
+    case "graduates": title = "Certified / graduates (Certified, Graduate and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
+    case "uncertified": title = "Uncertified students"; pick = (r) => statusOf(r) === "Uncertified"; break;
+    case "team": title = "Mentors, staff and CEO"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
+    case "status":
+      if (!STATUS_ORDER.includes(val)) return null;
+      title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;
+    case "gender": case "country": case "state": case "programme": case "year": {
+      if (!val) return null;
+      const name = { gender: "Gender", country: "Country", state: "State", programme: "Programme", year: "Year joined" }[kind];
+      title = `${name}: ${val}`; pick = (r) => labelOf(kind, r) === val; break;
+    }
+    case "month":
+      if (!YM.test(val)) return null;
+      title = `Joined in ${monthTitle(val)}`; pick = (r) => (idrules.parseRegistered(r) || "").slice(0, 7) === val; break;
+    case "upto":
+      if (!YM.test(val)) return null;
+      title = `All students who had joined by the end of ${monthTitle(val)}`;
+      pick = (r) => { const m = (idrules.parseRegistered(r) || "").slice(0, 7); return !!m && m <= val; }; break;
+    case "undated": title = "Students with no joining date"; pick = (r) => !idrules.parseRegistered(r); break;
+    case "quiz-not-taken": title = "Students who have not taken the quiz yet"; pick = (r) => !latest.has(r[0]); break;
+    case "quiz-students": case "quiz-avg": {
+      type = "quiz";
+      title = kind === "quiz-avg" ? "Average quiz score: each student's latest attempt" : "Students who took the quiz (latest attempt)";
+      const list = latestList().map(quizEntry);
+      return finish(title, type, list);
+    }
+    case "grade": {
+      if (!grading.SCALE.some((s) => s.grade === val)) return null;
+      type = "quiz";
+      title = `Grade ${val} (latest attempt per student)`;
+      return finish(title, type, latestList().filter((q) => q[6] === val).map(quizEntry));
+    }
+    case "quiz-attempts": {
+      type = "quiz";
+      return finish("Every quiz attempt (newest first)", type, quizRows.map(quizEntry).reverse());
+    }
+    default: return null;
+  }
+  const list = rows.filter(pick).map(studentOut).sort((a, b) => a.regNumber.localeCompare(b.regNumber));
+  return finish(title, type, list);
+}
+
+function finish(title, type, list) {
+  return { title, type, count: list.length, truncated: list.length > MAX_ROWS, rows: list.slice(0, MAX_ROWS) };
+}
+
+module.exports = { buildStats, drill, quizEntry, GRADUATE_STATUSES, TEAM_STATUSES };
 ```
 
 #### `keepalive.js`
@@ -1097,6 +2252,492 @@ function startKeepAlive({ intervalMs = 10 * 60 * 1000, url = process.env.RENDER_
 module.exports = { startKeepAlive };
 ```
 
+#### `quiztoken.js`
+
+```js
+// Short-lived "quiz pass" for the in-portal quiz.
+// The website signs a pass for one registration number; the quiz service (which holds the same
+// QUIZ_API_KEY) checks the signature. The pass cannot be changed or reused for another number.
+const crypto = require("crypto");
+
+const TTL_MS = 4 * 60 * 60 * 1000; // a full quiz is long; 4 hours is plenty
+
+function mac(payload, secret) {
+  return crypto.createHmac("sha256", secret).update("portal." + payload).digest("base64url");
+}
+
+function sign(reg, secret, now = Date.now()) {
+  const payload = Buffer.from(JSON.stringify({ r: reg, e: now + TTL_MS })).toString("base64url");
+  return payload + "." + mac(payload, secret);
+}
+
+// Returns the registration number, or null when the pass is wrong, tampered with or expired.
+function verify(token, secret, now = Date.now()) {
+  if (typeof token !== "string" || token.length > 600 || !secret) return null;
+  const [payload, sig, extra] = token.split(".");
+  if (!payload || !sig || extra !== undefined) return null;
+  const a = Buffer.from(mac(payload, secret));
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!/^ABECFX\/\d{2}\/\d{4}$/.test(d.r) || !(d.e > now)) return null;
+    return d.r;
+  } catch (e) {
+    return null;
+  }
+}
+
+module.exports = { sign, verify, TTL_MS };
+```
+
+#### `session.js`
+
+```js
+// Student portal sign-in session.
+// After a student proves who they are (registration number + registered email) the website hands
+// back a signed session token. The portal sends it with every private request. It cannot be
+// changed or used for another registration number, and it expires after 30 days.
+const crypto = require("crypto");
+
+const TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function mac(payload, secret) {
+  return crypto.createHmac("sha256", secret).update("session." + payload).digest("base64url");
+}
+
+function sign(reg, secret, now = Date.now()) {
+  const payload = Buffer.from(JSON.stringify({ r: reg, e: now + TTL_MS })).toString("base64url");
+  return payload + "." + mac(payload, secret);
+}
+
+// Returns the registration number, or null when the token is wrong, tampered with or expired.
+function verify(token, secret, now = Date.now()) {
+  if (typeof token !== "string" || token.length > 600 || !secret) return null;
+  const [payload, sig, extra] = token.split(".");
+  if (!payload || !sig || extra !== undefined) return null;
+  const a = Buffer.from(mac(payload, secret));
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!/^ABECFX\/\d{2}\/\d{4}$/.test(d.r) || !(d.e > now)) return null;
+    return d.r;
+  } catch (e) {
+    return null;
+  }
+}
+
+module.exports = { sign, verify, TTL_MS };
+```
+
+#### `handbook-content.js`
+
+```js
+// The Edge Handbook as shown in the student portal (Mentorship Handbook).
+// Source: "ABEC FX - The Edge Handbook & Complete Workbook" PDF (served at /handbook.pdf).
+// Text and tables are copied from the PDF; charts, fill-in exercises and signature pages stay in
+// the PDF (each chapter links to it). Each section below is one "step" of a student's progress:
+// Introduction (00) + chapters 01-12 = 13 steps. Add or remove a section and progress adjusts itself.
+//
+// Block types: p (paragraph), h (sub-heading), ul, ol, table (head + rows), cards, note, quote.
+
+const CHAPTERS = [
+  {
+    id: "00", title: "Introduction & Philosophy",
+    tagline: "Building Traders From the Base Up. Sharpening Them at the Edge.",
+    blocks: [
+      { t: "p", x: "Adebass Base Edge Consult FX (ABEC FX) was founded on a simple but powerful belief: Great traders are not born, they are built from a strong foundation." },
+      { t: "p", x: "In a world where many chase quick profits, signal services, and shortcut strategies, ABEC FX focuses on what truly creates long-term success: structure, discipline, psychology, and repeatable systems." },
+      { t: "quote", x: "We do not train gamblers. We develop calculated decision-makers." },
+      { t: "p", x: "At ABEC FX, trading is approached as a professional skill, one that can be learned, refined, and mastered through the right guidance and consistent practice." },
+      { t: "h", x: "Our philosophy" },
+      { t: "p", x: "The market rewards preparation, not emotion. Every movement leaves clues, through trend behavior, volatility, liquidity, and timing. Our role is not to predict blindly, but to read these clues and respond with precision." },
+      { t: "h", x: "ABEC FX emphasizes" },
+      { t: "ul", items: ["Structured trade plans", "High-probability setups", "Risk management mastery", "Multi-timeframe analysis", "Emotional control", "Patience and execution discipline"] },
+      { t: "p", x: "Because consistency is never an accident, it is engineered." },
+      { t: "h", x: "Why 'Base Edge'?" },
+      { t: "p", x: "Before any structure can stand tall, it must sit on a solid base. Many traders fail not because trading is too difficult, but because their foundation is weak." },
+      { t: "p", x: "At ABEC FX, we reverse that pattern, ensuring every student understands why a trade is taken, not just when to enter. The 'edge' is what separates a disciplined trader from a reactive one." },
+      { t: "h", x: "When your base is strong" },
+      { t: "cards", items: [
+        { h: "Fear", x: "Reduces. Knowledge replaces it." },
+        { h: "Decisions", x: "Become clearer. Structure removes hesitation." },
+        { h: "Losses", x: "Become manageable. Risk control protects you." },
+        { h: "Profits", x: "Become repeatable. Systems replace luck." },
+      ] },
+      { t: "h", x: "Our mission" },
+      { t: "p", x: "To transform aspiring traders into disciplined market professionals capable of navigating volatility with clarity and confidence." },
+      { t: "h", x: "Who this handbook is for" },
+      { t: "ul", items: ["A beginner seeking clear direction and a structured starting point", "An intermediate trader struggling with consistency and emotional control", "A developing professional refining their edge for real market conditions"] },
+      { t: "note", x: "Do not rush this material. Study it. Revisit it. Apply it. Build your base, sharpen your edge, and the markets become far less intimidating." },
+    ],
+  },
+  {
+    id: "01", title: "MT5 Indicator Configuration",
+    tagline: "Before you read a single candle, your chart must be set up correctly.",
+    blocks: [
+      { t: "p", x: "When we open MT4/MT5, this is how we set up our indicators. These three tools form the visual language you will use to read every trade in this system." },
+      { t: "h", x: "Bollinger Bands" },
+      { t: "p", x: "Set the period to 20 and deviation to 2. Color: Green. On your chart this appears as three green lines: upper, middle, and lower band." },
+      { t: "h", x: "Moving Average: Simplified (SMA)" },
+      { t: "p", x: "Go to Moving Average, choose Simplified. Period 10, color Red. This is your SMA, the steady, short-term trend line." },
+      { t: "h", x: "Moving Average: Exponential (EMA)" },
+      { t: "p", x: "Add another Moving Average, set to Exponential. Period 10, color Blue. This is your EMA, faster and more responsive to recent price movement." },
+      { t: "note", x: "Once configured, your chart will show: three green lines (Bollinger Bands), one red line (SMA), and one blue line (EMA). If you see all five lines, you are ready." },
+      { t: "table", head: ["Indicator", "Type", "Period", "Color", "Role"], rows: [
+        ["Bollinger Bands", "Bands", "20", "Green", "Price boundaries & volatility"],
+        ["Moving Average", "Simplified (SMA)", "10", "Red", "Short-term trend direction"],
+        ["Moving Average", "Exponential (EMA)", "10", "Blue", "Fast momentum indicator"],
+      ] },
+    ],
+  },
+  {
+    id: "02", title: "Understanding Moving Averages",
+    tagline: "A tool that removes noise and reveals direction. Simple to read. Powerful when respected.",
+    blocks: [
+      { t: "p", x: "A Moving Average calculates the average price of an asset over a specific period, updating continuously. It filters out short-term noise and reveals the underlying trend." },
+      { t: "h", x: "Two analogies" },
+      { t: "cards", items: [
+        { h: "School grades", x: "Imagine checking your average grade over the last 5 tests. Every new test drops the oldest and re-averages the latest 5. That rolling average reveals whether your trend is improving or declining." },
+        { h: "Weather average", x: "A 7-day temperature average tells you whether it's getting hotter or colder overall. The MA does the same for price, smoothing spikes to reveal the genuine direction." },
+      ] },
+      { t: "h", x: "Red vs blue line" },
+      { t: "cards", items: [
+        { h: "Red line: SMA", x: "Simple Moving Average. Pure average of the last 10 periods. Slower to react, giving a stable, noise-free read on trend direction." },
+        { h: "Blue line: EMA", x: "Exponential Moving Average. Weights recent prices more, so it reacts faster. It signals momentum shifts before the SMA catches up." },
+      ] },
+      { t: "h", x: "The three possible trends" },
+      { t: "cards", items: [
+        { h: "Uptrend", x: "MA clearly curving upward. Price building higher. Follow it, trade Crash." },
+        { h: "Downtrend", x: "MA curving down. Price declining. Follow it, trade Boom." },
+        { h: "Sideways", x: "MA flat. No clear direction. Stay out, no trade." },
+      ] },
+      { t: "quote", x: "A moving average filters out the random ups and downs and shows whether the market is trending up, down, or going nowhere." },
+    ],
+  },
+  {
+    id: "03", title: "Bollinger Bands: The Boundary System",
+    tagline: "Three lines that reveal price range, volatility, and when the market is overextended.",
+    blocks: [
+      { t: "p", x: "Bollinger Bands reveal when price is stretching too far from its normal range, and when the market is quiet, building pressure for its next move." },
+      { t: "h", x: "The three bands" },
+      { t: "cards", items: [
+        { h: "Upper band: the ceiling", x: "Where price is getting expensive. When price reaches here, it's overextended." },
+        { h: "Middle band: center line", x: "The moving average, the market's center of gravity and trend direction." },
+        { h: "Lower band: the floor", x: "Where price is getting cheap. When price reaches here, it's stretched low." },
+      ] },
+      { t: "h", x: "Two analogies" },
+      { t: "cards", items: [
+        { h: "Rubber band", x: "Pull it too far and it snaps back. Price does the same. Upper band = stretched high. Lower band = stretched low. Markets don't stay overextended for long." },
+        { h: "Personal space", x: "Wide bands = high activity. Tight bands = quiet market, often preparing for a big move. The 'squeeze' before the breakout is one of the most powerful signals." },
+      ] },
+      { t: "h", x: "Band width as a signal" },
+      { t: "cards", items: [
+        { h: "Wide bands", x: "High volatility. Active market. Setups form fast and close fast. Stay disciplined." },
+        { h: "Tight bands (squeeze)", x: "Quiet market, but often the calm before a big move. Pay close attention." },
+      ] },
+      { t: "quote", x: "Is the market calm or explosive? Is price normal... or is it stretching too far?" },
+    ],
+  },
+  {
+    id: "04", title: "How to Identify Trend Direction",
+    tagline: "Professionals don't predict. They read what the market is already saying.",
+    blocks: [
+      { t: "p", x: "The middle Bollinger Band quietly tells you the current trend direction, simply through the direction it is curving. Think of it like a road." },
+      { t: "h", x: "Uptrend: middle band curving up" },
+      { t: "p", x: "The middle Bollinger Band is curving upward. Current price is floating above it. Bullish structure, trade Crash." },
+      { t: "h", x: "Downtrend: middle band curving down" },
+      { t: "p", x: "The middle Bollinger Band is curving downward. Current price is sinking below it. Bearish structure, trade Boom." },
+      { t: "h", x: "Sideways: flat middle band (no trade)" },
+      { t: "p", x: "The middle band becomes flat. Price crosses above and below it repeatedly. No direction = no trade. Close the chart." },
+      { t: "table", head: ["Condition", "Signal", "Action"], rows: [
+        ["Middle band UP + price above", "UPTREND", "Trade Crash (Buy)"],
+        ["Middle band DOWN + price below", "DOWNTREND", "Trade Boom (Sell)"],
+        ["Flat band + price crossing both ways", "SIDEWAYS", "Close chart, No Trade"],
+      ] },
+    ],
+  },
+  {
+    id: "05", title: "Key Points Before Taking a Trade",
+    tagline: "A valid setup is not a feeling. It is a series of confirmed conditions, all aligned.",
+    blocks: [
+      { t: "p", x: "Every trade in this system must meet specific conditions. If even one is missing, the setup is not valid. No exceptions." },
+      { t: "h", x: "Condition 1: SMA/EMA crossover" },
+      { t: "p", x: "The blue (EMA) and red (SMA) lines must confirm the trend. Both must curve in the same direction." },
+      { t: "cards", items: [
+        { h: "Boom chart (sell)", x: "Blue stays BELOW red, both curving downward, valid downtrend." },
+        { h: "Crash chart (buy)", x: "Blue stays ABOVE red, both curving upward, valid uptrend." },
+      ] },
+      { t: "h", x: "Condition 2: EMA + middle Bollinger Band crossover" },
+      { t: "p", x: "The blue EMA must cross the Middle Bollinger Band in your trade direction. Wait for confirmation." },
+      { t: "cards", items: [
+        { h: "Boom chart", x: "Middle BB must be BELOW the blue MA, wait for blue to drop below before entering." },
+        { h: "Crash chart", x: "Middle BB must be ABOVE the blue MA, wait for blue to rise above before entering." },
+      ] },
+      { t: "h", x: "Condition 3: outer Bollinger Band exit" },
+      { t: "cards", items: [
+        { h: "Crash: exit", x: "Price touches UPPER band, secure profit, exit." },
+        { h: "Boom: exit", x: "Price touches LOWER band, take profit, exit." },
+      ] },
+      { t: "h", x: "Additional trading laws" },
+      { t: "ol", items: ["Never trade against the trend.", "Avoid consolidation: sideways market equals unnecessary risk.", "Trade with patience. Let the market confirm, then commit.", "Stay on M30 and H1 only. No noise."] },
+    ],
+  },
+  {
+    id: "06", title: "Trade Entry Checklist: Beginner",
+    tagline: "A checklist is not a crutch. It is the discipline of professionals.",
+    blocks: [
+      { t: "p", x: "Use this checklist before every trade. If any box cannot be ticked, do not enter." },
+      { t: "h", x: "Pre-trade verification" },
+      { t: "ul", items: [
+        "Open chart on M30 or H1",
+        "Middle BB curving UP (uptrend) or DOWN (downtrend), NOT flat",
+        "Trend confirmed: UP or DOWN",
+        "Instrument matches the trend (Boom=Down, Crash=Up)",
+        "Both MAs curving in the same direction as the trend",
+      ] },
+      { t: "h", x: "Boom and Crash entry: confirmed when" },
+      { t: "cards", items: [
+        { h: "Boom: blue must be below everything", x: "All MAs curving downward. Blue MA below Middle BB. Blue MA below Red MA. Enter sell trade." },
+        { h: "Crash: blue must be above everything", x: "All MAs curving upward. Blue MA above Middle BB. Blue MA above Red MA. Enter buy trade." },
+      ] },
+      { t: "note", x: "Trend not clear. Middle BB is flat. Moving averages not aligned. No confirmation = No trade. Full stop." },
+    ],
+  },
+  {
+    id: "07", title: "Stop Loss Rules",
+    tagline: "A stop loss is not an admission of failure. It is the professional's most important tool.",
+    blocks: [
+      { t: "p", x: "On Boom and Crash, we don't set random stop loss parameters. Your stop loss must be controlled, either by the guide below, or by actively monitoring and closing the moment it hits your limit." },
+      { t: "h", x: "Stop loss guide" },
+      { t: "table", head: ["Lot size", "Maximum stop loss (in USD)"], rows: [["0.2 lot", "$5"], ["0.5 - 1.0 lot", "$10"]] },
+      { t: "note", x: "This is not a suggestion. It is a rule. Once your loss hits the limit, you close. No hoping. No emotional holding. No 'it will come back.' You close and move on." },
+      { t: "h", x: "Account size protection" },
+      { t: "p", x: "For accounts with $50 - $100 equity, stop loss must stay between $5 - $10 maximum. Never risk more than 10% of your capital per trade. Protect the account first." },
+      { t: "h", x: "Why defining SL by lot size works" },
+      { t: "p", x: "Defining your stop loss by lot size keeps your risk per trade under control. You know what you're willing to lose before you enter, so you hold with confidence, not fear. That psychological clarity is worth more than most strategies." },
+      { t: "quote", x: "We will take losses. But we make more than we lose. The goal is consistency: more wins than losses." },
+      { t: "note", x: "Protect your account. Opportunities are endless. Capital is not." },
+    ],
+  },
+  {
+    id: "08", title: "Retest Zones & Bollinger Band Boundaries",
+    tagline: "Price doesn't move randomly. It moves between zones, and knowing those zones is your edge.",
+    blocks: [
+      { t: "p", x: "A retest zone is a spot where price usually stops and changes direction. In Boom & Crash, we use the 3 Bollinger Bands as our primary retest zones." },
+      { t: "h", x: "The three retest zones" },
+      { t: "cards", items: [
+        { h: "Upper band: ceiling", x: "Price reaching here signals overextension high. Expect bounce or reversal." },
+        { h: "Middle band: balance", x: "Center of gravity. Price frequently returns here after touching either outer band." },
+        { h: "Lower band: floor", x: "Price reaching here signals overextension low. Expect bounce or reversal upward." },
+      ] },
+      { t: "h", x: "How price behaves at retest zones" },
+      { t: "cards", items: [
+        { h: "Bounce behavior", x: "Price hits a BB zone and reverses direction. Trend reacting, possible change." },
+        { h: "Breakout behavior", x: "Price pushes through and beyond the outer band. Trend continuing with strong momentum." },
+      ] },
+      { t: "h", x: "How to use retest zones" },
+      { t: "ol", items: [
+        "Get an overall view of market structure: is the market respecting its Bollinger Band boundaries?",
+        "Set Take Profit (TP) at retest zones: price going up: TP near upper or middle band. Going down: TP near lower or middle band.",
+        "Use zone behavior to decide whether to hold, scale out, or exit early.",
+      ] },
+      { t: "quote", x: "Retest zones tell you WHERE the trend might pause or reverse. Use them to set TP and manage trades with precision." },
+    ],
+  },
+  {
+    id: "09", title: "Higher Timeframe Analysis (H4 & D1)",
+    tagline: "The bigger the timeframe, the louder the signal. Always know what the senior charts are saying.",
+    blocks: [
+      { t: "p", x: "When price is near Bollinger Band edges, always check the bigger picture. Higher timeframes tell you how price is likely to behave at a retest zone before you commit." },
+      { t: "h", x: "The two-step process" },
+      { t: "ol", items: ["Check the H4 trend: does it match your M30/H1 direction?", "Check the D1 trend: is it also aligned with your main chart?"] },
+      { t: "h", x: "Alignment rules" },
+      { t: "cards", items: [
+        { h: "Higher TF aligns", x: "H4 or D1 matches your M30/H1 trend: expect a BB breakout. Trade with more confidence. Hold longer." },
+        { h: "Higher TF does not align", x: "Setup may still be valid: enter, but monitor closely and manage aggressively. Don't hold as long." },
+      ] },
+      { t: "h", x: "The traffic light system" },
+      { t: "cards", items: [
+        { h: "Green", x: "Both H4 and D1 align: full confidence. Expect a strong breakout." },
+        { h: "Yellow", x: "One TF aligns: go, but stay alert and manage actively." },
+        { h: "Red", x: "Higher TFs conflict: skip or manage with extreme caution." },
+      ] },
+      { t: "h", x: "Case study: Boom 1000 (H1 + H4 + D1)" },
+      { t: "p", x: "Below is a live multi-timeframe analysis on Boom 1000. The H1 chart shows price touching the lower Bollinger Band. Before entering, we check H4 and D1. (The H1, H4 and D1 charts are in the PDF.)" },
+      { t: "note", x: "Decision: Despite H1 touching the lower band, H4 and D1 both show strong downtrend and are not at retest zones, we confidently enter the Boom trade. All three timeframes aligned." },
+      { t: "quote", x: "Higher TF free: expect strong breakout. Higher TF at retest: expect resistance, manage carefully." },
+    ],
+  },
+  {
+    id: "10", title: "Pro Trade Entry Checklist",
+    tagline: "The complete, professional-grade checklist. Every step. Every time. No shortcuts.",
+    blocks: [
+      { t: "p", x: "Once you have mastered the beginner checklist, this is your standard. It adds the higher timeframe layer, making every decision more informed and precise." },
+      { t: "h", x: "Full pro checklist" },
+      { t: "table", head: ["Step", "Check", "Rule"], rows: [
+        ["1", "Timeframe", "Open chart on M30 or H1"],
+        ["2", "Trend ID", "Middle BB curving UP or DOWN. Flat = skip immediately."],
+        ["3", "Instrument rule", "Boom = Downtrend only. Crash = Uptrend only. Wrong match = close chart."],
+        ["4", "MA confirmation", "Boom: Blue below MBB and Red MA. Crash: Blue above MBB and Red MA."],
+        ["5", "Price at BB edge?", "If YES, run Top-Down Analysis on H4 and D1 before entering."],
+        ["6", "H4 & D1 check", "Higher TF aligns = confidence, hold longer. Doesn't align = manage aggressively."],
+      ] },
+      { t: "note", x: "Trend not clear. Middle BB flat. MAs not aligned. No confirmation = No trade." },
+    ],
+  },
+  {
+    id: "11", title: "Risk Management & Trading Psychology",
+    tagline: "If you don't know how to control your losses, the market will teach you the hard way.",
+    blocks: [
+      { t: "p", x: "Risk management means managing your losses, controlling your emotions, and sticking to your plan so one bad trade doesn't damage your account." },
+      { t: "h", x: "The ten rules of trading discipline" },
+      { t: "ol", items: [
+        "Always have a trading plan. Know why you're entering and where you're exiting, before you touch the market.",
+        "Keep learning and sharpening your skills. The market evolves, and so should you.",
+        "Trade only with money you can afford to lose. Never put yourself under financial pressure.",
+        "Set realistic profit expectations. Consistency beats chasing big wins every time.",
+        "Always use a Stop Loss. Capital protection is priority number one.",
+        "Secure your profits. Take profit when it makes sense. Use trailing stops to protect gains.",
+        "Respect leverage. It can grow your account fast, but drain it faster if misused.",
+        "Control your emotions. Fear and greed are the most expensive habits in this business.",
+        "Don't overexpose one setup. Be strategic with how you distribute your risk.",
+        "Hope for the best, but always prepare for the worst. Think in probabilities, not guarantees.",
+      ] },
+      { t: "h", x: "Before every trade, calculate these" },
+      { t: "cards", items: [
+        { h: "Risk per trade", x: "Know the exact dollar amount you're willing to lose. Non-negotiable." },
+        { h: "Lot size match", x: "Your lot size must match your risk tolerance. Never oversize." },
+        { h: "Position sizing", x: "Your position must respect your equity. Protect the account first." },
+        { h: "Account longevity", x: "Your account should survive 5 - 10 losses without being wiped out." },
+      ] },
+      { t: "quote", x: "In trading, survival is what leads to profitability. Trade smart. Protect your capital. Stay consistent." },
+    ],
+  },
+  {
+    id: "12", title: "Volatility Levels & Lot Size Guide",
+    tagline: "Volatility controls your risk. The more volatile the index, the more disciplined you must be.",
+    blocks: [
+      { t: "p", x: "Before you touch any chart, understand this: volatility controls your risk. Don't oversize. Let the market respect you by respecting your risk first." },
+      { t: "note", x: "Important Warning: This list can change at any time. Always verify the latest specifications from your broker before placing any trade." },
+      { t: "h", x: "Very volatile: trade with extra caution" },
+      { t: "table", head: ["Instrument", "Recommended lot size"], rows: [
+        ["Volatility 100 Index", "0.50"], ["Volatility 75 Index", "0.001"], ["Volatility 50 (1s)", "0.005"],
+        ["Volatility 25 (1s)", "0.005"], ["Volatility 50 Index", "4.00"], ["Volatility 250 (1s)", "0.005"],
+        ["Jump 25", "0.01"], ["Jump 75", "0.01"], ["Boom 1000", "0.20"], ["Boom 300", "0.50"],
+        ["Crash 300", "0.50"], ["Step Index", "0.10"], ["Crash 600", "0.20"], ["Crash 900", "0.20"],
+      ] },
+      { t: "p", x: "On these pairs, reduce greed, respect your stop loss, and secure profits early." },
+      { t: "h", x: "Less volatile: balanced movement" },
+      { t: "table", head: ["Instrument", "Recommended lot size"], rows: [
+        ["Volatility 25", "0.50"], ["Volatility 100 (1s)", "0.20"], ["Volatility 75 (1s)", "0.05"],
+        ["Volatility 10 (1s)", "0.50"], ["Jump 50", "0.01"], ["Crash 1000", "0.20"], ["Crash 500", "0.20"],
+        ["Boom 900", "0.20"], ["Boom 600", "0.20"], ["Boom 500", "0.20"],
+      ] },
+      { t: "p", x: "Cleaner setups, but risk management still fully applies." },
+      { t: "h", x: "Lower volatility: more stable (never risk-free)" },
+      { t: "table", head: ["Instrument", "Recommended lot size"], rows: [
+        ["Volatility 10", "0.50"], ["Volatility 150 (1s)", "0.01"], ["Jump 10", "0.01"],
+        ["Jump 100", "0.01"], ["Crash 150", "0.50"], ["Boom 150", "0.50"],
+      ] },
+      { t: "p", x: "Stability does not mean safety. Always trade with confirmation." },
+      { t: "quote", x: "High volatility + big lot size = unnecessary danger. Controlled lot size + patience = longevity in the market." },
+    ],
+  },
+];
+
+const FINAL = {
+  title: "A Final Word Before You Trade",
+  paragraphs: [
+    "The market does not reward excitement. It rewards discipline. The market does not care about your feelings. It rewards preparation.",
+    "You now have the knowledge. You have the system. You have the checklist.",
+    "What separates the traders who make it from those who don't is not intelligence. It is the willingness to execute consistently, protect capital relentlessly, and learn from every trade without letting emotion make the decisions.",
+    "Do not rush this material. Return to it. Apply it. Let the system work for you. Build your base. Sharpen your edge. Welcome to ABEC FX.",
+  ],
+};
+
+const IDS = CHAPTERS.map((c) => c.id);
+
+module.exports = { CHAPTERS, FINAL, IDS };
+```
+
+#### `handbook-progress.js`
+
+```js
+// A student's learning progress through the Mentorship Handbook.
+// Progress = chapters marked as read / total chapters. The quiz is separate and does not count.
+const { IDS } = require("./handbook-content");
+
+// "00, 01,3" -> ["00","01","03"]. Tolerates hand edits in the sheet (numbers typed without a leading zero).
+function parseRead(cell) {
+  const out = new Set();
+  String(cell == null ? "" : cell)
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+    .forEach((t) => {
+      const id = /^\d{1,2}$/.test(t) ? t.padStart(2, "0") : t;
+      if (IDS.includes(id)) out.add(id);
+    });
+  return IDS.filter((id) => out.has(id)); // always in handbook order, never an unknown id
+}
+
+function summary(readIds) {
+  const read = IDS.filter((id) => readIds.includes(id));
+  const total = IDS.length;
+  return { read, count: read.length, total, percent: total ? Math.round((read.length / total) * 100) : 0 };
+}
+
+// Returns the new list of read chapter ids, or null if the chapter id is not a real chapter.
+function setRead(readIds, chapterId, isRead) {
+  if (!IDS.includes(chapterId)) return null;
+  const set = new Set(readIds);
+  if (isRead) set.add(chapterId); else set.delete(chapterId);
+  return IDS.filter((id) => set.has(id));
+}
+
+module.exports = { parseRead, summary, setRead };
+```
+
+#### `pdflink.js`
+
+```js
+// Short-lived download link for the handbook PDF.
+// The PDF is not in the public folder. A signed-in student asks for a link, the website signs one that
+// works for 10 minutes, and /handbook.pdf only serves the file when the link's signature is valid.
+const crypto = require("crypto");
+
+const TTL_MS = 10 * 60 * 1000;
+
+function mac(payload, secret) {
+  return crypto.createHmac("sha256", secret).update("handbookpdf." + payload).digest("base64url");
+}
+
+function sign(reg, secret, now = Date.now()) {
+  const payload = Buffer.from(JSON.stringify({ r: reg, e: now + TTL_MS })).toString("base64url");
+  return payload + "." + mac(payload, secret);
+}
+
+// Returns the registration number, or null when the link is wrong, changed or expired.
+function verify(token, secret, now = Date.now()) {
+  if (typeof token !== "string" || token.length > 600 || !secret) return null;
+  const [payload, sig, extra] = token.split(".");
+  if (!payload || !sig || extra !== undefined) return null;
+  const a = Buffer.from(mac(payload, secret));
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!/^ABECFX\/\d{2}\/\d{4}$/.test(d.r) || !(d.e > now)) return null;
+    return d.r;
+  } catch (e) {
+    return null;
+  }
+}
+
+module.exports = { sign, verify, TTL_MS };
+```
+
 #### `package.json`
 
 ```json
@@ -1106,7 +2747,8 @@ module.exports = { startKeepAlive };
   "description": "ABECFX (Adebass Base Edge Consult - forex) student registration platform",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"
@@ -1144,28 +2786,13 @@ services:
         sync: false
       - key: QUIZ_BOT_URL
         sync: false
+      - key: QUIZ_APP_URL
+        sync: false
 ```
 
 #### `.env.example`
 
-```bash
-# Copy to .env for local testing (Render uses the dashboard instead)
-GOOGLE_SHEET_ID=your_google_sheet_id_here
-# Paste the whole service-account JSON key on ONE line:
-GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","client_email":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"}
-# Optional: tab name inside the sheet (default: Students)
-# GOOGLE_SHEET_TAB=Students
-
-# --- Quiz link and editor dashboard ---
-# A long random secret shared with the Telegram quiz bot (set the SAME value there as QUIZ_API_KEY).
-QUIZ_API_KEY=change-me-to-a-long-random-string
-# Password for the editor dashboard at /admin
-ADMIN_PASSWORD=change-me
-# Link students tap to open the quiz, e.g. https://t.me/YourQuizBot
-QUIZ_BOT_URL=https://t.me/your_quiz_bot
-# Optional: tab name for quiz results (default: Quiz Results)
-# GOOGLE_QUIZ_TAB=Quiz Results
-```
+_missing_
 
 #### `public/register.html`
 
@@ -1199,6 +2826,8 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
         <a href="/register" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
         <a href="/status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
       </nav>
+
+      <div class="social" id="siteLinks" hidden></div>
     </aside>
 
     <main class="sheet">
@@ -1265,6 +2894,12 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
               <span class="err" data-for="state"></span>
             </div>
 
+            <div class="field">
+              <label for="dob">Date of birth</label>
+              <input id="dob" name="dob" type="date" required min="1920-01-01" autocomplete="bday" placeholder="YYYY-MM-DD" />
+              <span class="err" data-for="dob"></span>
+            </div>
+
             <div class="field" role="radiogroup" aria-labelledby="genderLabel">
               <span class="label" id="genderLabel">Gender</span>
               <div class="seg">
@@ -1287,9 +2922,9 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
             </div>
 
             <div class="field">
-              <label for="promoCode">Promo code <em>(optional)</em></label>
-              <input id="promoCode" name="promoCode" type="text" autocomplete="off" autocapitalize="characters" placeholder="Enter code if you have one" />
-              <span class="err" data-for="promoCode"></span>
+              <label for="mentorshipCode">Mentorship code <em>(required)</em></label>
+              <input id="mentorshipCode" name="mentorshipCode" type="text" required autocomplete="off" autocapitalize="characters" placeholder="Code given to you by your mentor" />
+              <span class="err" data-for="mentorshipCode"></span>
             </div>
 
             <div class="hp" aria-hidden="true">
@@ -1323,6 +2958,7 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
       </div>
     </main>
   </div>
+  <script src="/links.js"></script>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
   <script src="/app.js"></script>
@@ -1512,6 +3148,14 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
       });
   });
 
+  // The date picker cannot go past today.
+  (function () {
+    var dob = document.getElementById("dob");
+    if (!dob) return;
+    var t = new Date();
+    dob.max = t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
+  })();
+
   function clearErrors() {
     formErr.textContent = "";
     form.querySelectorAll(".err").forEach(function (e) { e.textContent = ""; });
@@ -1560,7 +3204,7 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
             window.renderStudentCard(res.body.card, { photoSrc: photoDataUrl })
           );
           regNumberText = res.body.regNumber;
-          try { localStorage.setItem(KEY, res.body.regNumber); } catch (e) {}
+          try { localStorage.setItem(KEY, res.body.regNumber); if (res.body.token) localStorage.setItem("abecfx_token", res.body.token); } catch (e) {}
           document.getElementById("returning").hidden = true;
           document.getElementById("formCard").hidden = true;
           document.getElementById("successCard").hidden = false;
@@ -1619,7 +3263,7 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
 
       <div class="pitch">
         <h1>Your student portal.</h1>
-        <p>Your ID card, status and expiry date in one place.</p>
+        <p>Your ID card, quiz and Mentorship Handbook in one place.</p>
       </div>
 
       <nav class="nav" aria-label="Main">
@@ -1627,6 +3271,8 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
         <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
         <a href="/status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
       </nav>
+
+      <div class="social" id="siteLinks" hidden></div>
     </aside>
 
     <main class="sheet">
@@ -1636,43 +3282,89 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
         <!-- Not signed in on this device -->
         <section id="signin" hidden>
           <h2>Open your student portal</h2>
-          <p class="lead">Enter the registration number you received when you registered, for example ABECFX/26/0001.</p>
+          <p class="lead">The student portal is for registered students. Sign in with the registration number you received and the email address you registered with.</p>
           <form id="signinForm" novalidate>
             <div class="field">
               <label for="reg">Registration number</label>
               <input id="reg" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" required />
             </div>
+            <div class="field">
+              <label for="email">Registered email</label>
+              <input id="email" type="email" autocomplete="email" spellcheck="false" placeholder="you@example.com" required />
+            </div>
             <p class="formErr" id="signinErr" role="alert"></p>
-            <button type="submit" id="signinBtn" class="primary">Open portal</button>
+            <button type="submit" id="signinBtn" class="primary">Sign in</button>
           </form>
           <p class="or">New to ABECFX?</p>
           <a class="btn ghost wide" href="/register">Register as a new student</a>
+          <p class="or">Just want to check a student's ID?</p>
+          <a class="btn ghost wide" href="/status">Find a student</a>
         </section>
 
         <!-- Signed in -->
         <section id="home" hidden>
-          <h2 id="welcome">Welcome back</h2>
-          <p class="lead">This is your student ID card.</p>
-          <div class="cardwrap" id="cardMount"></div>
-          <p class="live" id="liveLine" role="status"></p>
-          <div class="pass-actions">
-            <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
-            <button type="button" id="switchBtn" class="btn ghost">Not you?</button>
+          <!-- My portal submenu -->
+          <nav class="subnav" id="subnav" aria-label="My portal">
+            <a href="#/card" data-view="card" aria-current="page">My ID card</a>
+            <a href="#/quiz" data-view="quiz">Quiz</a>
+            <a href="#/handbook" data-view="handbook">Mentorship Handbook</a>
+          </nav>
+
+          <!-- View: ID card -->
+          <div id="viewCard" class="view">
+            <h2 id="welcome">Welcome back</h2>
+            <p class="lead">This is your student ID card.</p>
+            <div class="cardwrap" id="cardMount"></div>
+            <p class="live" id="liveLine" role="status"></p>
+            <div class="pass-actions">
+              <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
+              <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
+            </div>
+
+            <a class="journey" id="journeyCard" href="#/handbook" aria-label="Open the Mentorship Handbook">
+              <span class="journey-top"><strong>Your learning journey</strong><span class="journey-pct" id="journeyPct">&ndash;</span></span>
+              <span class="pbar" aria-hidden="true"><span class="pbar-fill" id="journeyFill"></span></span>
+              <span class="journey-sub" id="journeySub">Loading your progress...</span>
+            </a>
           </div>
 
-          <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">
-            <h3 id="quizTitle">Quiz results</h3>
-            <div id="quizBody" class="quizbody"><p class="live" role="status">Loading your results...</p></div>
-            <a id="quizLink" class="btn primary wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
-          </section>
+          <!-- View: Quiz -->
+          <div id="viewQuiz" class="view" hidden>
+            <h2>Quiz</h2>
+            <p class="lead">Test what you have learned in the Mentorship Handbook.</p>
+            <section class="quizcard" id="quizCard" aria-labelledby="quizTitle">
+              <h3 id="quizTitle">Quiz results</h3>
+              <div id="quizBody" class="quizbody"><p class="live" role="status">Loading your results...</p></div>
+              <button type="button" id="quizStartBtn" class="btn primary wide" hidden>Take the quiz here</button>
+              <a id="quizLink" class="btn ghost wide" href="#" target="_blank" rel="noopener" hidden>Take the quiz on Telegram</a>
+            </section>
+
+            <!-- The quiz runs here, inside the portal -->
+            <section class="quizrun" id="quizRun" aria-labelledby="quizRunTitle" hidden>
+              <div class="quizrun-bar">
+                <strong id="quizRunTitle">Edge Handbook Quiz</strong>
+                <button type="button" id="quizCloseBtn" class="btn ghost">Close quiz</button>
+              </div>
+              <p class="live" id="quizRunMsg" role="status">Opening the quiz. The first load can take up to a minute.</p>
+              <iframe id="quizFrame" title="ABECFX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
+              <p class="quizrun-foot"><a id="quizTab" href="#" target="_blank" rel="noopener">Quiz not loading? Open it in a new tab</a></p>
+            </section>
+          </div>
+
+          <!-- View: Mentorship Handbook -->
+          <div id="viewHandbook" class="view" hidden>
+            <div id="hbMount"><p class="live" role="status">Opening the handbook...</p></div>
+          </div>
         </section>
 
         <p class="sheet-foot">&copy; <span id="year"></span> Adebass Base Edge Consult</p>
       </div>
     </main>
   </div>
+  <script src="/links.js"></script>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
+  <script src="/handbook.js"></script>
   <script src="/portal.js"></script>
 </body>
 </html>
@@ -1683,22 +3375,62 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
 ```js
 (function () {
   var KEY = "abecfx_reg";
+  var TKEY = "abecfx_token"; // sign-in token from the website; the portal is private without it
   var loading = document.getElementById("loading");
   var signin = document.getElementById("signin");
   var home = document.getElementById("home");
   var form = document.getElementById("signinForm");
   var input = document.getElementById("reg");
+  var emailInput = document.getElementById("email");
   var err = document.getElementById("signinErr");
   var btn = document.getElementById("signinBtn");
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  function remember(reg) { try { localStorage.setItem(KEY, reg); } catch (e) {} }
-  function forget() { try { localStorage.removeItem(KEY); } catch (e) {} }
-  function saved() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
+  // The quiz opens inside the portal (a frame on the quiz service) so students never leave this page.
+  var currentReg = "";
+  var quizOrigin = "";
+  var quizRun = document.getElementById("quizRun");
+  var quizFrame = document.getElementById("quizFrame");
+  var quizMsg = document.getElementById("quizRunMsg");
+  var quizStartBtn = document.getElementById("quizStartBtn");
 
-  function lookup(reg) {
-    return fetch("/api/lookup?reg=" + encodeURIComponent(reg)).then(function (r) {
+  function remember(reg, token) {
+    try { localStorage.setItem(KEY, reg); if (token) localStorage.setItem(TKEY, token); } catch (e) {}
+  }
+  function forget() { try { localStorage.removeItem(KEY); localStorage.removeItem(TKEY); } catch (e) {} }
+  function saved() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
+  function token() { try { return localStorage.getItem(TKEY) || ""; } catch (e) { return ""; } }
+
+  // Every private request carries the sign-in token.
+  function authFetch(url, opts) {
+    var o = opts || {};
+    var headers = Object.assign({}, o.headers || {}, { Authorization: "Bearer " + token() });
+    return fetch(url, Object.assign({}, o, { headers: headers }));
+  }
+
+  // The sign-in has expired or is not valid: back to the sign-in form.
+  function signedOut(message) {
+    closeQuiz(true);
+    window.abecHandbook.reset();
+    currentReg = "";
+    currentView = "";
+    forget();
+    showSignin(message || "Please sign in again.");
+  }
+
+  function login(reg, email) {
+    return fetch("/api/portal/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reg: reg, email: email }),
+    }).then(function (r) {
+      return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; });
+    });
+  }
+
+  function myCard() {
+    return authFetch("/api/portal/me").then(function (r) {
       return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; });
     });
   }
@@ -1722,8 +3454,42 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     live.textContent = note ? note.text : "Live record, checked at " + t;
     live.className = "live" + (note ? " live-" + note.level : "");
     home.hidden = false;
-    showQuiz(d.regNumber);
+    currentReg = d.regNumber;
+    closeQuiz(true);
+    window.abecHandbook.reset();
+    currentView = "";
+    route();
   }
+
+  // ---- My portal submenu: ID card, Quiz, Mentorship Handbook (addresses #/card, #/quiz, #/handbook/03) ----
+  var VIEWS = ["card", "quiz", "handbook"];
+  var currentView = "";
+
+  function parseRoute() {
+    var m = /^#\/(card|quiz|handbook)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
+  }
+
+  function route() {
+    if (home.hidden || !currentReg) return; // not signed in: the sign-in form stays
+    var r = parseRoute();
+    VIEWS.forEach(function (v) {
+      document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== r.view;
+    });
+    var links = document.querySelectorAll("#subnav a");
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
+      else links[i].removeAttribute("aria-current");
+    }
+    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook");
+    if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
+    if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
+    if (r.view === "handbook") window.abecHandbook.show(r.chapter);
+    currentView = r.view;
+    if (r.view !== "handbook" || !r.chapter) window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+  window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Quiz results (taken in the ABECFX Telegram quiz bot) ----
   function el(tag, cls, text) {
@@ -1738,14 +3504,20 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     var link = document.getElementById("quizLink");
     body.replaceChildren(el("p", "live", "Loading your results..."));
     fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) {
-      if (c.quizUrl && /^https:\/\//.test(c.quizUrl)) { link.href = c.quizUrl; link.hidden = false; }
+      if (c.quizUrl && /^https:\/\//.test(c.quizUrl)) {
+        link.href = c.quizUrl;
+        link.hidden = false;
+        // When the quiz can run inside the portal, Telegram becomes the second choice.
+        if (c.quizEmbed) link.textContent = "Take it on Telegram instead";
+      }
+      quizStartBtn.hidden = !c.quizEmbed || !quizRun.hidden;
     }).catch(function () {});
-    fetch("/api/results?reg=" + encodeURIComponent(reg))
-      .then(function (r) { return r.json().then(function (b) { if (!r.ok) throw new Error(b.error); return b; }); })
+    authFetch("/api/results")
+      .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (d) {
         body.replaceChildren();
         if (!d.latest) {
-          body.appendChild(el("p", "quiz-empty", "You have not taken the quiz yet. Open the quiz on Telegram, enter your registration number " + reg + " and your result will appear here."));
+          body.appendChild(el("p", "quiz-empty", "You have not taken the quiz yet. Take it from this page and your result will appear here."));
           return;
         }
         var l = d.latest;
@@ -1777,53 +3549,431 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
         }).join("  |  "));
         body.appendChild(sc);
       })
-      .catch(function () {
+      .catch(function (e) {
+        if (e && e.message === "signed out") return;
         body.replaceChildren(el("p", "quiz-empty", "We could not load your quiz results just now. Refresh to try again."));
       });
   }
+
+  // ---- Take the quiz inside the portal ----
+  function closeQuiz(silent) {
+    if (!silent && !window.confirm("Close the quiz? A quiz you have not finished is not saved.")) return;
+    quizFrame.src = "about:blank";
+    quizRun.hidden = true;
+    quizOrigin = "";
+    quizStartBtn.hidden = true; // showQuiz decides again whether to offer it
+    if (!silent && currentReg) showQuiz(currentReg);
+  }
+
+  function openQuiz() {
+    if (!currentReg) return;
+    quizStartBtn.disabled = true;
+    authFetch("/api/quiz/session")
+      .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error(""); } return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.body.url) throw new Error(res.body.error || "We could not open the quiz just now.");
+        quizOrigin = new URL(res.body.url).origin;
+        quizMsg.textContent = "Opening the quiz. The first load can take up to a minute.";
+        quizMsg.hidden = false;
+        document.getElementById("quizTab").href = res.body.url;
+        quizFrame.src = res.body.url + "&o=" + encodeURIComponent(window.location.origin);
+        quizRun.hidden = false;
+        quizStartBtn.hidden = true;
+        quizRun.scrollIntoView({ behavior: "smooth", block: "start" });
+      })
+      .catch(function (e) {
+        if (!e.message) return; // signed out: the sign-in form is already showing
+        quizStartBtn.hidden = false;
+        window.alert(e.message || "We could not open the quiz just now.");
+      })
+      .then(function () { quizStartBtn.disabled = false; });
+  }
+
+  quizStartBtn.addEventListener("click", openQuiz);
+  document.getElementById("quizCloseBtn").addEventListener("click", function () { closeQuiz(false); });
+  quizFrame.addEventListener("load", function () {
+    if (quizFrame.getAttribute("src") && quizFrame.getAttribute("src") !== "about:blank") quizMsg.hidden = true;
+  });
+  // The quiz page tells the portal when a result has been saved, so the results card refreshes by itself.
+  window.addEventListener("message", function (e) {
+    if (!quizOrigin || e.origin !== quizOrigin || e.source !== quizFrame.contentWindow) return;
+    if (e.data && e.data.type === "abecfx_quiz_saved" && currentReg) showQuiz(currentReg);
+  });
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     err.textContent = "";
     var reg = input.value.trim();
+    var email = emailInput.value.trim();
     if (!reg) { err.textContent = "Enter your registration number."; input.focus(); return; }
+    if (!email) { err.textContent = "Enter the email address you registered with."; emailInput.focus(); return; }
     btn.disabled = true;
-    btn.textContent = "Opening...";
-    lookup(reg)
+    btn.textContent = "Signing in...";
+    login(reg, email)
       .then(function (res) {
         if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
-        remember(res.body.regNumber);
-        showHome(res.body);
+        remember(res.body.card.regNumber, res.body.token);
+        emailInput.value = "";
+        showHome(res.body.card);
       })
       .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
-      .then(function () { btn.disabled = false; btn.textContent = "Open portal"; });
+      .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
   });
 
   document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
   document.getElementById("switchBtn").addEventListener("click", function () {
+    closeQuiz(true);
+    window.abecHandbook.reset();
+    currentReg = "";
+    currentView = "";
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     forget();
     input.value = "";
+    emailInput.value = "";
     showSignin("");
     input.focus();
   });
 
-  // Returning student on this device: go straight to their portal.
+  // Returning student on this device: go straight to their portal if their sign-in is still valid.
   var reg = saved();
-  if (reg) {
-    lookup(reg)
+  if (token()) {
+    myCard()
       .then(function (res) {
         if (res.ok) { showHome(res.body); return; }
-        if (res.status === 404 || res.status === 400) { forget(); showSignin(""); return; }
-        showSignin("We could not open your portal just now. Enter your registration number to try again.");
+        if (res.status === 401) { forget(); showSignin("Please sign in again."); input.value = reg; return; }
+        showSignin("We could not open your portal just now. Please try again.");
         input.value = reg;
       })
       .catch(function () {
-        showSignin("Network problem. Enter your registration number to try again.");
+        showSignin("Network problem. Please check your connection and try again.");
         input.value = reg;
       });
   } else {
     showSignin("");
+    if (reg) input.value = reg; // an earlier visit without a sign-in: ask for the email now
   }
+})();
+```
+
+#### `public/handbook.js`
+
+```js
+// Mentorship Handbook inside the student portal: chapter list, reader and learning-progress bar.
+// Progress = chapters marked as read / total chapters, saved on the website (Google Sheet) for the
+// signed-in student. portal.js calls setup() once with its sign-in helpers.
+(function () {
+  var api = null; // { authFetch(url, opts), signedOut(msg) } from portal.js
+  var data = null; // { chapters, final, progress }
+  var openId = null; // chapter being read, or null for the chapter list
+  var mount = null;
+  var busy = false;
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function readJson(r) {
+    return r.json().then(function (b) {
+      if (r.status === 401) { api.signedOut(); throw new Error("signed out"); }
+      if (!r.ok) throw new Error(b.error || "Something went wrong. Please try again.");
+      return b;
+    });
+  }
+
+  // ---- Progress bar (also used by the small summary on the ID card page) ----
+  function bar(percent) {
+    var track = el("div", "pbar");
+    track.setAttribute("role", "progressbar");
+    track.setAttribute("aria-valuemin", "0");
+    track.setAttribute("aria-valuemax", "100");
+    track.setAttribute("aria-valuenow", String(percent));
+    track.setAttribute("aria-label", "Learning progress");
+    var fill = el("span", "pbar-fill");
+    fill.style.width = percent + "%";
+    track.appendChild(fill);
+    return track;
+  }
+
+  function sub(p) {
+    if (p.count === 0) return "You have not started yet. Open the handbook and read your first chapter.";
+    if (p.count === p.total) return "You have read the whole handbook. Well done.";
+    return p.count + " of " + p.total + " chapters read";
+  }
+
+  // Small summary on the ID card page.
+  function renderJourney(p) {
+    document.getElementById("journeyPct").textContent = p.percent + "%";
+    document.getElementById("journeyFill").style.width = p.percent + "%";
+    document.getElementById("journeySub").textContent = sub(p);
+  }
+
+  function loadSummary() {
+    document.getElementById("journeySub").textContent = "Loading your progress...";
+    return api.authFetch("/api/handbook/progress").then(readJson).then(renderJourney).catch(function (e) {
+      if (e.message === "signed out") return;
+      document.getElementById("journeyPct").textContent = "";
+      document.getElementById("journeyFill").style.width = "0%";
+      document.getElementById("journeySub").textContent = "Open the Mentorship Handbook to see your progress.";
+    });
+  }
+
+  // ---- Chapter content ----
+  function renderBlock(b) {
+    var node, i;
+    switch (b.t) {
+      case "p": return el("p", "hb-p", b.x);
+      case "h": return el("h4", "hb-h", b.x);
+      case "quote": return el("blockquote", "hb-quote", b.x);
+      case "note": return el("p", "hb-note", b.x);
+      case "ul":
+      case "ol":
+        node = el(b.t, "hb-list");
+        for (i = 0; i < b.items.length; i++) node.appendChild(el("li", null, b.items[i]));
+        return node;
+      case "cards":
+        node = el("div", "hb-cards");
+        for (i = 0; i < b.items.length; i++) {
+          var c = el("div", "hb-card");
+          c.appendChild(el("strong", null, b.items[i].h));
+          c.appendChild(el("span", null, b.items[i].x));
+          node.appendChild(c);
+        }
+        return node;
+      case "table":
+        var wrap = el("div", "hb-tablewrap");
+        var t = el("table", "hb-table");
+        var thead = el("thead"), hr = el("tr");
+        b.head.forEach(function (h) { hr.appendChild(el("th", null, h)); });
+        thead.appendChild(hr);
+        t.appendChild(thead);
+        var tb = el("tbody");
+        b.rows.forEach(function (r) {
+          var tr = el("tr");
+          r.forEach(function (cell) { tr.appendChild(el("td", null, cell)); });
+          tb.appendChild(tr);
+        });
+        t.appendChild(tb);
+        wrap.appendChild(t);
+        return wrap;
+    }
+    return el("span");
+  }
+
+  function isRead(id) { return data.progress.read.indexOf(id) !== -1; }
+
+  function openPdf(btn) {
+    btn.disabled = true;
+    api.authFetch("/api/handbook/pdf-link").then(readJson).then(function (b) {
+      window.open(b.url, "_blank", "noopener");
+    }).catch(function (e) {
+      if (e.message !== "signed out") window.alert(e.message);
+    }).then(function () { btn.disabled = false; });
+  }
+
+  function pdfButton(label) {
+    var b = el("button", "btn ghost wide", label);
+    b.type = "button";
+    b.addEventListener("click", function () { openPdf(b); });
+    return b;
+  }
+
+  // ---- Screens ----
+  function header(p) {
+    var box = el("section", "hb-progress");
+    var top = el("div", "hb-progress-top");
+    top.appendChild(el("strong", null, "Your learning journey"));
+    top.appendChild(el("span", "hb-pct", p.percent + "%"));
+    box.appendChild(top);
+    box.appendChild(bar(p.percent));
+    box.appendChild(el("p", "hb-progress-sub", sub(p)));
+    return box;
+  }
+
+  function hasVideo(id) { return !!(data.videos && data.videos[id]); }
+
+  // The video tutorial for a chapter (chapters 01-12). Until the editor adds one it says "coming soon".
+  function videoBlock(id) {
+    if (id === "00") return null;
+    var box = el("section", "hb-video");
+    box.appendChild(el("h3", null, "Video tutorial"));
+    var vid = data.videos && data.videos[id];
+    if (!vid || !/^[A-Za-z0-9_-]{11}$/.test(vid)) {
+      box.appendChild(el("p", "hb-video-soon", "The video for this chapter is coming soon. Check back later."));
+      return box;
+    }
+    var frame = el("div", "hb-video-frame");
+    var f = document.createElement("iframe");
+    f.src = "https://www.youtube-nocookie.com/embed/" + vid + "?rel=0";
+    f.title = "Video tutorial";
+    f.loading = "lazy";
+    f.allow = "accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+    f.setAttribute("allowfullscreen", "");
+    f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    frame.appendChild(f);
+    box.appendChild(frame);
+    var a = el("a", "hb-video-link", "Not playing? Watch on YouTube");
+    a.href = "https://www.youtube.com/watch?v=" + vid;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    box.appendChild(a);
+    return box;
+  }
+
+  function renderList() {
+    var p = data.progress;
+    mount.replaceChildren();
+    mount.appendChild(el("h2", null, "Mentorship Handbook"));
+    mount.appendChild(el("p", "lead", "The Edge Handbook your quiz comes from. Read each chapter, then mark it as read to move your progress bar."));
+    mount.appendChild(header(p));
+
+    var list = el("ol", "hb-chapters");
+    data.chapters.forEach(function (c) {
+      var li = el("li");
+      var a = el("a", "hb-chapter" + (isRead(c.id) ? " is-read" : ""));
+      a.href = "#/handbook/" + c.id;
+      a.appendChild(el("span", "hb-num", isRead(c.id) ? "✓" : c.id));
+      var txt = el("span", "hb-chapter-txt");
+      txt.appendChild(el("strong", null, c.title));
+      txt.appendChild(el("span", null, (isRead(c.id) ? "Read" : "Not read yet") + (hasVideo(c.id) ? " · Video tutorial" : "")));
+      a.appendChild(txt);
+      li.appendChild(a);
+      list.appendChild(li);
+    });
+    mount.appendChild(list);
+
+    if (p.count === p.total) {
+      var fin = el("section", "hb-final");
+      fin.appendChild(el("h3", null, data.final.title));
+      data.final.paragraphs.forEach(function (t) { fin.appendChild(el("p", null, t)); });
+      var q = el("a", "btn primary wide", "Take the quiz");
+      q.href = "#/quiz";
+      fin.appendChild(q);
+      mount.appendChild(fin);
+    }
+    var foot = el("div", "hb-foot");
+    foot.appendChild(el("p", "hb-foot-note", "The PDF also has the charts and the practice workbook pages."));
+    foot.appendChild(pdfButton("Open the full handbook PDF"));
+    mount.appendChild(foot);
+  }
+
+  function renderChapter(id, keepScroll) {
+    var idx = -1;
+    data.chapters.forEach(function (c, i) { if (c.id === id) idx = i; });
+    if (idx < 0) { location.hash = "#/handbook"; return; }
+    var c = data.chapters[idx];
+    var p = data.progress;
+    mount.replaceChildren();
+
+    var back = el("a", "hb-back", "← All chapters");
+    back.href = "#/handbook";
+    mount.appendChild(back);
+
+    var mini = el("div", "hb-mini");
+    mini.appendChild(el("span", null, "Progress " + p.percent + "%"));
+    mini.appendChild(bar(p.percent));
+    mount.appendChild(mini);
+
+    var art = el("article", "hb-article");
+    art.appendChild(el("p", "hb-kicker", c.id === "00" ? "Introduction" : "Chapter " + c.id));
+    art.appendChild(el("h2", null, c.title));
+    art.appendChild(el("p", "hb-tagline", c.tagline));
+    var vb = videoBlock(c.id);
+    if (vb) art.appendChild(vb);
+    c.blocks.forEach(function (b) { art.appendChild(renderBlock(b)); });
+    mount.appendChild(art);
+
+    var done = isRead(c.id);
+    var markBtn = el("button", (done ? "btn ghost wide" : "btn primary wide") + " hb-mark", done ? "✓ Read. Mark as not read" : "Mark this chapter as read");
+    markBtn.type = "button";
+    var msg = el("p", "hb-msg");
+    msg.setAttribute("role", "status");
+    markBtn.addEventListener("click", function () { mark(c.id, !isRead(c.id), markBtn, msg); });
+    mount.appendChild(markBtn);
+    mount.appendChild(msg);
+
+    var nav = el("div", "hb-pager");
+    if (idx > 0) {
+      var prev = el("a", "btn ghost", "← Previous");
+      prev.href = "#/handbook/" + data.chapters[idx - 1].id;
+      nav.appendChild(prev);
+    } else nav.appendChild(el("span"));
+    if (idx < data.chapters.length - 1) {
+      var next = el("a", "btn ghost", "Next →");
+      next.href = "#/handbook/" + data.chapters[idx + 1].id;
+      nav.appendChild(next);
+    }
+    mount.appendChild(nav);
+    mount.appendChild(pdfButton("Open the full handbook PDF"));
+    if (!keepScroll) window.scrollTo(0, 0);
+  }
+
+  function render() {
+    if (!data) return;
+    if (openId) renderChapter(openId); else renderList();
+  }
+
+  // Save one chapter. The bar moves right away and goes back if the save fails.
+  function mark(id, read, btn, msg) {
+    if (busy) return;
+    busy = true;
+    btn.disabled = true;
+    msg.textContent = "Saving...";
+    api.authFetch("/api/handbook/progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chapter: id, read: read }),
+    }).then(readJson).then(function (p) {
+      data.progress = p;
+      renderJourney(p);
+      busy = false;
+      renderChapter(id, true);
+      var again = document.querySelector("#hbMount .hb-mark");
+      if (again) again.focus({ preventScroll: true });
+      var m = document.querySelector("#hbMount .hb-msg");
+      if (m) {
+        m.textContent = read
+          ? (p.count === p.total ? "Saved. You have read every chapter: 100% complete." : "Saved. Your progress is now " + p.percent + "%.")
+          : "Saved. Your progress is now " + p.percent + "%.";
+      }
+    }).catch(function (e) {
+      busy = false;
+      if (e.message === "signed out") return;
+      btn.disabled = false;
+      msg.textContent = e.message || "We could not save that. Please try again.";
+    });
+  }
+
+  function load() {
+    mount.replaceChildren(el("p", "live", "Opening the handbook..."));
+    return api.authFetch("/api/handbook").then(readJson).then(function (d) {
+      data = d;
+      renderJourney(d.progress);
+      render();
+    }).catch(function (e) {
+      if (e.message === "signed out") return;
+      var box = el("div");
+      box.appendChild(el("p", "quiz-empty", e.message || "We could not open the handbook just now."));
+      var retry = el("button", "btn ghost", "Try again");
+      retry.type = "button";
+      retry.addEventListener("click", load);
+      box.appendChild(retry);
+      mount.replaceChildren(box);
+    });
+  }
+
+  window.abecHandbook = {
+    setup: function (a) { api = a; mount = document.getElementById("hbMount"); },
+    // Called by the portal each time the Handbook view is shown. id is a chapter id or "".
+    show: function (id) {
+      openId = id || null;
+      if (data) render(); else load();
+    },
+    summary: function () { return loadSummary(); },
+    reset: function () { data = null; openId = null; busy = false; if (mount) mount.replaceChildren(); },
+  };
 })();
 ```
 
@@ -1859,6 +4009,8 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
         <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
         <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
       </nav>
+
+      <div class="social" id="siteLinks" hidden></div>
     </aside>
 
     <main class="sheet">
@@ -1890,6 +4042,7 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
       </div>
     </main>
   </div>
+  <script src="/links.js"></script>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
   <script src="/status.js"></script>
@@ -2564,7 +4717,12 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
       <nav class="adm-tabs" role="tablist" aria-label="Dashboard sections">
         <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
+        <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
+        <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
+        <button type="button" role="tab" id="tab-sheets" aria-selected="false" aria-controls="view-sheets">Sheets</button>
       </nav>
+
+      <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
 
       <div id="view-overview" role="tabpanel" aria-labelledby="tab-overview">
         <div class="kpis" id="kpis"></div>
@@ -2620,8 +4778,89 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
           <p class="adm-note" id="resultsNote"></p>
         </article>
       </div>
+
+      <div id="view-links" role="tabpanel" aria-labelledby="tab-links" hidden>
+        <article class="adm-card wide">
+          <h3>Site links</h3>
+          <p class="adm-note">These show as icons on the website (portal, register and find-a-student pages) and change as soon as you press Save. Leave a box empty to hide that icon. Web addresses must start with https://</p>
+          <form id="linksForm" class="lk-form" novalidate></form>
+          <div class="lk-bar">
+            <button type="button" class="primary" id="linksSave">Save</button>
+            <span class="lk-msg" id="linksMsg" role="status"></span>
+          </div>
+        </article>
+      </div>
+
+      <div id="view-videos" role="tabpanel" aria-labelledby="tab-videos" hidden>
+        <article class="adm-card wide">
+          <h3>Chapter video tutorials</h3>
+          <p class="adm-note">Paste the YouTube address of the video for each chapter. Students see it inside that chapter of the Mentorship Handbook. A chapter with no address shows "coming soon". Unlisted videos work too, but they must allow embedding.</p>
+          <form id="videosForm" class="lk-form" novalidate></form>
+          <div class="lk-bar">
+            <button type="button" class="primary" id="videosSave">Save</button>
+            <span class="lk-msg" id="videosMsg" role="status"></span>
+          </div>
+        </article>
+      </div>
+
+      <div id="view-sheets" role="tabpanel" aria-labelledby="tab-sheets" hidden>
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Google Sheet data</h3>
+            <a class="btn ghost" id="shOpen" href="#" target="_blank" rel="noopener noreferrer" hidden>Open in Google Sheets</a>
+          </div>
+          <div class="sh-picker" id="shPicker" role="group" aria-label="Choose a sheet"></div>
+          <p class="adm-note" id="shHelp"></p>
+          <div class="filters">
+            <input id="shSearch" type="search" placeholder="Search this sheet" aria-label="Search this sheet" />
+            <button type="button" class="btn ghost" id="shAdd" hidden>Add</button>
+            <button type="button" class="btn ghost" id="shReload">Reload</button>
+          </div>
+          <div class="tablewrap sh-wrap"><table class="adm-table sh-table" id="shTable"></table></div>
+          <div class="sh-pager" id="shPager" hidden>
+            <button type="button" class="btn ghost" id="shPrev">Previous</button>
+            <span id="shPage"></span>
+            <button type="button" class="btn ghost" id="shNext">Next</button>
+          </div>
+          <p class="adm-note" id="shNote" role="status"></p>
+        </article>
+      </div>
     </section>
   </main>
+
+  <!-- One sheet row: edit, delete, or add codes -->
+  <dialog id="shDlg" class="adm-drill sh-dlg" aria-labelledby="shDlgTitle">
+    <form id="shForm" class="drill-box" novalidate>
+      <div class="drill-head">
+        <h2 id="shDlgTitle">Row</h2>
+        <button type="button" class="btn ghost" id="shDlgClose">Close</button>
+      </div>
+      <p class="adm-note" id="shDlgNote"></p>
+      <div class="lk-form sh-fields" id="shFields"></div>
+      <p class="formErr" id="shDlgErr" role="alert"></p>
+      <div class="lk-bar">
+        <button type="submit" class="primary" id="shSave">Save changes</button>
+        <button type="button" class="btn ghost sh-del" id="shDelete" hidden>Delete row</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- The list behind whichever statistic was clicked -->
+  <dialog id="drill" class="adm-drill" aria-labelledby="drillTitle">
+    <div class="drill-box">
+      <div class="drill-head">
+        <h2 id="drillTitle">Details</h2>
+        <button type="button" class="btn ghost" id="drillClose">Close</button>
+      </div>
+      <p class="adm-note drill-summary" id="drillSummary" role="status"></p>
+      <div class="filters">
+        <input id="drillSearch" type="search" placeholder="Search this list" aria-label="Search this list" />
+        <button type="button" class="btn ghost" id="drillCsv">Download CSV</button>
+      </div>
+      <div class="tablewrap"><table class="adm-table" id="drillTable"></table></div>
+      <p class="adm-note" id="drillNote"></p>
+    </div>
+  </dialog>
 
   <script src="/admin.js"></script>
 </body>
@@ -2642,6 +4881,10 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
   var stats = null;
   var results = [];
   var scale = [];
+  // The Sheets view: meta = what each sheet allows, data = the sheet being looked at, row = the row open in the form.
+  var sh = { meta: null, key: "students", data: null, page: 0, mode: "edit", row: null, flash: "" };
+  var shSeq = 0;
+  var SH_PAGE = 50;
 
   function getSaved() { try { return sessionStorage.getItem(SS_KEY) || ""; } catch (e) { return ""; } }
   function save(v) { try { if (v) sessionStorage.setItem(SS_KEY, v); else sessionStorage.removeItem(SS_KEY); } catch (e) {} }
@@ -2660,17 +4903,25 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
   function pct(n, total) { return total ? Math.round((n / total) * 100) : 0; }
 
   // ---------- API ----------
-  function api(path) {
-    return fetch(path, { headers: { Authorization: "Bearer " + password } }).then(function (r) {
+  function api(path, method, body) {
+    var opts = { method: method || "GET", headers: { Authorization: "Bearer " + password } };
+    if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    return fetch(path, opts).then(function (r) {
       return r.json().then(function (b) {
         if (r.status === 401) { var e = new Error(b.error || "Wrong password."); e.auth = true; throw e; }
-        if (!r.ok) throw new Error(b.error || "Something went wrong.");
+        if (!r.ok) { var e2 = new Error(b.error || "Something went wrong."); e2.fields = b.errors; e2.status = r.status; throw e2; }
         return b;
       });
     });
   }
 
   function showLogin(msg) {
+    // Leave no student details on the screen once signed out.
+    shSeq++;
+    sh.meta = null; sh.data = null; sh.row = null; sh.flash = "";
+    if ($("shDlg").open) $("shDlg").close();
+    $("shTable").replaceChildren();
+    $("shSearch").value = "";
     $("dash").hidden = true;
     $("topActions").hidden = true;
     $("login").hidden = false;
@@ -2705,7 +4956,12 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     function draw(all) {
       list.replaceChildren();
       (all || !limit ? items : items.slice(0, limit)).forEach(function (i) {
-        var row = el("div", "bar");
+        var row = el(opts.drill ? "button" : "div", "bar");
+        if (opts.drill) {
+          row.type = "button";
+          row.setAttribute("aria-label", i.label + ": " + i.count + ". Show the list");
+          row.addEventListener("click", function () { var d = opts.drill(i); openDrill(d.kind, d.value, row); });
+        }
         row.appendChild(el("span", "lbl", i.label));
         row.title = i.label;
         var track = el("span", "track");
@@ -2733,11 +4989,29 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     }
   }
 
-  function kpi(label, value) {
-    var d = el("div", "kpi");
+  // A headline number. With a drill target it is a button that opens the list behind it.
+  function kpi(label, value, target) {
+    var d = el(target ? "button" : "div", "kpi");
+    if (target) {
+      d.type = "button";
+      d.setAttribute("aria-label", label + ": " + value + ". Show the list");
+      d.addEventListener("click", function () { openDrill(target.kind, target.value, d); });
+    }
     d.appendChild(el("b", null, String(value)));
     d.appendChild(el("span", null, label));
+    if (target) d.appendChild(el("em", "kpi-cue", "View list \u203a"));
     return d;
+  }
+
+  // Make an SVG shape behave like a button (mouse, touch and keyboard).
+  function svgButton(node, labelText, target) {
+    node.setAttribute("tabindex", "0");
+    node.setAttribute("role", "button");
+    node.setAttribute("aria-label", labelText + ". Show the list");
+    var go = function () { openDrill(target.kind, target.value, node); };
+    node.addEventListener("click", go);
+    node.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    return node;
   }
 
   // Column chart; points = [{label, value}]
@@ -2758,10 +5032,14 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
       var h = (H - T - B) * (p.value / max);
       var x = L + slot * i + slot * 0.18;
       var r = svg("rect", { x: x, y: H - B - h, width: slot * 0.64, height: h, rx: 4, "class": "bar-rect" });
-      var tt = svg("title");
-      tt.textContent = p.label + ": " + p.value;
-      r.appendChild(tt);
       s.appendChild(r);
+      if (p.drill) {
+        var hit = svg("rect", { x: L + slot * i, y: T, width: slot, height: H - T - B, "class": "hit" });
+        var tt = svg("title");
+        tt.textContent = p.label + ": " + p.value + " (click for the list)";
+        hit.appendChild(tt);
+        s.appendChild(svgButton(hit, p.label + ": " + p.value, p.drill));
+      }
       if (p.value) {
         var v = svg("text", { x: x + slot * 0.32, y: H - B - h - 4, "text-anchor": "middle" });
         v.textContent = p.value;
@@ -2801,10 +5079,12 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
       var h = (H - T - B) * (m.new / maxNew);
       var x = L + slot * i + slot * 0.15;
       var r = svg("rect", { x: x, y: H - B - h, width: slot * 0.7, height: h, rx: 3, "class": "bar-rect" });
-      var tt = svg("title");
-      tt.textContent = label(m.ym) + ": " + m.new + " new, " + m.total + " total";
-      r.appendChild(tt);
       s.appendChild(r);
+      var hit = svg("rect", { x: L + slot * i, y: T, width: slot, height: H - T - B, "class": "hit" });
+      var tt = svg("title");
+      tt.textContent = label(m.ym) + ": " + m.new + " new, " + m.total + " total (click for the students who joined)";
+      hit.appendChild(tt);
+      s.appendChild(svgButton(hit, label(m.ym) + ": " + m.new + " new, " + m.total + " total", { kind: "month", value: m.ym }));
       pts.push([x + slot * 0.35, T + (H - T - B) * (1 - m.total / maxTot)]);
       if (i % step === 0) {
         var t = svg("text", { x: x + slot * 0.35, y: H - 10, "text-anchor": "middle" });
@@ -2813,7 +5093,13 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
       }
     });
     s.appendChild(svg("polyline", { points: pts.map(function (p) { return p.join(","); }).join(" "), "class": "line" }));
-    pts.forEach(function (p) { s.appendChild(svg("circle", { cx: p[0], cy: p[1], r: 3, "class": "dot" })); });
+    pts.forEach(function (p, i) {
+      var dot = svg("circle", { cx: p[0], cy: p[1], r: 6, "class": "dot" });
+      var dt = svg("title");
+      dt.textContent = label(months[i].ym) + ": " + months[i].total + " students in total (click for the list)";
+      dot.appendChild(dt);
+      s.appendChild(svgButton(dot, label(months[i].ym) + ": " + months[i].total + " students in total", { kind: "upto", value: months[i].ym }));
+    });
     var wrap = el("div", "chart");
     wrap.appendChild(s);
     container.appendChild(wrap);
@@ -2843,6 +5129,14 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     tbl.appendChild(tb);
   }
 
+  // A table cell that opens a list.
+  function linkCell(text, kind, value) {
+    var b = el("button", "linkbtn", String(text));
+    b.type = "button";
+    b.addEventListener("click", function () { openDrill(kind, value, b); });
+    return { node: b };
+  }
+
   function gradeBadge(g) { return { node: el("span", "grade g-" + g, g) }; }
 
   // ---------- Overview ----------
@@ -2850,20 +5144,21 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     var s = stats;
     var k = $("kpis");
     k.replaceChildren(
-      kpi("Total students", s.total),
-      kpi("Certified / graduates", s.graduates),
-      kpi("Uncertified", s.uncertified),
-      kpi("Mentors, staff and CEO", s.team),
-      kpi("Took the quiz", s.quiz.students),
-      kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%")
+      kpi("Total students", s.total, { kind: "all" }),
+      kpi("Certified / graduates", s.graduates, { kind: "graduates" }),
+      kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
+      kpi("Mentors, staff and CEO", s.team, { kind: "team" }),
+      kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
+      kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );
-    bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total });
+    var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
+    bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
     $("c-status-note").textContent = "Certified / graduates = Certified, Graduate and Alumni Member.";
-    bars($("c-gender"), s.gender);
-    bars($("c-programme"), s.programme);
-    bars($("c-year"), s.byYear);
-    bars($("c-country"), s.country, { limit: 10 });
-    bars($("c-state"), s.state, { limit: 10 });
+    bars($("c-gender"), s.gender, { drill: by("gender") });
+    bars($("c-programme"), s.programme, { drill: by("programme") });
+    bars($("c-year"), s.byYear, { drill: by("year") });
+    bars($("c-country"), s.country, { limit: 10, drill: by("country") });
+    bars($("c-state"), s.state, { limit: 10, drill: by("state") });
 
     var years = Object.keys(s.monthsByYear).sort();
     var sel = $("yearSel");
@@ -2877,31 +5172,39 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     var rows = s.months.slice().reverse().map(function (m) {
       var g = m.growthPct;
       var cell = g == null ? "-" : { node: el("span", g >= 0 ? "up" : "down", (g >= 0 ? "+" : "") + g + "%") };
-      return [label(m.ym), m.new, m.total, cell];
+      return [linkCell(label(m.ym), "month", m.ym), linkCell(m.new, "month", m.ym), linkCell(m.total, "upto", m.ym), cell];
     });
     table($("growthTable"), [{ t: "Month" }, { t: "New students", n: 1 }, { t: "Total", n: 1 }, { t: "Change vs last month", n: 1 }], rows);
     $("undatedNote").textContent = s.undated
       ? s.undated + " student(s) have no joining date and are left out of the month charts."
       : "";
+    $("undatedNote").replaceChildren();
+    if (s.undated) {
+      $("undatedNote").appendChild(document.createTextNode(s.undated + " student(s) have no joining date and are left out of the month charts. "));
+      $("undatedNote").appendChild(linkCell("Show them", "undated", "").node);
+    }
   }
 
   function drawMonthYear() {
     var y = $("yearSel").value;
     var data = (stats.monthsByYear[y] || Array(12).fill(0));
     if (!y) { $("c-monthyear").replaceChildren(el("p", "empty", "No joining dates yet.")); return; }
-    columns($("c-monthyear"), MONTH.map(function (m, i) { return { label: m, value: data[i] }; }));
+    columns($("c-monthyear"), MONTH.map(function (m, i) {
+      return { label: m, value: data[i], drill: { kind: "month", value: y + "-" + String(i + 1).padStart(2, "0") } };
+    }));
   }
 
   // ---------- Quiz ----------
   function renderQuiz() {
     var q = stats.quiz;
     $("quizKpis").replaceChildren(
-      kpi("Students who took the quiz", q.students),
-      kpi("Not yet taken", q.notTaken),
-      kpi("Total attempts", q.attempts),
-      kpi("Average score", q.avgPct == null ? "-" : q.avgPct + "%")
+      kpi("Students who took the quiz", q.students, { kind: "quiz-students" }),
+      kpi("Not yet taken", q.notTaken, { kind: "quiz-not-taken" }),
+      kpi("Total attempts", q.attempts, { kind: "quiz-attempts" }),
+      kpi("Average score", q.avgPct == null ? "-" : q.avgPct + "%", { kind: "quiz-avg" })
     );
-    bars($("c-grades"), q.gradeDist.map(function (g) { return { label: g.grade + " - " + g.label, count: g.count }; }), { total: q.students });
+    bars($("c-grades"), q.gradeDist.map(function (g) { return { label: g.grade + " - " + g.label, count: g.count, grade: g.grade }; }),
+      { total: q.students, drill: function (i) { return { kind: "grade", value: i.grade }; } });
     table($("c-scale"), [{ t: "Grade" }, { t: "Score" }, { t: "Meaning" }],
       scale.map(function (s, i) {
         var hi = i === 0 ? 100 : scale[i - 1].min - 1;
@@ -2967,15 +5270,506 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
   }
 
+  // ---------- The list behind a statistic ----------
+  var dlg = $("drill");
+  var drillData = null; // { title, type, rows, count, truncated }
+  var drillSeq = 0;
+  var STUDENT_COLS = [{ t: "Reg number" }, { t: "Name" }, { t: "Gender" }, { t: "Status" }, { t: "Country" }, { t: "State" }, { t: "Programme" }, { t: "Joined" }];
+  var QUIZ_COLS = [{ t: "Date" }, { t: "Reg number" }, { t: "Name" }, { t: "Score", n: 1 }, { t: "Percent", n: 1 }, { t: "Grade" }, { t: "Attempt", n: 1 }];
+
+  function openDrill(kind, value, trigger) {
+    var seq = ++drillSeq;
+    drillData = null;
+    $("drillTitle").textContent = "Loading...";
+    $("drillSummary").textContent = "";
+    $("drillNote").textContent = "";
+    $("drillSearch").value = "";
+    $("drillTable").replaceChildren();
+    $("drillCsv").disabled = true;
+    if (!dlg.open) dlg.showModal();
+    api("/api/admin/drill?kind=" + encodeURIComponent(kind) + "&value=" + encodeURIComponent(value || ""))
+      .then(function (d) {
+        if (seq !== drillSeq) return; // a newer click replaced this one
+        drillData = d;
+        $("drillTitle").textContent = d.title;
+        $("drillCsv").disabled = !d.rows.length;
+        renderDrill();
+      })
+      .catch(function (err) {
+        if (seq !== drillSeq) return;
+        if (err.auth) { dlg.close(); showLogin(err.message); return; }
+        $("drillTitle").textContent = "Could not load this list";
+        $("drillSummary").textContent = err.message;
+      });
+  }
+
+  function rowText(r) { return Object.keys(r).map(function (k) { return r[k]; }).join(" ").toLowerCase(); }
+
+  function drillRows() {
+    if (!drillData) return [];
+    var term = $("drillSearch").value.trim().toLowerCase();
+    return term ? drillData.rows.filter(function (r) { return rowText(r).indexOf(term) >= 0; }) : drillData.rows;
+  }
+
+  function renderDrill() {
+    if (!drillData) return;
+    var d = drillData, list = drillRows(), isQuiz = d.type === "quiz";
+    var unit = isQuiz ? "result" : "student";
+    var summary = d.count + " " + unit + (d.count === 1 ? "" : "s");
+    if (!isQuiz && stats && stats.total) summary += " (" + pct(d.count, stats.total) + "% of " + stats.total + " students)";
+    if (isQuiz && d.count && /Average quiz score/.test(d.title)) {
+      summary += ". Average: " + Math.round(d.rows.reduce(function (n, r) { return n + r.pct; }, 0) / d.rows.length) + "%";
+    }
+    $("drillSummary").textContent = summary + ".";
+    if (isQuiz) {
+      table($("drillTable"), QUIZ_COLS, list.slice(0, 500).map(function (r) {
+        return [r.date, r.regNumber, r.fullName, r.score + " / " + r.total, r.pct + "%", gradeBadge(r.grade), r.attempt];
+      }));
+    } else {
+      table($("drillTable"), STUDENT_COLS, list.slice(0, 500).map(function (r) {
+        return [r.regNumber, r.fullName, r.gender, r.status, r.country, r.state, r.programme, r.joined];
+      }));
+    }
+    var note = "";
+    if (!d.rows.length) note = "Nothing to show here yet.";
+    else if (!list.length) note = "No one in this list matches your search.";
+    else if (list.length > 500) note = "Showing the first 500 of " + list.length + ". Download the CSV for the full list.";
+    if (d.truncated) note += (note ? " " : "") + "The list is limited to " + d.rows.length + " rows.";
+    $("drillNote").textContent = note;
+  }
+
+  function downloadDrillCsv() {
+    if (!drillData) return;
+    var isQuiz = drillData.type === "quiz";
+    var head = isQuiz ? ["Date", "Reg Number", "Name", "Score", "Total", "Percent", "Grade", "Attempt"]
+      : ["Reg Number", "Name", "Gender", "Status", "Country", "State", "Programme", "Joined"];
+    var lines = [head.join(",")].concat(drillRows().map(function (r) {
+      var cells = isQuiz ? [r.date, r.regNumber, r.fullName, r.score, r.total, r.pct, r.grade, r.attempt]
+        : [r.regNumber, r.fullName, r.gender, r.status, r.country, r.state, r.programme, r.joined];
+      return cells.map(csvCell).join(",");
+    }));
+    var blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "abecfx-" + drillData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  $("drillClose").addEventListener("click", function () { dlg.close(); });
+  $("drillSearch").addEventListener("input", renderDrill);
+  $("drillCsv").addEventListener("click", downloadDrillCsv);
+  // a click on the dimmed area (the dialog itself, not its content) closes it
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener("close", function () { drillSeq++; drillData = null; });
+
+  // ---------- Site links ----------
+  var linkFields = [];
+  function renderLinks(fields, values) {
+    linkFields = fields;
+    var form = $("linksForm");
+    form.replaceChildren();
+    fields.forEach(function (f) {
+      var wrap = el("div", "field");
+      wrap.id = "lk-wrap-" + f.key;
+      var label = el("label", null, f.label);
+      label.setAttribute("for", "lk-" + f.key);
+      var input;
+      if (f.kind === "text") { input = el("textarea"); input.maxLength = f.max || 700; }
+      else { input = el("input"); input.type = f.kind === "phone" ? "tel" : "url"; input.autocomplete = "off"; input.spellcheck = false; }
+      input.id = "lk-" + f.key;
+      input.placeholder = f.hint || "";
+      input.value = values[f.key] || "";
+      var err = el("p", "lk-err");
+      err.id = "lk-err-" + f.key;
+      err.setAttribute("role", "alert");
+      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(err);
+      form.appendChild(wrap);
+    });
+  }
+  function showLinkErrors(errs) {
+    linkFields.forEach(function (f) {
+      var msg = (errs && errs[f.key]) || "";
+      $("lk-err-" + f.key).textContent = msg;
+      $("lk-wrap-" + f.key).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadLinks() {
+    return api("/api/admin/links").then(function (r) { renderLinks(r.fields, r.values); $("linksMsg").textContent = ""; });
+  }
+  $("linksSave").addEventListener("click", function () {
+    var b = this, body = {};
+    linkFields.forEach(function (f) { body[f.key] = $("lk-" + f.key).value; });
+    b.disabled = true;
+    $("linksMsg").textContent = "Saving...";
+    showLinkErrors(null);
+    api("/api/admin/links", "PUT", body)
+      .then(function (r) { renderLinks(linkFields, r.values); $("linksMsg").textContent = "Saved. The website now shows these links."; })
+      .catch(function (err) {
+        if (err.auth) { showLogin(err.message); return; }
+        showLinkErrors(err.fields);
+        $("linksMsg").textContent = err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+
+  // ---------- Chapter videos ----------
+  var videoChapters = [];
+  function renderVideos(chapters, values) {
+    videoChapters = chapters;
+    var form = $("videosForm");
+    form.replaceChildren();
+    chapters.forEach(function (c) {
+      var wrap = el("div", "field");
+      wrap.id = "vd-wrap-" + c.id;
+      var label = el("label", null, "Chapter " + c.id + ": " + c.title);
+      label.setAttribute("for", "vd-" + c.id);
+      var input = el("input");
+      input.type = "url"; input.autocomplete = "off"; input.spellcheck = false;
+      input.id = "vd-" + c.id;
+      input.placeholder = "https://youtu.be/...";
+      input.value = values[c.id] || "";
+      var err = el("p", "lk-err");
+      err.id = "vd-err-" + c.id;
+      err.setAttribute("role", "alert");
+      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(err);
+      form.appendChild(wrap);
+    });
+  }
+  function showVideoErrors(errs) {
+    videoChapters.forEach(function (c) {
+      var msg = (errs && errs[c.id]) || "";
+      $("vd-err-" + c.id).textContent = msg;
+      $("vd-wrap-" + c.id).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadVideos() {
+    return api("/api/admin/videos").then(function (r) { renderVideos(r.chapters, r.values); $("videosMsg").textContent = ""; });
+  }
+  $("videosSave").addEventListener("click", function () {
+    var b = this, body = {};
+    videoChapters.forEach(function (c) { body[c.id] = $("vd-" + c.id).value; });
+    b.disabled = true;
+    $("videosMsg").textContent = "Saving...";
+    showVideoErrors(null);
+    api("/api/admin/videos", "PUT", body)
+      .then(function (r) { renderVideos(videoChapters, r.values); $("videosMsg").textContent = "Saved. Students see these videos in the handbook."; })
+      .catch(function (err) {
+        if (err.auth) { showLogin(err.message); return; }
+        showVideoErrors(err.fields);
+        $("videosMsg").textContent = err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+
+  // ---------- Sheets: look at and edit the Google Sheet tabs ----------
+  // The server decides what each sheet allows (sh.data.editable, canDelete, add) and checks every change again.
+  var shDlg = $("shDlg");
+
+  function loadSheetMeta() {
+    return api("/api/admin/sheets").then(function (m) {
+      sh.meta = m;
+      var open = $("shOpen");
+      var ok = typeof m.sheetUrl === "string" && m.sheetUrl.indexOf("https://docs.google.com/") === 0;
+      open.hidden = !ok;
+      if (ok) open.href = m.sheetUrl;
+      renderPicker();
+    });
+  }
+
+  function renderPicker() {
+    var box = $("shPicker");
+    box.replaceChildren();
+    ((sh.meta && sh.meta.sheets) || []).forEach(function (s) {
+      var b = el("button", "sh-pick", s.label);
+      b.type = "button";
+      b.setAttribute("aria-pressed", s.key === sh.key ? "true" : "false");
+      b.addEventListener("click", function () { $("shSearch").value = ""; loadSheet(s.key); });
+      box.appendChild(b);
+    });
+  }
+
+  function loadSheet(key) {
+    sh.key = key;
+    renderPicker();
+    $("shNote").textContent = "Loading...";
+    var seq = ++shSeq;
+    return api("/api/admin/sheets/" + encodeURIComponent(key)).then(function (d) {
+      if (seq !== shSeq) return; // a newer click replaced this one
+      sh.data = d;
+      sh.page = 0;
+      renderSheet();
+    }).catch(function (err) {
+      if (seq !== shSeq) return;
+      if (err.auth) { showLogin(err.message); return; }
+      sh.data = null;
+      $("shTable").replaceChildren();
+      $("shNote").textContent = err.message;
+    });
+  }
+
+  function shVisibleRows() {
+    var d = sh.data;
+    if (!d) return [];
+    var rows = d.rows.slice();
+    if (d.newestFirst) rows.reverse();
+    var term = $("shSearch").value.trim().toLowerCase();
+    if (term) rows = rows.filter(function (r) { return r.cells.join(" ").toLowerCase().indexOf(term) >= 0; });
+    return rows;
+  }
+
+  function renderSheet() {
+    var d = sh.data;
+    if (!d) return;
+    $("shHelp").textContent = d.help;
+    $("shAdd").hidden = !d.add;
+    if (d.add) $("shAdd").textContent = d.add.label;
+    var rows = shVisibleRows();
+    var pages = Math.max(1, Math.ceil(rows.length / SH_PAGE));
+    if (sh.page >= pages) sh.page = pages - 1;
+    var slice = rows.slice(sh.page * SH_PAGE, (sh.page + 1) * SH_PAGE);
+    var canOpen = d.editable.length > 0 || d.canDelete;
+    var head = [{ t: "Row", n: 1 }].concat(d.headers.map(function (h) { return { t: h }; }));
+    table($("shTable"), head, slice.map(function (r) {
+      var first = r.n;
+      if (canOpen) {
+        var b = el("button", "linkbtn", String(r.n));
+        b.type = "button";
+        b.setAttribute("aria-label", (d.editable.length ? "Edit" : "Open") + " row " + r.n);
+        b.addEventListener("click", function () { openRow(r); });
+        first = { node: b };
+      }
+      return [first].concat(r.cells.map(function (c) {
+        var s = el("span", "sh-cell", c);
+        if (c.length > 30) s.title = c;
+        return { node: s };
+      }));
+    }));
+    var term = $("shSearch").value.trim();
+    var note = !d.rows.length ? "This sheet has no rows yet."
+      : term ? rows.length + " of " + d.rows.length + " row(s) match your search."
+      : d.rows.length + " row(s)." + (d.newestFirst ? " Newest first." : "");
+    if (rows.length && !canOpen) note += " This sheet is view only.";
+    if (sh.flash) { note = sh.flash + " " + note; sh.flash = ""; }
+    $("shNote").textContent = note;
+    $("shPage").textContent = "Page " + (sh.page + 1) + " of " + pages;
+    $("shPrev").disabled = sh.page <= 0;
+    $("shNext").disabled = sh.page >= pages - 1;
+    $("shPager").hidden = pages <= 1;
+  }
+
+  // Country changed in the form: offer that country's states / regions in the State box.
+  function fillStates(country) {
+    var dl = $("shStates");
+    if (!dl) return;
+    dl.replaceChildren();
+    if (!country) return;
+    fetch("/api/states?country=" + encodeURIComponent(country))
+      .then(function (r) { return r.json(); })
+      .then(function (list) {
+        var now = $("shStates");
+        if (!now || !Array.isArray(list)) return;
+        now.replaceChildren();
+        list.forEach(function (s) { var o = el("option"); o.value = s; now.appendChild(o); });
+      })
+      .catch(function () {});
+  }
+
+  function buildFields(d, cells) {
+    var box = $("shFields");
+    box.replaceChildren();
+    d.headers.forEach(function (h, i) {
+      var editable = d.editable.indexOf(i) >= 0;
+      var wrap = el("div", "field");
+      wrap.id = "sh-wrap-" + i;
+      var label = el("label", null, h + (editable ? "" : " (locked)"));
+      label.setAttribute("for", "sh-f-" + i);
+      var input;
+      var opts = d.selects && d.selects[i];
+      if (opts) {
+        input = el("select");
+        var list = opts.slice();
+        if (list.indexOf(cells[i]) < 0) list.unshift(cells[i]); // keep a value that is not on the list (older rows)
+        list.forEach(function (o) { var op = el("option", null, o === "" ? "(none)" : o); op.value = o; input.appendChild(op); });
+        input.value = cells[i];
+      } else if (d.multiline && d.multiline.indexOf(i) >= 0) {
+        input = el("textarea");
+        input.value = cells[i];
+      } else {
+        input = el("input");
+        input.type = "text";
+        input.autocomplete = "off";
+        input.spellcheck = false;
+        input.value = cells[i];
+      }
+      input.id = "sh-f-" + i;
+      input.disabled = !editable;
+      if (d.placeholders && d.placeholders[i]) input.placeholder = d.placeholders[i];
+      if (d.key === "students" && i === 12 && editable) input.setAttribute("list", "shStates");
+      if (d.key === "students" && i === 2 && editable) input.addEventListener("change", function () { fillStates(input.value); });
+      var err = el("p", "lk-err");
+      err.id = "sh-err-" + i;
+      err.setAttribute("role", "alert");
+      wrap.appendChild(label); wrap.appendChild(input); wrap.appendChild(err);
+      box.appendChild(wrap);
+    });
+    if (d.key === "students") {
+      var dl = el("datalist");
+      dl.id = "shStates";
+      box.appendChild(dl);
+      fillStates(cells[2]);
+    }
+  }
+
+  function showShErrors(errs) {
+    if (!sh.data) return;
+    var first = null;
+    sh.data.headers.forEach(function (h, i) {
+      var msg = (errs && errs[i]) || "";
+      var p = $("sh-err-" + i), w = $("sh-wrap-" + i);
+      if (p) p.textContent = msg;
+      if (w) w.classList.toggle("invalid", !!msg);
+      if (msg && !first) first = w;
+    });
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: "nearest" });
+  }
+
+  function openRow(r) {
+    var d = sh.data;
+    sh.mode = "edit";
+    sh.row = r;
+    $("shDlgTitle").textContent = d.label + ": row " + r.n;
+    $("shDlgNote").textContent = d.editable.length
+      ? "Greyed-out fields are locked. Changes are saved straight to the Google Sheet."
+      : "This sheet is view only. You can delete the row if it should not be there.";
+    buildFields(d, r.cells);
+    $("shSave").hidden = !d.editable.length;
+    $("shSave").textContent = "Save changes";
+    $("shDelete").hidden = !d.canDelete;
+    $("shDlgErr").textContent = "";
+    shDlg.showModal();
+  }
+
+  function openAdd() {
+    var d = sh.data;
+    if (!d || !d.add) return;
+    sh.mode = "add";
+    sh.row = null;
+    $("shDlgTitle").textContent = d.add.label;
+    $("shDlgNote").textContent = d.add.help;
+    var box = $("shFields");
+    box.replaceChildren();
+    var wrap = el("div", "field");
+    var label = el("label", null, d.add.label);
+    label.setAttribute("for", "sh-add-text");
+    var ta = el("textarea");
+    ta.id = "sh-add-text";
+    ta.rows = 6;
+    ta.spellcheck = false;
+    ta.autocomplete = "off";
+    wrap.appendChild(label); wrap.appendChild(ta);
+    box.appendChild(wrap);
+    $("shSave").hidden = false;
+    $("shSave").textContent = "Add";
+    $("shDelete").hidden = true;
+    $("shDlgErr").textContent = "";
+    shDlg.showModal();
+    ta.focus();
+  }
+
+  // After a failed change: sign-in problems go to the login, a changed row reloads, anything else shows in the form.
+  function shFail(err) {
+    if (err.auth) { shDlg.close(); showLogin(err.message); return; }
+    if (err.status === 409) { shDlg.close(); sh.flash = err.message; loadSheet(sh.key); return; }
+    showShErrors(err.fields);
+    $("shDlgErr").textContent = err.message;
+  }
+
+  $("shForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var d = sh.data, btn = $("shSave");
+    if (!d) return;
+    btn.disabled = true;
+    $("shDlgErr").textContent = "Saving...";
+    var base = "/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows";
+    var job;
+    if (sh.mode === "add") {
+      job = api(base, "POST", { text: $("sh-add-text").value }).then(function (r) {
+        sh.flash = "Added " + r.added + " code" + (r.added === 1 ? "" : "s") + ".";
+        shDlg.close();
+        $("shSearch").value = "";
+        return loadSheet(d.key);
+      });
+    } else {
+      var row = sh.row, values = {};
+      d.editable.forEach(function (i) { values[i] = $("sh-f-" + i).value; });
+      showShErrors(null);
+      job = api(base + "/" + row.n, "PUT", { original: row.cells, values: values }).then(function (r) {
+        row.cells = r.row;
+        sh.flash = r.changed ? "Saved row " + row.n + "." : "Nothing was changed.";
+        shDlg.close();
+        renderSheet();
+      });
+    }
+    job.catch(shFail).then(function () { btn.disabled = false; });
+  });
+
+  $("shDelete").addEventListener("click", function () {
+    var d = sh.data, row = sh.row, btn = this;
+    if (!d || !row) return;
+    if (!window.confirm("Delete row " + row.n + " from \"" + d.label + "\"? This cannot be undone.")) return;
+    btn.disabled = true;
+    $("shDlgErr").textContent = "Deleting...";
+    api("/api/admin/sheets/" + encodeURIComponent(d.key) + "/rows/" + row.n + "/delete", "POST", { original: row.cells })
+      .then(function () {
+        sh.flash = "Deleted row " + row.n + ".";
+        shDlg.close();
+        return loadSheet(d.key);
+      })
+      .catch(shFail)
+      .then(function () { btn.disabled = false; });
+  });
+
+  $("shDlgClose").addEventListener("click", function () { shDlg.close(); });
+  shDlg.addEventListener("click", function (e) { if (e.target === shDlg) shDlg.close(); });
+  shDlg.addEventListener("close", function () { $("shDlgErr").textContent = ""; });
+  $("shSearch").addEventListener("input", function () { sh.page = 0; renderSheet(); });
+  $("shReload").addEventListener("click", function () { loadSheet(sh.key); });
+  $("shAdd").addEventListener("click", openAdd);
+  $("shPrev").addEventListener("click", function () { sh.page--; renderSheet(); });
+  $("shNext").addEventListener("click", function () { sh.page++; renderSheet(); });
+
+  function openSheets() {
+    var go = function () { return loadSheet(sh.key); };
+    Promise.resolve(sh.meta ? go() : loadSheetMeta().then(go)).catch(function (err) {
+      if (err.auth) showLogin(err.message); else $("shNote").textContent = err.message;
+    });
+  }
+
   // ---------- Events ----------
   function setTab(name) {
-    ["overview", "quiz"].forEach(function (n) {
+    ["overview", "quiz", "links", "videos", "sheets"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
+    $("statsHint").hidden = name === "links" || name === "videos" || name === "sheets";
+    if (name === "sheets") openSheets();
+    if (name === "videos") {
+      $("videosMsg").textContent = "Loading...";
+      loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
+    }
+    if (name === "links") {
+      $("linksMsg").textContent = "Loading...";
+      loadLinks().catch(function (err) { if (err.auth) showLogin(err.message); else $("linksMsg").textContent = err.message; });
+    }
   }
   $("tab-overview").addEventListener("click", function () { setTab("overview"); });
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
+  $("tab-links").addEventListener("click", function () { setTab("links"); });
+  $("tab-videos").addEventListener("click", function () { setTab("videos"); });
+  $("tab-sheets").addEventListener("click", function () { setTab("sheets"); });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);
@@ -3000,11 +5794,13 @@ QUIZ_BOT_URL=https://t.me/your_quiz_bot
     var b = this;
     b.disabled = true;
     load()
+      .then(function () { if (!$("view-sheets").hidden) return loadSheet(sh.key); })
       .catch(function (err) { if (err.auth) showLogin(err.message); else $("stamp").textContent = err.message; })
       .then(function () { b.disabled = false; });
   });
 
   $("logoutBtn").addEventListener("click", function () {
+    if (dlg.open) dlg.close();
     password = "";
     save("");
     stats = null;
@@ -3044,7 +5840,7 @@ body.adm { background: var(--bone); min-height: 100vh; }
 .adm-login { max-width: 400px; margin: 7vh auto 0; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
 .adm-login h1 { font-family: var(--display); font-size: 1.6rem; margin: 0 0 6px; }
 
-.adm-tabs { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.adm-tabs { display: flex; flex-wrap: wrap; gap: 0 6px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
 .adm-tabs button {
   appearance: none; background: none; border: 0; cursor: pointer; font: inherit; font-weight: 700; color: var(--muted);
   padding: 12px 16px; border-bottom: 3px solid transparent; margin-bottom: -1px;
@@ -3105,6 +5901,74 @@ body.adm { background: var(--bone); min-height: 100vh; }
   .grid { grid-template-columns: minmax(0, 1fr); }
   .bar { grid-template-columns: minmax(80px, 42%) 1fr auto; }
 }
+
+/* ---------- Clickable statistics ---------- */
+.adm-hint { margin: 0 0 14px; font-size: .86rem; color: var(--muted); }
+button.kpi { appearance: none; font: inherit; text-align: left; cursor: pointer; color: inherit; width: 100%; transition: border-color .15s, box-shadow .15s, transform .12s; }
+button.kpi:hover { border-color: var(--violet); box-shadow: 0 8px 20px -12px rgba(90, 16, 96, .55); transform: translateY(-1px); }
+button.kpi:focus-visible, button.bar:focus-visible, .linkbtn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.kpi-cue { display: block; margin-top: 6px; font-style: normal; font-size: .72rem; font-weight: 700; color: var(--violet); }
+button.bar { appearance: none; font: inherit; color: inherit; background: none; border: 0; width: 100%; text-align: left; padding: 4px 6px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+button.bar:hover { background: var(--bone); }
+.linkbtn { appearance: none; font: inherit; color: var(--violet-deep); background: none; border: 0; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; cursor: pointer; font-weight: 700; text-decoration: underline; text-decoration-color: rgba(139, 31, 142, .35); text-underline-offset: 3px; font-variant-numeric: tabular-nums; }
+.linkbtn:hover { background: var(--purple-soft); }
+.chart .hit { fill: transparent; cursor: pointer; }
+.chart .hit:hover { fill: rgba(139, 31, 142, .1); }
+.chart .hit:focus-visible { outline: 3px solid var(--gold); outline-offset: -2px; }
+.chart .dot { cursor: pointer; }
+.chart .dot:hover { fill: var(--violet-deep); }
+.chart .dot:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* ---------- The list behind a statistic ---------- */
+.adm-drill { width: min(980px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 0; border-radius: 20px; background: #fff; color: var(--ink); box-shadow: 0 30px 80px -20px rgba(20, 8, 26, .6); }
+.adm-drill::backdrop { background: rgba(20, 8, 26, .55); }
+.drill-box { padding: 20px clamp(14px, 3vw, 24px) 22px; }
+.drill-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.drill-head h2 { margin: 0; font-family: var(--display); font-size: 1.25rem; line-height: 1.25; }
+.drill-head .btn { height: 40px; padding: 0 16px; flex: none; }
+.drill-summary { margin: 0 0 6px; font-size: .9rem; color: var(--violet-deep); font-weight: 600; }
+.adm-drill .tablewrap { max-height: 56dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+.adm-drill .adm-table th { position: sticky; top: 0; background: #fff; }
+.adm-drill .filters .btn { height: 42px; }
+/* the site-wide button style forces a 54px pill; these are content, not pills */
+button.kpi { display: block; height: auto; font-weight: 400; }
+button.bar { display: grid; height: auto; font-weight: 400; justify-content: stretch; }
+.linkbtn { display: inline; height: auto; }
+
+/* Site links editor */
+.lk-form { display: grid; gap: 4px; max-width: 760px; }
+.lk-form .field { margin-bottom: 12px; }
+.lk-form textarea { min-height: 120px; resize: vertical; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.lk-form .field.invalid input, .lk-form .field.invalid textarea { border-color: var(--danger); }
+.lk-err { color: var(--danger); font-size: .82rem; margin: 4px 0 0; min-height: 0; }
+.lk-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+.lk-bar .primary { width: auto; padding-inline: 28px; }
+.lk-msg { font-size: .9rem; font-weight: 600; color: var(--violet-deep); }
+
+/* ---------- Sheets view (look at and edit the Google Sheet tabs) ---------- */
+.sh-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.sh-pick {
+  appearance: none; font: inherit; font-weight: 700; font-size: .86rem; cursor: pointer; height: auto;
+  padding: 8px 14px; border-radius: 99px; border: 1.5px solid var(--line); background: #fff; color: var(--violet-deep);
+}
+.sh-pick:hover { border-color: var(--violet); }
+.sh-pick[aria-pressed="true"] { background: var(--violet-deep); border-color: var(--violet-deep); color: #fff; }
+.sh-pick:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sh-wrap { max-height: 62dvh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+.sh-table th { position: sticky; top: 0; background: #fff; }
+.sh-cell { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.filters #shAdd, .filters #shReload { height: 42px; }
+#shOpen { height: 40px; padding: 0 16px; display: inline-flex; align-items: center; text-decoration: none; }
+.sh-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+.sh-pager .btn { height: 38px; padding: 0 16px; }
+.sh-dlg { width: min(640px, calc(100vw - 24px)); }
+.sh-fields { max-width: none; max-height: 52dvh; overflow: auto; padding-right: 4px; }
+.sh-dlg input:disabled, .sh-dlg select:disabled, .sh-dlg textarea:disabled { background: var(--bone); color: var(--muted); cursor: not-allowed; }
+.sh-dlg textarea { min-height: 96px; resize: vertical; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; width: 100%; }
+.sh-dlg .field.invalid input, .sh-dlg .field.invalid select, .sh-dlg .field.invalid textarea { border-color: var(--danger); }
+.sh-dlg .lk-bar .btn { height: 48px; padding: 0 22px; }
+.sh-del { color: var(--danger); border-color: rgba(192, 38, 45, .45); }
+.sh-del:hover { background: rgba(192, 38, 45, .08); }
 ```
 
 #### `public/styles.css`
@@ -3123,6 +5987,7 @@ body.adm { background: var(--bone); min-height: 100vh; }
   --line: #e4dae8;
   --gold: #e8b64c;
   --danger: #c0262d;
+  --purple-soft: #f3e4f5; /* was used but never defined */
   --display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
   --body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -3245,7 +6110,7 @@ a { color: inherit; }
 label, .label { font-weight: 600; font-size: .9rem; margin-bottom: 7px; }
 label em { font-weight: 400; color: var(--muted); font-style: normal; }
 
-input[type="text"], input[type="email"], input[type="tel"], select {
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select {
   font: inherit;
   height: 52px;
   padding: 0 16px;
@@ -3265,12 +6130,19 @@ select {
   background-position: right 18px center;
 }
 input::placeholder { color: #a99fb0; }
-input:focus-visible, select:focus-visible {
+input:focus-visible, select:focus-visible, input[type="date"]:focus-visible {
   outline: none;
   border-color: var(--violet);
   box-shadow: 0 0 0 4px rgba(139, 31, 142, .15);
 }
 .field.invalid input, .field.invalid select { border-color: var(--danger); }
+/* Date picker: same rounded look as the other fields; Safari/Chrome add their own inner box and icon */
+input[type="date"] { min-height: 52px; text-align: left; display: block; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+input[type="date"]::-webkit-datetime-edit { padding: 0; }
+input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .75; }
+input[type="date"]:invalid { color: #a99fb0; }
+input[type="date"]:valid { color: var(--ink); }
 .hint { font-size: .8rem; color: var(--muted); margin-top: 6px; }
 .err { font-size: .84rem; color: var(--danger); margin-top: 6px; font-weight: 500; }
 .err:empty { display: none; }
@@ -3497,7 +6369,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 
 /* ---------- Mobile ---------- */
 @media (max-width: 900px) {
-  .stage { grid-template-columns: 1fr; }
+  .stage { grid-template-columns: minmax(0, 1fr); /* 1fr let wide content stretch the page on phones */ }
   .panel { padding: 24px 20px 28px; gap: 22px; }
   .panel::before { width: 110%; right: -30%; bottom: -30%; }
   .panel::after { display: none; }
@@ -3606,7 +6478,442 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quiz-scale { margin: 12px 0 0; font-size: .75rem; color: var(--muted); line-height: 1.6; }
 .g-A { background: #1f9d6b; } .g-B { background: #4a9d3b; } .g-C { background: #b8920f; }
 .g-D { background: #d17a14; } .g-E { background: #c9531f; } .g-F { background: var(--danger); }
-@media print { .quizcard { display: none; } }
+/* ---------- Quiz running inside the portal ---------- */
+.quizrun { max-width: 480px; margin: 22px auto 0; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
+.quizrun[hidden] { display: none; }
+.quizrun-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.quizrun-bar strong { font-family: var(--display); font-size: 1.05rem; }
+.quizrun-bar .btn { height: 40px; padding: 0 16px; font-size: .9rem; white-space: nowrap; flex: none; }
+.quizrun .live { max-width: none; margin: 4px 0 10px; }
+.quizrun iframe { display: block; width: 100%; height: 78vh; height: 78dvh; min-height: 520px; max-height: 900px; border: 0; border-radius: 12px; background: #fff; }
+.quizrun-foot { margin: 10px 0 0; text-align: center; font-size: .82rem; }
+.quizrun-foot a { color: var(--muted); }
+.quizcard .btn.wide + .btn.wide { margin-top: 10px; }
+@media print { .quizcard, .quizrun { display: none; } }
+
+/* ---------- My portal submenu ---------- */
+.sheet-inner.is-wide { max-width: 680px; }
+.subnav { display: flex; gap: 6px; margin: 0 0 22px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow-x: auto; }
+.subnav a { flex: 1 0 auto; text-align: center; white-space: nowrap; padding: 10px 14px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: .92rem; color: var(--muted); }
+.subnav a:hover { background: var(--bone); color: var(--violet-deep); }
+.subnav a[aria-current="page"] { background: var(--violet-deep); color: #fff; }
+.subnav a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* ---------- Learning progress bar ---------- */
+.pbar { display: block; width: 100%; height: 12px; background: #eadcee; border-radius: 999px; overflow: hidden; }
+.pbar-fill { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--violet) 0%, var(--orchid) 100%); transition: width .5s ease; }
+.journey { display: grid; gap: 10px; max-width: 420px; margin: 22px auto 0; padding: 16px 18px; background: #fff; border: 1px solid var(--line); border-radius: 18px; text-decoration: none; color: inherit; }
+.journey:hover { border-color: var(--violet); }
+.journey:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.journey-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.journey-top strong { font-family: var(--display); font-size: 1.05rem; }
+.journey-pct { font-family: var(--display); font-weight: 800; font-size: 1.5rem; color: var(--violet-deep); }
+.journey-sub { font-size: .88rem; color: var(--muted); }
+
+/* ---------- Mentorship Handbook ---------- */
+.hb-progress { display: grid; gap: 10px; margin: 0 0 22px; padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: 18px; }
+.hb-progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.hb-progress-top strong { font-family: var(--display); font-size: 1.05rem; }
+.hb-pct { font-family: var(--display); font-weight: 800; font-size: 2rem; line-height: 1; color: var(--violet-deep); }
+.hb-progress-sub { margin: 0; font-size: .9rem; color: var(--muted); }
+.hb-chapters { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.hb-chapter { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; color: inherit; }
+.hb-chapter:hover { border-color: var(--violet); }
+.hb-chapter:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.hb-num { flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--purple-soft); color: var(--violet-deep); font-family: var(--display); font-weight: 800; }
+.hb-chapter.is-read .hb-num { background: #1f9d6b; color: #fff; }
+.hb-chapter-txt { display: flex; flex-direction: column; min-width: 0; }
+.hb-chapter-txt strong { font-size: .98rem; line-height: 1.25; }
+.hb-chapter-txt span { font-size: .8rem; color: var(--muted); }
+.hb-chapter.is-read .hb-chapter-txt span { color: #1a7f58; font-weight: 600; }
+.hb-final { margin: 22px 0 0; padding: 18px; background: var(--violet-deep); color: #fff; border-radius: 18px; }
+.hb-final h3 { margin: 0 0 10px; font-family: var(--display); font-size: 1.2rem; }
+.hb-final p { margin: 0 0 10px; line-height: 1.55; }
+.hb-final .btn.primary { background: #fff; color: var(--violet-deep); box-shadow: none; margin-top: 6px; }
+.hb-foot { margin-top: 22px; display: grid; gap: 10px; }
+.hb-foot-note { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
+.hb-back { display: inline-block; margin: 0 0 12px; font-weight: 700; color: var(--violet-deep); text-decoration: none; }
+.hb-back:hover { text-decoration: underline; }
+.hb-mini { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; font-size: .84rem; font-weight: 600; color: var(--muted); }
+.hb-mini .pbar { height: 8px; flex: 1; }
+.hb-article { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 22px 20px; margin: 0 0 18px; }
+.hb-kicker { margin: 0 0 4px; font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--violet); }
+.hb-article h2 { margin: 0 0 6px; }
+.hb-tagline { margin: 0 0 18px; color: var(--muted); font-style: italic; }
+.hb-p { margin: 0 0 12px; line-height: 1.65; }
+.hb-h { margin: 20px 0 8px; font-family: var(--display); font-size: 1.05rem; color: var(--violet-deep); }
+.hb-list { margin: 0 0 12px; padding-left: 22px; line-height: 1.6; }
+.hb-list li { margin: 3px 0; }
+.hb-quote { margin: 16px 0; padding: 12px 16px; border-left: 4px solid var(--orchid); background: var(--bone); border-radius: 0 12px 12px 0; font-weight: 600; line-height: 1.55; }
+.hb-note { margin: 16px 0; padding: 12px 16px; background: #fff7e3; border: 1px solid #f0d99a; border-radius: 12px; line-height: 1.55; font-weight: 500; }
+.hb-cards { display: grid; gap: 10px; margin: 0 0 12px; }
+.hb-card { display: grid; gap: 4px; padding: 12px 14px; background: var(--bone); border: 1px solid var(--line); border-radius: 12px; line-height: 1.5; }
+.hb-card strong { color: var(--violet-deep); }
+.hb-tablewrap { margin: 0 0 12px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.hb-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.hb-table th, .hb-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+.hb-table th { background: var(--violet-deep); color: #fff; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.hb-table tr:last-child td { border-bottom: 0; }
+.hb-msg { margin: 10px 0 0; min-height: 1.4em; text-align: center; font-size: .9rem; color: var(--violet-deep); font-weight: 600; }
+.hb-pager { display: flex; justify-content: space-between; gap: 10px; margin: 6px 0 14px; }
+.hb-pager .btn { height: 46px; }
+.hb-article + .btn.wide, .hb-msg + .hb-pager { margin-top: 0; }
+@media (min-width: 700px) { .hb-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .subnav a { flex: 1 1 0; white-space: normal; display: grid; place-items: center; padding: 8px 6px; font-size: .86rem; line-height: 1.2; min-height: 46px; } }
+@media print { .subnav, .journey, #viewQuiz, #viewHandbook { display: none; } }
+
+/* ---------- Computer view: menu at the top left, for everyone ---------- */
+/* The logo is first, the menu sits right under it, the headline moves to the bottom of the panel.
+   The panel stays pinned while the page scrolls, so the menu is always in view. Phones keep the
+   bottom tab bar (max-width: 900px rules above). */
+@media (min-width: 901px) {
+  .panel {
+    position: sticky; top: 0; align-self: start;
+    height: 100vh; height: 100dvh; min-height: 520px;
+    justify-content: flex-start;
+  }
+  .brandbar { order: 1; }
+  .panel .nav { order: 2; display: flex; flex-wrap: wrap; gap: 8px; }
+  .panel .nav a { padding: 10px 16px; border-radius: 999px; font-size: .95rem; }
+  .panel .nav svg { width: 18px; height: 18px; }
+  .panel .pitch { order: 3; margin-top: auto; }
+}
+
+/* ---------- Social icons, Deriv button, About / Contact (editable from /admin) ---------- */
+.social { display: grid; gap: 14px; }
+.social[hidden] { display: none; }
+.soc-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.soc {
+  appearance: none; cursor: pointer; text-decoration: none; font: inherit;
+  display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  color: #fff; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .32);
+  transition: background .2s, color .2s, transform .2s;
+}
+.soc svg { width: 21px; height: 21px; }
+.soc:hover { background: #fff; color: var(--violet-deep); transform: translateY(-2px); }
+.soc:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.deriv-cta {
+  display: inline-flex; align-items: center; justify-content: center; text-align: center;
+  padding: 13px 20px; border-radius: 14px; font-weight: 800; text-decoration: none;
+  color: var(--violet-deep); background: #fff; border: 0; box-shadow: 0 8px 22px rgba(0, 0, 0, .22);
+}
+.deriv-cta:hover { background: var(--gold); }
+.deriv-cta:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+@media (min-width: 901px) { .panel .social { order: 4; } }
+@media (max-width: 900px) { .social { justify-items: start; } }
+
+.info-dlg { border: 0; border-radius: 20px; padding: 0; max-width: min(440px, calc(100vw - 32px)); width: 100%; color: var(--ink, #1c0f20); }
+.info-dlg::backdrop { background: rgba(30, 6, 36, .55); }
+.info-box { padding: 24px 22px 20px; display: grid; gap: 12px; }
+.info-box h2 { margin: 0; font-family: var(--display); font-size: 1.4rem; color: var(--violet-deep); }
+.info-body { display: grid; gap: 10px; line-height: 1.6; }
+.info-body p { margin: 0; }
+.info-phone { font-family: var(--display); font-weight: 800; font-size: 1.4rem; color: var(--violet-deep); }
+@media print { .social, .info-dlg { display: none; } }
+
+/* ---------- Chapter video tutorials ---------- */
+.hb-video { margin: 0 0 20px; padding: 14px; background: var(--bone); border: 1px solid var(--line); border-radius: 14px; }
+.hb-video h3 { margin: 0 0 10px; font-family: var(--display); font-size: 1rem; color: var(--violet-deep); }
+.hb-video-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000; }
+.hb-video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.hb-video-link { display: inline-block; margin-top: 8px; font-size: .85rem; font-weight: 600; color: var(--violet-deep); }
+.hb-video-soon { margin: 0; color: var(--muted); font-size: .92rem; }
+@media print { .hb-video { display: none; } }
+```
+
+#### `public/links.js`
+
+```js
+// Social icons, "Create a Deriv account" button, About and Contact for the left panel.
+// The addresses come from /api/links, which the editor changes on /admin.
+(function () {
+  "use strict";
+  var mount = document.getElementById("siteLinks");
+  if (!mount) return;
+
+  var ICONS = {
+    facebook: '<path d="M13.5 21v-7.5h2.6l.5-3h-3.1V8.6c0-.9.3-1.6 1.6-1.6h1.6V4.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.3H7.9v3h2.6V21h3z"/>',
+    whatsapp: '<path d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2zm0 1.7a7.1 7.1 0 1 1-3.7 13.2l-.3-.2-2.4.6.6-2.3-.2-.3A7.1 7.1 0 0 1 12 4.9zM8.9 7.9c-.2 0-.5.1-.7.4-.3.3-.9.9-.9 2.1 0 1.2.9 2.4 1 2.6.1.2 1.8 2.8 4.4 3.8 2.1.8 2.6.7 3 .6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3l-1.600-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.3-.1-1-.4-1.900-1.200-.7-.6-1.200-1.400-1.300-1.700-.1-.2 0-.4.1-.5l.4-.4c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.8-1.800c-.2-.5-.4-.5-.6-.5z"/>',
+    tiktok: '<path d="M16.6 3.5c.3 2 1.500 3.300 3.500 3.500v2.800c-1.300.1-2.500-.3-3.500-1v6.200c0 3-2.300 5.300-5.200 5.300S6.300 18 6.300 15.100s2.400-5.400 5.500-5.200v2.900c-1.400-.3-2.600.8-2.600 2.200 0 1.200 1 2.200 2.200 2.200s2.200-1 2.200-2.400V3.500h3z"/>',
+    x: '<path d="M17.800 3.500h3l-6.500 7.500 7.700 10h-6l-4.700-6.100-5.400 6.100h-3l7-8L3.300 3.500h6.200l4.200 5.600 4.100-5.600zm-1 15.700h1.700L8 5.200H6.200l10.600 14z"/>',
+    telegram: '<path d="M20.700 4.300 3.500 10.900c-.9.400-.9 1 0 1.200l4.400 1.400 1.700 5.200c.2.600.4.700.9.700.4 0 .6-.2.900-.4l2.100-2 4.300 3.200c.8.400 1.400.2 1.600-.7l2.900-13.700c.3-1.100-.4-1.600-1.200-1.300zM9 13.200l8.100-5.100c.4-.2.700-.1.400.2l-6.700 6-.3 3.400L9 13.200z"/>',
+    youtube: '<path d="M21.600 7.600a2.500 2.500 0 0 0-1.800-1.800C18.200 5.400 12 5.400 12 5.400s-6.200 0-7.800.4A2.500 2.500 0 0 0 2.400 7.600C2 9.200 2 12 2 12s0 2.800.4 4.400a2.500 2.500 0 0 0 1.800 1.800c1.600.4 7.800.4 7.800.4s6.200 0 7.800-.4a2.500 2.500 0 0 0 1.800-1.800c.4-1.600.4-4.400.4-4.400s0-2.800-.4-4.400zM10 15V9l5.200 3L10 15z"/>',
+    about: '<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 1.800a7.200 7.200 0 1 1 0 14.400 7.200 7.200 0 0 1 0-14.400zM11.100 10.500h1.800v6h-1.800v-6zm0-3h1.800v1.800h-1.800V7.500z"/>',
+    contact: '<path d="M6.600 3.500c-.5 0-1 .2-1.300.6L4 5.500c-.6.700-.7 1.600-.4 2.400 1.300 3.400 3.500 6.300 6.200 8.500 2.100 1.700 4.300 2.700 6.500 3.200.9.200 1.800-.1 2.300-.8l1-1.300c.5-.7.400-1.700-.3-2.200l-2.500-1.800c-.6-.4-1.300-.4-1.900 0l-1 .7c-1.700-1-3.100-2.400-4.100-4.100l.8-.9c.5-.5.600-1.300.2-1.900L8 4.300c-.3-.5-.8-.8-1.400-.8z"/>'
+  };
+  var LABELS = { facebook: "Facebook", whatsapp: "WhatsApp channel", tiktok: "TikTok", x: "X", telegram: "Telegram", youtube: "YouTube", about: "About us", contact: "Contact us" };
+  var ORDER = ["facebook", "whatsapp", "tiktok", "x", "telegram", "youtube"];
+
+  function svg(name) {
+    return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">' + ICONS[name] + "</svg>";
+  }
+  function safeUrl(u) {
+    try { var x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
+  }
+  function digits(v) { return String(v || "").replace(/\D/g, ""); }
+
+  function iconLink(name, href) {
+    var a = document.createElement("a");
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.setAttribute("aria-label", LABELS[name]);
+    a.title = LABELS[name];
+    a.className = "soc soc-" + name;
+    a.innerHTML = svg(name);
+    return a;
+  }
+  function iconButton(name, onClick) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-label", LABELS[name]);
+    b.title = LABELS[name];
+    b.className = "soc soc-" + name;
+    b.innerHTML = svg(name);
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  // One dialog shared by About and Contact, built once on first use.
+  var dlg = null;
+  function openDialog(title, build) {
+    if (!dlg) {
+      dlg = document.createElement("dialog");
+      dlg.className = "info-dlg";
+      dlg.setAttribute("aria-labelledby", "infoDlgTitle");
+      dlg.innerHTML = '<div class="info-box"><h2 id="infoDlgTitle"></h2><div class="info-body"></div>' +
+        '<button type="button" class="btn ghost wide info-close">Close</button></div>';
+      document.body.appendChild(dlg);
+      dlg.querySelector(".info-close").addEventListener("click", function () { dlg.close(); });
+      dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+    }
+    dlg.querySelector("h2").textContent = title;
+    var body = dlg.querySelector(".info-body");
+    body.replaceChildren();
+    build(body);
+    if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+  }
+
+  function showAbout(text) {
+    openDialog("About ABECFX", function (body) {
+      String(text).split(/\n{2,}/).forEach(function (para) {
+        var p = document.createElement("p");
+        p.textContent = para.trim();
+        if (p.textContent) body.appendChild(p);
+      });
+    });
+  }
+  function showContact(phone) {
+    openDialog("Contact us", function (body) {
+      var p = document.createElement("p");
+      p.textContent = phone;
+      p.className = "info-phone";
+      body.appendChild(p);
+      var call = document.createElement("a");
+      call.className = "btn primary wide";
+      call.href = "tel:+" + digits(phone);
+      call.textContent = "Call";
+      body.appendChild(call);
+      var wa = document.createElement("a");
+      wa.className = "btn ghost wide";
+      wa.href = "https://wa.me/" + digits(phone);
+      wa.target = "_blank";
+      wa.rel = "noopener noreferrer";
+      wa.textContent = "Chat on WhatsApp";
+      body.appendChild(wa);
+    });
+  }
+
+  function render(v) {
+    mount.replaceChildren();
+    var row = document.createElement("div");
+    row.className = "soc-row";
+
+    var deriv = safeUrl(v.deriv);
+    if (deriv) {
+      var d = document.createElement("a");
+      d.className = "btn deriv-cta";
+      d.href = deriv;
+      d.target = "_blank";
+      d.rel = "noopener noreferrer sponsored";
+      d.textContent = "Create your Deriv account";
+      mount.appendChild(d);
+    }
+
+    ORDER.forEach(function (k) {
+      var href = safeUrl(v[k]);
+      if (href) row.appendChild(iconLink(k, href));
+    });
+    var about = String(v.about || "").trim();
+    if (about) row.appendChild(iconButton("about", function () { showAbout(about); }));
+    var phone = String(v.contact || "").trim();
+    if (digits(phone).length >= 7) row.appendChild(iconButton("contact", function () { showContact(phone); }));
+
+    if (row.children.length) mount.appendChild(row);
+    mount.hidden = !mount.children.length;
+  }
+
+  fetch("/api/links", { headers: { Accept: "application/json" } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (v) { if (v && typeof v === "object") render(v); })
+    .catch(function () { /* the icons are optional; the page works without them */ });
+})();
+```
+
+#### `links.js`
+
+```js
+// Social links, affiliate link, contact number and "About" text shown on the website.
+// The editor changes them on /admin; they are stored on the "Site Links" sheet tab.
+// Only https links and a plain phone number are accepted, so a typo (or a bad paste) cannot put a
+// script or odd address on the public pages.
+
+const FIELDS = [
+  { key: "facebook", label: "Facebook", kind: "url", hint: "https://www.facebook.com/yourpage" },
+  { key: "whatsapp", label: "WhatsApp channel or group", kind: "url", hint: "https://whatsapp.com/channel/..." },
+  { key: "tiktok", label: "TikTok", kind: "url", hint: "https://www.tiktok.com/@yourname" },
+  { key: "x", label: "X (Twitter)", kind: "url", hint: "https://x.com/yourname" },
+  { key: "telegram", label: "Telegram", kind: "url", hint: "https://t.me/yourname" },
+  { key: "youtube", label: "YouTube", kind: "url", hint: "https://youtube.com/@yourchannel" },
+  { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
+  { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
+  { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABECFX", max: 700 },
+];
+
+const DEFAULTS = {
+  facebook: "https://www.facebook.com/abeconsultfx",
+  whatsapp: "https://whatsapp.com/channel/0029VbBeZr96WaKfNHoIDt3O",
+  tiktok: "https://vm.tiktok.com/ZS9U586qKTYaw-5t9YY",
+  x: "",
+  telegram: "https://t.me/Abecfx",
+  youtube: "https://youtube.com/@adebassbaseedgeconsultfx?si=zMhsWqnN9_9Jnm9f",
+  deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
+  contact: "+23408162563346",
+  about:
+    "Adebass Base Edge Consult (ABECFX) runs a forex mentorship that teaches students how to trade with discipline, " +
+    "risk control and a clear edge. Register to get your student number, ID card and the Mentorship Handbook.",
+};
+
+function oneLine(v, max) {
+  return String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+// Returns { values, errors }. Missing keys become "" (the icon is then hidden on the site).
+function sanitize(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const values = {};
+  const errors = {};
+  for (const f of FIELDS) {
+    if (!(f.key in src)) { values[f.key] = ""; continue; }
+    if (f.kind === "text") {
+      values[f.key] = String(src[f.key] == null ? "" : src[f.key]).replace(/\r/g, "").trim().slice(0, f.max || 700);
+      continue;
+    }
+    const v = oneLine(src[f.key], 500);
+    if (!v) { values[f.key] = ""; continue; }
+    if (f.kind === "phone") {
+      const digits = v.replace(/\D/g, "");
+      if (!/^\+?[\d\s\-()]+$/.test(v) || digits.length < 7 || digits.length > 15) {
+        errors[f.key] = "Enter a phone number with country code, e.g. +234 801 234 5678.";
+      } else values[f.key] = v;
+      continue;
+    }
+    let u;
+    try { u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : "https://" + v); } catch (e) { u = null; }
+    if (!u || u.protocol !== "https:" || !u.hostname.includes(".")) {
+      errors[f.key] = "Enter a full web address starting with https://";
+    } else values[f.key] = u.href;
+  }
+  return { values, errors };
+}
+
+// Rows from the sheet tab: [key, label, value]. Unknown keys are ignored; empty tab -> defaults.
+function fromRows(rows) {
+  const out = {};
+  const seen = new Set();
+  for (const r of rows || []) {
+    const k = String((r && r[0]) || "").trim().toLowerCase();
+    if (FIELDS.some((f) => f.key === k)) { seen.add(k); out[k] = (r[2] == null ? "" : String(r[2])).trim(); }
+  }
+  const { values } = sanitize(out);
+  // a hand-typed value that fails the checks is dropped rather than shown
+  for (const f of FIELDS) if (!seen.has(f.key)) values[f.key] = "";
+  return values;
+}
+
+function toRows(values) {
+  return FIELDS.map((f) => [f.key, f.label, values[f.key] || ""]);
+}
+
+module.exports = { FIELDS, DEFAULTS, sanitize, fromRows, toRows };
+```
+
+#### `videos.js`
+
+```js
+// Video tutorials: one YouTube video per handbook chapter (chapters 01-12), added by the editor on /admin.
+// Only a real YouTube video address is accepted; the page then embeds it from youtube-nocookie.com.
+const { CHAPTERS } = require("./handbook-content");
+
+const VIDEO_CHAPTERS = CHAPTERS.filter((c) => c.id !== "00").map((c) => ({ id: c.id, title: c.title }));
+
+// Returns the 11-character video id for the usual YouTube address shapes, or "".
+function videoId(input) {
+  const v = String(input == null ? "" : input).trim();
+  if (!v) return "";
+  let u;
+  try { u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : "https://" + v); } catch (e) { return ""; }
+  if (u.protocol !== "https:") return "";
+  const host = u.hostname.replace(/^(www|m|music)\./, "");
+  let id = "";
+  if (host === "youtu.be") id = u.pathname.split("/")[1] || "";
+  else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts[0] === "watch") id = u.searchParams.get("v") || "";
+    else if (["shorts", "embed", "live", "v"].includes(parts[0])) id = parts[1] || "";
+  }
+  return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : "";
+}
+
+// input: { "01": "https://youtu.be/...", ... } -> { values: {id: canonical url or ""}, errors: {id: message} }
+function sanitize(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const values = {};
+  const errors = {};
+  for (const c of VIDEO_CHAPTERS) {
+    const raw = String(src[c.id] == null ? "" : src[c.id]).trim();
+    if (!raw) { values[c.id] = ""; continue; }
+    const id = videoId(raw);
+    if (!id) errors[c.id] = "Paste a YouTube video address, e.g. https://youtu.be/abc123XYZ_0";
+    else values[c.id] = "https://youtu.be/" + id;
+  }
+  return { values, errors };
+}
+
+function fromRows(rows) {
+  const out = {};
+  for (const r of rows || []) {
+    const k = String((r && r[0]) || "").trim().padStart(2, "0");
+    if (VIDEO_CHAPTERS.some((c) => c.id === k)) out[k] = (r[2] || "").trim();
+  }
+  return sanitize(out).values; // a hand-typed bad address is dropped, not shown
+}
+
+function toRows(values) {
+  return VIDEO_CHAPTERS.map((c) => [c.id, c.title, values[c.id] || ""]);
+}
+
+// What a signed-in student gets: chapter id -> video id, only for chapters that have a video.
+function forStudents(values) {
+  const out = {};
+  for (const c of VIDEO_CHAPTERS) {
+    const id = videoId(values[c.id]);
+    if (id) out[c.id] = id;
+  }
+  return out;
+}
+
+module.exports = { VIDEO_CHAPTERS, videoId, sanitize, fromRows, toRows, forStudents };
 ```
 
 #### `status/build.js`
@@ -3623,18 +6930,19 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "idrules.js", "grading.js", "stats.js", "keepalive.js",
+  "server.js", "sheets.js", "admin-sheets.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
-  "public/portal.html", "public/portal.js",
+  "public/portal.html", "public/portal.js", "public/handbook.js",
   "public/status.html", "public/status.js",
   "public/card.js", "public/qr.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
-  "public/styles.css",
+  "public/styles.css", "public/links.js", "links.js", "videos.js",
   "status/build.js",
 ];
-const SITE_DATA = ["countries.js", "countryCodes.js", "states.json"];
-const QUIZ_FILES = ["bot.js", "package.json", "env.example", "render.yaml"];
+const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf"];
+const QUIZ_FILES = ["bot.js", "webapp/embed.js", "package.json", "env.example", "render.yaml"];
 
 const LANG = { js: "js", json: "json", html: "html", css: "css", yaml: "yaml", example: "bash", md: "md" };
 
@@ -3689,590 +6997,4 @@ console.log("PROJECT-STATUS.md written,", (result.length / 1024).toFixed(0), "KB
 
 ### Telegram quiz bot (separate repository)
 
-#### `quiz-bot/bot.js`
-
-```js
-// ABEC-FX — Edge Handbook Quiz · Telegram bot
-//
-// Runs the Telegram bot AND serves the quiz's HTML from the same process,
-// so this can deploy as a single Render Web Service (or any other single
-// host) — no separate static site needed. Serves the quiz as a Telegram
-// Mini App (Web App) and reports the score back into the chat when the
-// user finishes a quiz and taps "Send score to chat & close".
-//
-// Setup:
-//   1. Create a bot with @BotFather on Telegram, get its token.
-//   2. Copy .env.example to .env and fill in BOT_TOKEN.
-//      WEBAPP_URL is usually NOT needed — see "Finding the Mini App URL"
-//      below. Only set it if you deployed the webapp separately instead.
-//   3. npm install
-//   4. npm start
-//
-// The bot uses long polling for Telegram updates (no inbound webhook
-// needed for that), and a tiny built-in HTTP server for everything else:
-// serving the quiz page, and answering Render's health check.
-
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const http = require('http');
-const TelegramBot = require('node-telegram-bot-api');
-
-const TOKEN = process.env.BOT_TOKEN;
-const PORT = process.env.PORT;
-
-// ---------------------------------------------------------------------
-// Finding the Mini App URL
-// ---------------------------------------------------------------------
-// Render automatically sets RENDER_EXTERNAL_URL to this exact service's
-// own public URL. Since this same process serves webapp/index.html below
-// (whenever PORT is set), that IS the Mini App URL — nothing to copy
-// between two services. WEBAPP_URL only needs setting by hand if you
-// deployed the quiz page somewhere else instead (GitHub Pages, a
-// separate static site, etc.) — in that case it overrides the guess.
-const WEBAPP_URL = process.env.WEBAPP_URL || process.env.RENDER_EXTERNAL_URL;
-
-// ---------------------------------------------------------------------
-// Link to the ABECFX registration website (where students and results live)
-// ---------------------------------------------------------------------
-// REG_SITE_URL: the registration site, e.g. https://abecfx.onrender.com
-// QUIZ_API_KEY: a long random secret. Set the SAME value on the registration site.
-const crypto = require('crypto');
-const REG_SITE_URL = (process.env.REG_SITE_URL || '').replace(/\/+$/, '');
-const QUIZ_API_KEY = process.env.QUIZ_API_KEY || '';
-if (!REG_SITE_URL || !QUIZ_API_KEY) {
-  console.warn('REG_SITE_URL / QUIZ_API_KEY not set: students cannot sign in to the quiz or save results until they are.');
-}
-
-if (!TOKEN) {
-  console.error('Missing BOT_TOKEN. Copy .env.example to .env and fill it in.');
-  process.exit(1);
-}
-if (!WEBAPP_URL || !/^https:\/\//.test(WEBAPP_URL)) {
-  console.error(
-    'Missing or invalid WEBAPP_URL. On Render this is normally automatic ' +
-    '(RENDER_EXTERNAL_URL) — if you\'re running locally or elsewhere, set ' +
-    'WEBAPP_URL in .env to a public https:// URL serving webapp/index.html.'
-  );
-  process.exit(1);
-}
-
-const bot = new TelegramBot(TOKEN, { polling: true });
-
-console.log('ABEC-FX quiz bot starting...');
-console.log('Mini App URL:', WEBAPP_URL);
-
-// ---------------------------------------------------------------------
-// Commands
-// ---------------------------------------------------------------------
-bot.setMyCommands([
-  { command: 'start', description: 'Open the ABEC-FX Edge Handbook quiz' },
-  { command: 'quiz', description: 'Open the quiz' },
-  { command: 'help', description: 'What this bot does' },
-]).catch((e) => console.error('setMyCommands failed:', e.message));
-
-// Persistent "menu button" next to the message box (tap it to open the quiz
-// any time, without needing /start). This sets the DEFAULT button for all
-// private chats with the bot.
-bot.setChatMenuButton({
-  menu_button: JSON.stringify({
-    type: 'web_app',
-    text: 'Open Quiz',
-    web_app: { url: WEBAPP_URL },
-  }),
-}).catch((e) => console.error('setChatMenuButton failed:', e.message));
-
-function sendQuizButton(chatId) {
-  return bot.sendMessage(
-    chatId,
-    '📈 *ABEC-FX — Edge Handbook Quiz*\n\nTest what you know: indicators, trend reading, entries, stop loss, retest zones and risk discipline.',
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '🧠 Open Quiz', web_app: { url: WEBAPP_URL } },
-        ]],
-      },
-    }
-  );
-}
-
-bot.onText(/^\/start/, (msg) => sendQuizButton(msg.chat.id));
-bot.onText(/^\/quiz/, (msg) => sendQuizButton(msg.chat.id));
-bot.onText(/^\/help/, (msg) => {
-  bot.sendMessage(
-    msg.chat.id,
-    'This bot opens the ABEC-FX Edge Handbook quiz as an in-app Mini App.\n\n' +
-    '• /quiz — open the quiz\n' +
-    '• Tap "Open Quiz" in the menu button next to the message box, any time\n' +
-    '• When you finish a quiz, tap "Send score to chat & close" to post your result here'
-  );
-});
-
-// ---------------------------------------------------------------------
-// Receiving the score back from the Mini App
-// ---------------------------------------------------------------------
-// The webapp calls Telegram.WebApp.sendData(JSON.stringify(payload)) when
-// the user taps "Send score to chat & close". Telegram delivers that as a
-// normal message with a `web_app_data` field, then closes the Mini App.
-bot.on('message', (msg) => {
-  if (!msg.web_app_data) return;
-
-  let payload;
-  try {
-    payload = JSON.parse(msg.web_app_data.data);
-  } catch (e) {
-    bot.sendMessage(msg.chat.id, '🎯 Quiz finished! (Could not parse the result details.)');
-    return;
-  }
-
-  if (payload.type !== 'abecfx_quiz_result') return;
-
-  const { name, score, total, pct, verdict, missedCount, grade } = payload;
-  const emoji = pct >= 80 ? '🟢' : pct >= 60 ? '🟡' : '🔴';
-  const who = name ? `*${name}*` : 'You';
-
-  let text = `${emoji} *Quiz complete*\n\n` +
-    `${who} scored *${score} / ${total}* (${pct}%)${grade ? ` — Grade *${grade}*` : ''}\n` +
-    `${verdict || ''}\n`;
-
-  if (missedCount > 0) {
-    text += `\nMissed: ${missedCount} question${missedCount === 1 ? '' : 's'} — open the quiz again and use "Retry missed only" to drill those.`;
-  }
-
-  bot.sendMessage(msg.chat.id, text, { parse_mode: 'Markdown' });
-});
-
-bot.on('polling_error', (err) => console.error('Polling error:', err.message));
-
-console.log('Bot is running. Press Ctrl+C to stop.');
-
-// ---------------------------------------------------------------------
-// Built-in web server — serves the quiz page + Render's health check
-// ---------------------------------------------------------------------
-// Only runs when PORT is set, which Render sets automatically for a Web
-// Service (and which you'd leave unset for a Background Worker, or when
-// running locally with just `npm start`). This is what lets one Render
-// service be both the bot and the Mini App's page — no second service,
-// no copying a URL between them.
-const webappFile = path.join(__dirname, 'webapp', 'index.html');
-
-if (PORT) {
-  let html;
-  try {
-    html = fs.readFileSync(webappFile);
-  } catch (e) {
-    console.error(`Could not read ${webappFile}:`, e.message);
-  }
-
-  // ---- Telegram sign-in check -------------------------------------------------
-  // The Mini App sends Telegram's signed "initData". Verifying it proves the request really comes
-  // from a Telegram user, and tells us their Telegram id.
-  function verifyInitData(initData) {
-    if (!initData || initData.length > 4096) return null;
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) return null;
-    params.delete('hash');
-    const check = [...params.entries()].map(([k, v]) => `${k}=${v}`).sort().join('\n');
-    const secret = crypto.createHmac('sha256', 'WebAppData').update(TOKEN).digest();
-    const calc = crypto.createHmac('sha256', secret).update(check).digest('hex');
-    const a = Buffer.from(calc), b = Buffer.from(hash);
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-    const age = Date.now() / 1000 - Number(params.get('auth_date') || 0);
-    if (!(age >= 0 && age < 24 * 3600)) return null;
-    try {
-      const user = JSON.parse(params.get('user') || '{}');
-      return user && user.id ? { id: String(user.id) } : null;
-    } catch (e) { return null; }
-  }
-
-  // Small per-Telegram-account limit so nobody can hammer the registration site through the bot.
-  const hits = new Map();
-  function limited(id) {
-    const now = Date.now();
-    const arr = (hits.get(id) || []).filter((t) => now - t < 10 * 60 * 1000);
-    arr.push(now);
-    hits.set(id, arr);
-    if (hits.size > 5000) hits.clear();
-    return arr.length > 40;
-  }
-
-  function sendJson(res, status, body) {
-    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify(body));
-  }
-
-  function readJson(req) {
-    return new Promise((resolve, reject) => {
-      let size = 0;
-      let tooBig = false;
-      const chunks = [];
-      req.on('data', (c) => {
-        size += c.length;
-        if (tooBig) return;
-        if (size > 20000) { tooBig = true; reject(new Error('too large')); return; }
-        chunks.push(c);
-      });
-      req.on('end', () => {
-        if (tooBig) return;
-        try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); } catch (e) { reject(e); }
-      });
-      req.on('error', reject);
-    });
-  }
-
-  // Forward to the registration site with the shared secret.
-  async function callSite(pathAndQuery, options = {}) {
-    const r = await fetch(REG_SITE_URL + pathAndQuery, {
-      ...options,
-      headers: { 'x-quiz-key': QUIZ_API_KEY, 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(20000),
-    });
-    let body = {};
-    try { body = await r.json(); } catch (e) { /* non-JSON error page */ }
-    return { status: r.status, body };
-  }
-
-  async function handleApi(req, res, url) {
-    if (!REG_SITE_URL || !QUIZ_API_KEY) {
-      return sendJson(res, 503, { error: 'The quiz is not connected to the student records yet.' });
-    }
-    const user = verifyInitData(req.headers['x-telegram-init-data']);
-    if (!user) {
-      return sendJson(res, 401, { error: 'Open this quiz from the Telegram bot so we can sign you in.' });
-    }
-    if (limited(user.id)) return sendJson(res, 429, { error: 'Too many requests. Please wait a few minutes.' });
-
-    try {
-      if (req.method === 'GET' && url.pathname === '/api/student') {
-        const out = await callSite('/api/quiz/student?reg=' + encodeURIComponent(url.searchParams.get('reg') || ''));
-        return sendJson(res, out.status, out.body);
-      }
-      if (req.method === 'POST' && url.pathname === '/api/submit') {
-        const b = await readJson(req);
-        const out = await callSite('/api/quiz/result', {
-          method: 'POST',
-          body: JSON.stringify({
-            reg: b.reg, score: b.score, total: b.total, breakdown: b.breakdown, telegramId: user.id,
-          }),
-        });
-        return sendJson(res, out.status, out.body);
-      }
-      return sendJson(res, 404, { error: 'Not found.' });
-    } catch (e) {
-      if (e.message === 'too large') return sendJson(res, 413, { error: 'That request is too large.' });
-      console.error('API error:', e.message);
-      return sendJson(res, 502, { error: 'Could not reach the student records. Please try again shortly.' });
-    }
-  }
-
-  http
-    .createServer((req, res) => {
-      const url = new URL(req.url, 'http://localhost');
-      if (url.pathname.startsWith('/api/')) {
-        handleApi(req, res, url);
-        return;
-      }
-      if (url.pathname === '/healthz') {
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('ok');
-        return;
-      }
-      if (html) {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(html);
-      } else {
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('ABEC-FX quiz bot is running, but webapp/index.html was not found.\n');
-      }
-    })
-    .listen(PORT, () => {
-      console.log(`Serving the quiz page on port ${PORT} — this is also the Mini App URL.`);
-    });
-}
-```
-
-#### `quiz-bot/package.json`
-
-```json
-{
-  "name": "abecfx-quiz-telegram-bot",
-  "version": "1.1.0",
-  "description": "Telegram bot that opens the ABEC FX Edge Handbook quiz as a Mini App and reports scores back into the chat.",
-  "main": "bot.js",
-  "scripts": {
-    "start": "node bot.js"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "node-telegram-bot-api": "^0.66.0"
-  },
-  "engines": {
-    "node": ">=18"
-  }
-}
-```
-
-#### `quiz-bot/env.example`
-
-```bash
-# Get this from @BotFather after /newbot
-BOT_TOKEN=123456789:AAExampleTokenReplaceThisWithYourRealOne
-
-# Usually NOT needed. bot.js serves webapp/index.html itself and, on
-# Render, auto-detects the public URL (RENDER_EXTERNAL_URL) — so a single
-# Render Web Service needs no WEBAPP_URL at all. Only set this if you're
-# hosting the quiz page somewhere else instead (GitHub Pages, a separate
-# static site, running locally against a tunnel, etc.) — a public HTTPS
-# URL reachable by anyone, not a private/authenticated link.
-#WEBAPP_URL=https://your-username.github.io/abecfx-quiz/
-
-# --- Link to the ABECFX registration website ---
-# The registration website's address, e.g. https://abecfx.onrender.com
-REG_SITE_URL=https://your-registration-site.onrender.com
-# A long random secret. Must be EXACTLY the same as QUIZ_API_KEY on the registration website.
-QUIZ_API_KEY=change-me-to-a-long-random-string
-```
-
-#### `quiz-bot/render.yaml`
-
-```yaml
-# Render Blueprint — deploys this project as a single service.
-# In the Render dashboard: New → Blueprint → connect this repo → Apply.
-# (Render finds this file automatically because it's named render.yaml
-# at the repo root.)
-#
-# bot.js runs the Telegram bot (long polling) AND serves webapp/index.html
-# over HTTP from the same process, so one free Render Web Service is all
-# this needs — no separate static site, no WEBAPP_URL to copy between
-# services. Render sets RENDER_EXTERNAL_URL automatically, and bot.js uses
-# that as the Mini App URL unless you override it with WEBAPP_URL.
-#
-# After the first deploy, set BOT_TOKEN for the service in the Render
-# dashboard (Environment tab) — it's marked `sync: false` below so it's
-# left for you to fill in there, not committed to the repo.
-
-services:
-  - type: web
-    name: abecfx-quiz-bot
-    runtime: node
-    plan: free
-    buildCommand: npm install
-    startCommand: node bot.js
-    envVars:
-      - key: BOT_TOKEN
-        sync: false
-      - key: REG_SITE_URL
-        sync: false
-      - key: QUIZ_API_KEY
-        sync: false
-```
-
-`webapp/index.html` is about 130 KB (questions and an embedded logo), so only the changes made for the website link are shown, as a diff against the original repository version.
-
-#### `quiz-bot/webapp/index.html (diff)`
-
-```diff
-diff --git a/webapp/index.html b/webapp/index.html
-index eef0432..359be53 100644
---- a/webapp/index.html
-+++ b/webapp/index.html
-@@ -178,6 +178,14 @@
-     color: var(--accent); text-decoration: underline; cursor: pointer;
-   }
-   .testimonial-hint { font-size: .72rem; color: var(--text-dim); margin-top: 10px; text-align: center; line-height: 1.4; }
-+  .reg-ok { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--green); border-radius: 10px; }
-+  .reg-ok b { font-size: 1rem; }
-+  .reg-ok .num { color: var(--text-dim); font-size: .8rem; }
-+  .reg-err { color: var(--red); font-size: .85rem; margin-top: 8px; min-height: 1em; }
-+  .save-status { margin-top: 12px; font-size: .85rem; color: var(--text-dim); }
-+  .save-status.ok { color: var(--green); font-weight: 600; }
-+  .save-status.bad { color: var(--red); }
-+  .grade-line { margin-top: 6px; font-size: 1.1rem; font-weight: 800; }
- </style>
- </head>
- <body>
-@@ -193,10 +201,18 @@
-     <h1>Edge Handbook Quiz</h1>
-     <div class="sub">Test what you've learned — indicators, trend reading, entries, stop loss, retest zones and risk discipline. Includes generated Bollinger Band / moving-average charts to read, plus quick true-or-false calls. Missed questions link back to the chapter so you can review before your next journal entry.</div>
- 
--    <div class="card">
--      <h2>Your name</h2>
--      <input type="text" id="user-name-input" placeholder="e.g. Praise Anietie" maxlength="40" autocomplete="name" />
--      <div class="name-hint">Used on your result card — each question is timed, so have it ready before you start.</div>
-+    <div class="card" id="reg-card">
-+      <h2>Your registration number</h2>
-+      <input type="text" id="reg-input" placeholder="ABECFX/26/0001" maxlength="20" autocapitalize="characters" autocomplete="off" spellcheck="false" />
-+      <div class="name-hint">Enter the number you got when you registered with ABECFX. We use it to find your name and to save your result to your student portal.</div>
-+      <div class="reg-err" id="reg-err" role="alert"></div>
-+      <div class="actions" id="reg-actions">
-+        <button class="primary" id="reg-check-btn">Continue</button>
-+      </div>
-+      <div class="reg-ok hidden" id="reg-ok">
-+        <span>✅</span><b id="reg-name"></b><span class="num" id="reg-num"></span>
-+        <button class="ghost small" id="reg-change-btn">Not you?</button>
-+      </div>
-     </div>
- 
-     <div class="card">
-@@ -221,8 +237,8 @@
-       <h2>Quiz length</h2>
-       <div class="mode-row" id="length-row">
-         <div class="mode-btn" data-n="8"><div class="t">Quick — 8</div><div class="d">A fast recap</div></div>
--        <div class="mode-btn active" data-n="15"><div class="t">Standard — 15</div><div class="d">Balanced coverage</div></div>
--        <div class="mode-btn" data-n="999"><div class="t">Full</div><div class="d">Every question in selected chapters</div></div>
-+        <div class="mode-btn" data-n="15"><div class="t">Standard — 15</div><div class="d">Balanced coverage</div></div>
-+        <div class="mode-btn active" data-n="999"><div class="t">Full</div><div class="d">Every question in selected chapters</div></div>
-       </div>
-     </div>
- 
-@@ -264,6 +280,8 @@
-       <div class="score-num" id="final-pct">0%</div>
-       <div class="score-out" id="final-frac">0 / 0 correct</div>
-       <div class="verdict" id="verdict">—</div>
-+      <div class="grade-line" id="grade-line"></div>
-+      <div class="save-status" id="save-status"></div>
-     </div>
- 
-     <div class="card">
-@@ -558,7 +576,9 @@
-     userName: '',
-     selectedCats: CATS.slice(),
-     typeFilter: 'all',
--    length: 15,
-+    length: 999,
-+    regNumber: '',
-+    official: true,
-     pool: [],
-     idx: 0,
-     score: 0,
-@@ -648,17 +668,60 @@
-     });
-   });
- 
--  var nameInput = document.getElementById('user-name-input');
-+  // ---- Registration number sign-in: looks the student up on the ABECFX website ----
-+  var regInput = document.getElementById('reg-input');
-+  var regErr = document.getElementById('reg-err');
-+  var regOk = document.getElementById('reg-ok');
-+  var regCheckBtn = document.getElementById('reg-check-btn');
-   var startBtn = document.getElementById('start-btn');
-+
-+  function normReg(v){
-+    var r = String(v || '').toUpperCase().replace(/\s+/g, '');
-+    var m = /^ABECFX[\/\-]?(\d{2})[\/\-]?(\d{4})$/.exec(r);
-+    return m ? 'ABECFX/' + m[1] + '/' + m[2] : r;
-+  }
-+  function apiHeaders(){
-+    return { 'Content-Type': 'application/json', 'x-telegram-init-data': (tg && tg.initData) ? tg.initData : '' };
-+  }
-   function refreshStartEnabled(){
--    startBtn.disabled = nameInput.value.trim().length === 0;
-+    startBtn.disabled = !(state.userName && state.regNumber);
-+  }
-+  function clearStudent(){
-+    state.userName = ''; state.regNumber = '';
-+    regOk.classList.add('hidden');
-+    document.getElementById('reg-actions').classList.remove('hidden');
-+    regInput.disabled = false;
-+    refreshStartEnabled();
-   }
--  nameInput.addEventListener('input', refreshStartEnabled);
-+  function checkReg(){
-+    var reg = normReg(regInput.value);
-+    regErr.textContent = '';
-+    if (!/^ABECFX\/\d{2}\/\d{4}$/.test(reg)) { regErr.textContent = 'Enter your registration number, e.g. ABECFX/26/0001.'; regInput.focus(); return; }
-+    regCheckBtn.disabled = true; regCheckBtn.textContent = 'Checking…';
-+    fetch('/api/student?reg=' + encodeURIComponent(reg), { headers: apiHeaders() })
-+      .then(function(r){ return r.json().then(function(b){ return { ok: r.ok, b: b }; }); })
-+      .then(function(res){
-+        if (!res.ok) { regErr.textContent = res.b.error || 'Could not find that number.'; return; }
-+        state.userName = res.b.fullName || '';
-+        state.regNumber = res.b.regNumber;
-+        document.getElementById('reg-name').textContent = state.userName;
-+        document.getElementById('reg-num').textContent = state.regNumber;
-+        regInput.value = state.regNumber; regInput.disabled = true;
-+        document.getElementById('reg-actions').classList.add('hidden');
-+        regOk.classList.remove('hidden');
-+        refreshStartEnabled();
-+      })
-+      .catch(function(){ regErr.textContent = 'Network problem. Check your connection and try again.'; })
-+      .then(function(){ regCheckBtn.disabled = false; regCheckBtn.textContent = 'Continue'; });
-+  }
-+  regCheckBtn.addEventListener('click', checkReg);
-+  regInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); checkReg(); } });
-+  document.getElementById('reg-change-btn').addEventListener('click', function(){ clearStudent(); regInput.value = ''; regInput.focus(); });
-   refreshStartEnabled();
- 
-   function beginQuiz(){
--    state.userName = nameInput.value.trim();
--    if (!state.userName) { nameInput.focus(); return; }
-+    if (!state.userName || !state.regNumber) { regInput.focus(); return; }
-+    state.official = true;
-     if (!state.selectedCats.length) { alert('Pick at least one chapter to include.'); return; }
-     var avail = QUESTIONS.filter(function(q){
-       if (state.selectedCats.indexOf(q.cat) === -1) return false;
-@@ -782,7 +845,7 @@
-   document.getElementById('next-btn').addEventListener('click', advanceOrFinish);
- 
-   document.getElementById('quit-btn').addEventListener('click', function(){
--    if (confirm('End this quiz and see results so far?')) { clearQuestionTimer(); showResults(); }
-+    if (confirm('End this quiz and see results so far? An unfinished quiz is not saved to your student portal.')) { state.official = false; clearQuestionTimer(); showResults(); }
-   });
- 
-   // ---- Results screen ----
-@@ -868,11 +931,51 @@
-       byCategory: byCat,
-       ts: Date.now()
-     };
-+
-+    var saveEl = document.getElementById('save-status');
-+    document.getElementById('grade-line').textContent = '';
-+    if (state.official && total === state.pool.length && total > 0) {
-+      saveResult(lastResultPayload);
-+    } else {
-+      saveEl.className = 'save-status';
-+      saveEl.textContent = 'Practice run — not saved. Finish a full quiz to save your result to your student portal.';
-+    }
-+  }
-+
-+  // Send the finished quiz to the ABECFX website so it shows in the student portal with its grade.
-+  function saveResult(payload){
-+    var saveEl = document.getElementById('save-status');
-+    saveEl.className = 'save-status';
-+    saveEl.textContent = 'Saving your result to your student portal…';
-+    fetch('/api/submit', {
-+      method: 'POST',
-+      headers: apiHeaders(),
-+      body: JSON.stringify({ reg: state.regNumber, score: payload.score, total: payload.total, breakdown: payload.byCategory })
-+    })
-+      .then(function(r){ return r.json().then(function(b){ return { ok: r.ok, b: b }; }); })
-+      .then(function(res){
-+        if (!res.ok) throw new Error(res.b.error || 'Could not save your result.');
-+        payload.grade = res.b.grade;
-+        payload.reg = state.regNumber;
-+        document.getElementById('grade-line').textContent = 'Grade ' + res.b.grade + ' — ' + res.b.label;
-+        saveEl.className = 'save-status ok';
-+        saveEl.textContent = 'Saved. You can see this result in your student portal on the ABECFX website.';
-+      })
-+      .catch(function(e){
-+        saveEl.className = 'save-status bad';
-+        saveEl.textContent = (e.message || 'Could not save your result.') + ' ';
-+        var again = document.createElement('button');
-+        again.className = 'ghost small';
-+        again.textContent = 'Try saving again';
-+        again.addEventListener('click', function(){ saveResult(payload); });
-+        saveEl.appendChild(again);
-+      });
-   }
- 
-   document.getElementById('retry-missed-btn').addEventListener('click', function(){
-     if (!state._missed || !state._missed.length) return;
-     state.pool = shuffle(state._missed);
-+    state.official = false; // drilling missed questions is practice, not a saved result
-     state.idx = 0; state.score = 0; state.answers = [];
-     startQuiz();
-   });
-```
-
+_Quiz bot folder not found when this file was built._
