@@ -1,6 +1,6 @@
-# ABECFX Student Registration
+# ABEC-FX Student Registration
 
-Registration platform for **ABECFX (Adebass Base Edge Consult - forex)**.
+Registration platform for **ABEC-FX (Adebass Base Edge Consult - forex)**.
 Every student gets a unique registration number like `ABECFX/26/0001`
 (`26` = year of admission, `0001` = student number, counted per year).
 All registrations are saved in a Google Sheet.
@@ -12,7 +12,7 @@ All registrations are saved in a Google Sheet.
 
 ## 1. Create the Google Sheet (database)
 
-1. Go to https://sheets.google.com and create a blank sheet named **ABECFX Students**.
+1. Go to https://sheets.google.com and create a blank sheet named **ABEC-FX Students**.
 2. Copy the sheet ID from its URL:
    `https://docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`
 

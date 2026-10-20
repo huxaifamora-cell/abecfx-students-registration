@@ -1,7 +1,7 @@
 {
   "name": "abecfx-registration",
   "version": "1.0.0",
-  "description": "ABECFX (Adebass Base Edge Consult - forex) student registration platform",
+  "description": "ABEC-FX (Adebass Base Edge Consult - forex) student registration platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

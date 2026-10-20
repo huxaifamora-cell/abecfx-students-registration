@@ -275,7 +275,7 @@ app.post("/api/register", limiter, async (req, res) => {
     }
     if (err.code === "DUPLICATE") {
       return res.status(409).json({
-        errors: { email: "This email address is already registered with ABECFX." },
+        errors: { email: "This email address is already registered with ABEC-FX." },
       });
     }
     console.error("Registration failed:", err.message);
@@ -489,7 +489,7 @@ app.get("/handbook.pdf", handbookLimiter, (req, res) => {
   res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
   res.type("application/pdf");
   res.sendFile(path.join(__dirname, "private", "handbook.pdf"), {
-    headers: { "Content-Disposition": 'inline; filename="ABECFX-Edge-Handbook.pdf"' },
+    headers: { "Content-Disposition": 'inline; filename="ABEC-FX-Edge-Handbook.pdf"' },
   });
 });
 
@@ -616,7 +616,7 @@ const quizCodes = quizcodes.create(store, {
 // Optional, off by default: also make the Telegram quiz need a code. Set QUIZ_CODE_FOR_TELEGRAM=on once the bot
 // shows the error text it gets back (a 403 with an "error" message) to the student.
 const TELEGRAM_NEEDS_CODE = /^(1|on|true|yes)$/i.test(process.env.QUIZ_CODE_FOR_TELEGRAM || "");
-const QUIZ_LOCKED_MESSAGE = "The quiz is locked. Enter a one-time quiz code from your mentor or ABECFX to take it.";
+const QUIZ_LOCKED_MESSAGE = "The quiz is locked. Enter a one-time quiz code from your mentor or ABEC-FX to take it.";
 
 // A wrong code counts against the student (not their network, which many students share). Only failures count.
 const unlockLimiter = rateLimit({
@@ -716,10 +716,10 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
       // A portal quiz is not tied to a Telegram account, so it cannot be used to get around that link.
       const owner = mine.find((q) => /^\d+$/.test(q[8] || ""));
       if (viaPortal && owner) {
-        return { status: 403, body: { error: "This registration number is linked to a Telegram account. Please take the quiz on Telegram, or contact ABECFX." } };
+        return { status: 403, body: { error: "This registration number is linked to a Telegram account. Please take the quiz on Telegram, or contact ABEC-FX." } };
       }
       if (!viaPortal && owner && owner[8] !== tgId) {
-        return { status: 403, body: { error: "This registration number is already linked to another Telegram account. Contact ABECFX." } };
+        return { status: 403, body: { error: "This registration number is already linked to another Telegram account. Contact ABEC-FX." } };
       }
       // Ignore an accidental double submit (same result within 2 minutes).
       const prev = mine[mine.length - 1];
@@ -1063,7 +1063,7 @@ app.post("/api/admin/database/:key/rows/:n/delete", databaseRoute(async (req, re
 }));
 
 app.listen(PORT, async () => {
-  console.log(`ABECFX registration running on port ${PORT}`);
+  console.log(`ABEC-FX registration running on port ${PORT}`);
   const ka = require("./keepalive").startKeepAlive();
   if (ka) console.log("Keep-alive pings on:", ka.target);
   try {

@@ -14,7 +14,7 @@ const FIELDS = [
   { key: "communityTelegram", label: "Telegram community group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
-  { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABECFX", max: 700 },
+  { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
 ];
 
 const DEFAULTS = {
@@ -30,7 +30,7 @@ const DEFAULTS = {
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   about:
-    "Adebass Base Edge Consult (ABECFX) runs a forex mentorship that teaches students how to trade with discipline, " +
+    "Adebass Base Edge Consult (ABEC-FX) runs a forex mentorship that teaches students how to trade with discipline, " +
     "risk control and a clear edge. Register to get your student number, ID card and the Mentorship Handbook.",
 };
 

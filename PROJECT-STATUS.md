@@ -1,6 +1,6 @@
-# ABECFX Student Platform: Project Status
+# ABEC-FX Student Platform: Project Status
 
-**Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
+**Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
 **Last updated:** 18 Oct 2026, 09:55 (Lagos time), after change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge). Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
@@ -557,7 +557,7 @@ app.post("/api/register", limiter, async (req, res) => {
     }
     if (err.code === "DUPLICATE") {
       return res.status(409).json({
-        errors: { email: "This email address is already registered with ABECFX." },
+        errors: { email: "This email address is already registered with ABEC-FX." },
       });
     }
     console.error("Registration failed:", err.message);
@@ -771,7 +771,7 @@ app.get("/handbook.pdf", handbookLimiter, (req, res) => {
   res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
   res.type("application/pdf");
   res.sendFile(path.join(__dirname, "private", "handbook.pdf"), {
-    headers: { "Content-Disposition": 'inline; filename="ABECFX-Edge-Handbook.pdf"' },
+    headers: { "Content-Disposition": 'inline; filename="ABEC-FX-Edge-Handbook.pdf"' },
   });
 });
 
@@ -897,7 +897,7 @@ const quizCodes = quizcodes.create(store, {
 // Optional, off by default: also make the Telegram quiz need a code. Set QUIZ_CODE_FOR_TELEGRAM=on once the bot
 // shows the error text it gets back (a 403 with an "error" message) to the student.
 const TELEGRAM_NEEDS_CODE = /^(1|on|true|yes)$/i.test(process.env.QUIZ_CODE_FOR_TELEGRAM || "");
-const QUIZ_LOCKED_MESSAGE = "The quiz is locked. Enter a one-time quiz code from your mentor or ABECFX to take it.";
+const QUIZ_LOCKED_MESSAGE = "The quiz is locked. Enter a one-time quiz code from your mentor or ABEC-FX to take it.";
 
 // A wrong code counts against the student (not their network, which many students share). Only failures count.
 const unlockLimiter = rateLimit({
@@ -997,10 +997,10 @@ app.post("/api/quiz/result", botAuth, async (req, res) => {
       // A portal quiz is not tied to a Telegram account, so it cannot be used to get around that link.
       const owner = mine.find((q) => /^\d+$/.test(q[8] || ""));
       if (viaPortal && owner) {
-        return { status: 403, body: { error: "This registration number is linked to a Telegram account. Please take the quiz on Telegram, or contact ABECFX." } };
+        return { status: 403, body: { error: "This registration number is linked to a Telegram account. Please take the quiz on Telegram, or contact ABEC-FX." } };
       }
       if (!viaPortal && owner && owner[8] !== tgId) {
-        return { status: 403, body: { error: "This registration number is already linked to another Telegram account. Contact ABECFX." } };
+        return { status: 403, body: { error: "This registration number is already linked to another Telegram account. Contact ABEC-FX." } };
       }
       // Ignore an accidental double submit (same result within 2 minutes).
       const prev = mine[mine.length - 1];
@@ -1309,7 +1309,7 @@ app.post("/api/admin/database/:key/rows/:n/delete", databaseRoute(async (req, re
 }));
 
 app.listen(PORT, async () => {
-  console.log(`ABECFX registration running on port ${PORT}`);
+  console.log(`ABEC-FX registration running on port ${PORT}`);
   const ka = require("./keepalive").startKeepAlive();
   if (ka) console.log("Keep-alive pings on:", ka.target);
   try {
@@ -3944,7 +3944,7 @@ module.exports = { sign, verify, TTL_MS };
 {
   "name": "abecfx-registration",
   "version": "1.0.0",
-  "description": "ABECFX (Adebass Base Edge Consult - forex) student registration platform",
+  "description": "ABEC-FX (Adebass Base Edge Consult - forex) student registration platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -4002,8 +4002,8 @@ _missing_
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Register | ABECFX</title>
-  <meta name="description" content="Register for the ABECFX Forex Mentorship by Adebass Base Edge Consult and get your student registration number." />
+  <title>Register | ABEC-FX</title>
+  <meta name="description" content="Register for the ABEC-FX Forex Mentorship by Adebass Base Edge Consult and get your student registration number." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -4011,14 +4011,14 @@ _missing_
 <body>
   <div class="stage">
     <aside class="panel">
-      <a class="brandbar" href="/" aria-label="ABECFX home">
+      <a class="brandbar" href="/" aria-label="ABEC-FX home">
         <img src="/logo-white.png" alt="" />
-        <span><span class="name">ABECFX</span><span class="tag">Adebass Base Edge Consult</span></span>
+        <span><span class="name">ABEC-FX</span><span class="tag">Adebass Base Edge Consult</span></span>
       </a>
 
       <div class="pitch">
         <h1>Your seat in the forex mentorship starts here.</h1>
-        <p>Register once and get a student number that identifies you across ABECFX.</p>
+        <p>Register once and get a student number that identifies you across ABEC-FX.</p>
       </div>
 
       <nav class="nav" aria-label="Main">
@@ -4448,8 +4448,8 @@ _missing_
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Student Portal | ABECFX</title>
-  <meta name="description" content="Your ABECFX student portal: your ID card, status and expiry date in one place." />
+  <title>Student Portal | ABEC-FX</title>
+  <meta name="description" content="Your ABEC-FX student portal: your ID card, status and expiry date in one place." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -4457,9 +4457,9 @@ _missing_
 <body>
   <div class="stage">
     <aside class="panel">
-      <a class="brandbar" href="/" aria-label="ABECFX home">
+      <a class="brandbar" href="/" aria-label="ABEC-FX home">
         <img src="/logo-white.png" alt="" />
-        <span><span class="name">ABECFX</span><span class="tag">Adebass Base Edge Consult</span></span>
+        <span><span class="name">ABEC-FX</span><span class="tag">Adebass Base Edge Consult</span></span>
       </a>
 
       <div class="pitch">
@@ -4496,7 +4496,7 @@ _missing_
             <p class="formErr" id="signinErr" role="alert"></p>
             <button type="submit" id="signinBtn" class="primary">Sign in</button>
           </form>
-          <p class="or">New to ABECFX?</p>
+          <p class="or">New to ABEC-FX?</p>
           <a class="btn ghost wide" href="/register">Register as a new student</a>
           <p class="or">Just want to check a student's ID?</p>
           <a class="btn ghost wide" href="/status">Find a student</a>
@@ -4564,7 +4564,7 @@ _missing_
                 <button type="button" id="quizCloseBtn" class="btn ghost">Close quiz</button>
               </div>
               <p class="live" id="quizRunMsg" role="status">Opening the quiz. The first load can take up to a minute.</p>
-              <iframe id="quizFrame" title="ABECFX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
+              <iframe id="quizFrame" title="ABEC-FX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
               <p class="quizrun-foot"><a id="quizTab" href="#" target="_blank" rel="noopener">Quiz not loading? Open it in a new tab</a></p>
             </section>
           </div>
@@ -4572,7 +4572,7 @@ _missing_
           <!-- View: Community (the official WhatsApp / Telegram, set by an admin on Site links) -->
           <div id="viewCommunity" class="view" hidden>
             <h2>Community</h2>
-            <p class="lead">Join the official ABECFX community to learn alongside other students and get updates from your mentors.</p>
+            <p class="lead">Join the official ABEC-FX community to learn alongside other students and get updates from your mentors.</p>
             <section class="quizcard communitycard" aria-label="Community links">
               <p class="live" id="communityMsg" role="status">Loading...</p>
               <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Join on WhatsApp</a>
@@ -4635,7 +4635,7 @@ _missing_
   var quizGateNote = document.getElementById("quizGateNote");
   var quizOpenNote = document.getElementById("quizOpenNote");
   var quizLinkEl = document.getElementById("quizLink");
-  var GATE_NOTE = "The quiz is locked. Enter the one-time quiz code your mentor or ABECFX gave you to open it.";
+  var GATE_NOTE = "The quiz is locked. Enter the one-time quiz code your mentor or ABEC-FX gave you to open it.";
   var GATE_NOTE_DONE = "You have finished the quiz. To take it again, enter a new one-time quiz code.";
 
   function remember(reg, token) {
@@ -4766,7 +4766,7 @@ _missing_
       });
   }
 
-  // ---- Quiz results (taken in the ABECFX Telegram quiz bot) ----
+  // ---- Quiz results (taken in the ABEC-FX Telegram quiz bot) ----
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -5329,8 +5329,8 @@ _missing_
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Student ID | ABECFX</title>
-  <meta name="description" content="Find an ABECFX student ID card and check a student's live status using their registration number." />
+  <title>Student ID | ABEC-FX</title>
+  <meta name="description" content="Find an ABEC-FX student ID card and check a student's live status using their registration number." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -5338,9 +5338,9 @@ _missing_
 <body>
   <div class="stage">
     <aside class="panel">
-      <a class="brandbar" href="/" aria-label="ABECFX home">
+      <a class="brandbar" href="/" aria-label="ABEC-FX home">
         <img src="/logo-white.png" alt="" />
-        <span><span class="name">ABECFX</span><span class="tag">Adebass Base Edge Consult</span></span>
+        <span><span class="name">ABEC-FX</span><span class="tag">Adebass Base Edge Consult</span></span>
       </a>
 
       <div class="pitch">
@@ -5587,7 +5587,7 @@ _missing_
   // Message shown under the card when an ID has expired or is about to.
   window.expiryNotice = function (d) {
     if (d.expiryKind !== "date") return null;
-    if (d.expired) return { level: "bad", text: "This ID expired on " + d.expires + ". Speak to ABECFX to renew it." };
+    if (d.expired) return { level: "bad", text: "This ID expired on " + d.expires + ". Speak to ABEC-FX to renew it." };
     if (d.daysLeft <= 14) {
       var when = d.daysLeft === 0 ? "today" : d.daysLeft === 1 ? "tomorrow" : "in " + d.daysLeft + " days";
       return { level: "soon", text: "This ID expires " + when + " (" + d.expires + ")." };
@@ -5612,7 +5612,7 @@ _missing_
     var logo = el("img");
     logo.src = "/logo-white.png"; logo.alt = ""; logo.width = 30; logo.height = 23;
     brand.appendChild(logo);
-    brand.appendChild(el("span", null, "ABECFX"));
+    brand.appendChild(el("span", null, "ABEC-FX"));
     top.appendChild(brand);
     top.appendChild(el("span", "idc-kind", "Student ID card"));
     card.appendChild(top);
@@ -5715,7 +5715,7 @@ _missing_
 ```js
 /*
  * Minimal QR Code generator (byte mode, error correction level M, versions 1-10).
- * Written for the ABECFX ID card so the site needs no outside QR service.
+ * Written for the ABEC-FX ID card so the site needs no outside QR service.
  * Exposes: QR.encode(text) -> { size, modules[y][x] }  and  QR.toSvg(text, { border })
  */
 (function () {
@@ -6047,7 +6047,7 @@ _missing_
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Editor dashboard | ABECFX</title>
+  <title>Editor dashboard | ABEC-FX</title>
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -6055,9 +6055,9 @@ _missing_
 </head>
 <body class="adm">
   <header class="adm-top">
-    <a class="adm-brand" href="/" aria-label="ABECFX home">
+    <a class="adm-brand" href="/" aria-label="ABEC-FX home">
       <img src="/logo-white.png" alt="" width="34" height="26" />
-      <span><b>ABECFX</b><i>Editor dashboard</i></span>
+      <span><b>ABEC-FX</b><i>Editor dashboard</i></span>
     </a>
     <div class="adm-actions" id="topActions" hidden>
       <span class="adm-stamp" id="stamp"></span>
@@ -8847,7 +8847,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   }
 
   function showAbout(text) {
-    openDialog("About ABECFX", function (body) {
+    openDialog("About ABEC-FX", function (body) {
       String(text).split(/\n{2,}/).forEach(function (para) {
         var p = document.createElement("p");
         p.textContent = para.trim();
@@ -8931,7 +8931,7 @@ const FIELDS = [
   { key: "communityTelegram", label: "Student community: Telegram group link (students only)", kind: "url", hint: "https://t.me/+..." },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
-  { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABECFX", max: 700 },
+  { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
 ];
 
 const DEFAULTS = {
@@ -8947,7 +8947,7 @@ const DEFAULTS = {
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   about:
-    "Adebass Base Edge Consult (ABECFX) runs a forex mentorship that teaches students how to trade with discipline, " +
+    "Adebass Base Edge Consult (ABEC-FX) runs a forex mentorship that teaches students how to trade with discipline, " +
     "risk control and a clear edge. Register to get your student number, ID card and the Mentorship Handbook.",
 };
 
