@@ -60,7 +60,6 @@
     search();
   });
 
-  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
   document.getElementById("linkBtn").addEventListener("click", function () {
     var b = this;
     var link = location.origin + "/status?reg=" + currentReg;

@@ -359,7 +359,20 @@
       .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
   });
 
-  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
+  var dlBtn = document.getElementById("downloadBtn");
+  dlBtn.addEventListener("click", function () {
+    var card = document.querySelector("#cardMount .idc");
+    if (!card || dlBtn.disabled) return;
+    var label = dlBtn.textContent;
+    dlBtn.disabled = true;
+    dlBtn.textContent = "Preparing...";
+    window.downloadIdCard(card, currentReg).then(function () {
+      dlBtn.textContent = label;
+    }, function () {
+      dlBtn.textContent = "Could not download. Try again";
+      setTimeout(function () { dlBtn.textContent = label; }, 3500);
+    }).then(function () { dlBtn.disabled = false; });
+  });
   document.getElementById("switchBtn").addEventListener("click", function () {
     closeQuiz(true);
     window.abecHandbook.reset();

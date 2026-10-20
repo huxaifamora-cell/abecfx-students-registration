@@ -253,7 +253,6 @@
       });
   });
 
-  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
 
   document.getElementById("copyBtn").addEventListener("click", function () {
     var text = regNumberText;
