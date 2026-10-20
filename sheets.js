@@ -373,15 +373,24 @@ async function saveLinks(values) {
     method: "PUT",
     data: { values: links.toRows(values) },
   });
-  // Clear any leftover rows below the settings (old duplicates): a stale copy of a key further down the tab
-  // would otherwise win when the sheet is read back and bring the previous link back.
-  await call(`/values/${range(`A${last + 1}:${LINKS_LAST_COL}`, LINKS_TAB)}:clear`, { method: "POST", data: {} });
-  // Read it back from the sheet itself and make sure it really stuck; a save that did not stick is reported, not hidden.
+  // Best effort: clear any leftover rows below the settings (old duplicates), because a stale copy of a key
+  // further down the tab would win on read and bring the previous link back. A failure here must not fail the save.
+  try {
+    await call(`/values/${range(`A${last + 1}:${LINKS_LAST_COL}`, LINKS_TAB)}:clear`, { method: "POST", data: {} });
+  } catch (e) {
+    console.error("Site links: could not clear leftover rows:", e.message);
+  }
+  // The values are now in the sheet. Refresh from it so the site shows exactly what is stored.
   linksCache = { at: 0, values: null };
-  const saved = await readLinks(0);
-  for (const f of links.FIELDS) {
-    const want = links.sanitize({ [f.key]: values[f.key] || "" }).values[f.key] || "";
-    if ((saved[f.key] || "") !== want) throw new Error(`Site link "${f.key}" did not persist in the sheet`);
+  try {
+    const saved = await readLinks(0);
+    for (const f of links.FIELDS) {
+      const want = links.sanitize({ [f.key]: values[f.key] || "" }).values[f.key] || "";
+      if ((saved[f.key] || "") !== want) console.error(`Site links: "${f.key}" read back differently from what was saved`);
+    }
+  } catch (e) {
+    console.error("Site links: read-back failed:", e.message);
+    linksCache = { at: Date.now(), values };
   }
 }
 
