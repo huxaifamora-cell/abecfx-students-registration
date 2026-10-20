@@ -35,7 +35,7 @@ const HEADERS = [
   "Team Role",
 ];
 const LAST_COL = "O";
-const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)"];
+const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)", "Changed by student (date; clear this cell to allow one more change)"];
 const QUIZ_TAB = process.env.GOOGLE_QUIZ_TAB || "Quiz Results";
 const QUIZ_HEADERS = [
   "Submitted At (Lagos)",
@@ -413,13 +413,24 @@ async function saveVideos(values) {
 }
 
 // ---- Passport photos (kept on their own tab so student reads stay small and fast) ----
-let photoIndex = { at: 0, regs: [] };
+// Column C is filled in when the student changes their own photo: each student gets ONE change.
+let photoIndex = { at: 0, regs: [], changed: [] };
 async function photoRegs(ttlMs) {
   if (Date.now() - photoIndex.at > ttlMs) {
-    const data = await call(`/values/${range("A2:A", PHOTO_TAB)}`);
-    photoIndex = { at: Date.now(), regs: (data.values || []).map((r) => r[0] || "") };
+    const data = await call(`/values:batchGet?ranges=${range("A2:A", PHOTO_TAB)}&ranges=${range("C2:C", PHOTO_TAB)}`);
+    const [a, c] = data.valueRanges || [];
+    const regs = ((a && a.values) || []).map((r) => r[0] || "");
+    const cv = (c && c.values) || [];
+    photoIndex = { at: Date.now(), regs, changed: regs.map((_, i) => !!(cv[i] && cv[i][0])) };
   }
   return photoIndex.regs;
+}
+
+// Has this student already used their one photo change?
+async function photoChanged(reg) {
+  const regs = await photoRegs(30000);
+  const i = regs.lastIndexOf(reg);
+  return i >= 0 && photoIndex.changed[i];
 }
 
 const photoCache = new Map();
@@ -431,6 +442,31 @@ async function appendPhoto(reg, base64) {
   );
   photoIndex.at = 0;
   photoCache.delete(reg);
+}
+
+// Replace a student's photo (or add one if they never had one). The row is overwritten in place, and any
+// extra rows for the same reg are left alone: getPhoto reads the LAST match, so replacing that one is enough.
+// Returns "ok", or "already" when the student has used their one change. A student with no photo row yet
+// gets one added, and that does not use up the change.
+async function setPhoto(reg, base64) {
+  const regs = await photoRegs(0); // always fresh: a stale index could overwrite the wrong row
+  const i = regs.lastIndexOf(reg);
+  if (i < 0) { await appendPhoto(reg, base64); return "ok"; }
+  if (photoIndex.changed[i]) return "already";
+  const today = new Date().toISOString().slice(0, 10);
+  await call("/values:batchUpdate", {
+    method: "POST",
+    data: {
+      valueInputOption: "RAW",
+      data: [
+        { range: `${quoteTab(PHOTO_TAB)}!B${i + 2}`, values: [[base64]] },
+        { range: `${quoteTab(PHOTO_TAB)}!C${i + 2}`, values: [[today]] },
+      ],
+    },
+  });
+  photoIndex.changed[i] = true;
+  photoCache.delete(reg);
+  return "ok";
 }
 
 async function getPhoto(reg) {
@@ -574,7 +610,7 @@ async function deleteTabRowsByReg(key, reg, col = 0) {
 }
 
 module.exports = {
-  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
+  init, readAll, readCached, appendRow, appendPhoto, setPhoto, photoChanged, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
   EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
 };

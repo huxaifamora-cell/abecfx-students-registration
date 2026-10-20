@@ -369,6 +369,11 @@ function studentAuth(req, res, next) {
   next();
 }
 
+// Never let a photo-tab hiccup stop a student signing in: if it cannot be read, the button just shows.
+async function photoUsed(reg) {
+  try { return !!(await store.photoChanged(reg)); } catch (e) { return false; }
+}
+
 app.post("/api/portal/login", loginLimiter, async (req, res) => {
   res.set("Cache-Control", "no-store");
   const secret = sessionSecret();
@@ -385,7 +390,7 @@ app.post("/api/portal/login", loginLimiter, async (req, res) => {
     if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
       return res.status(401).json({ error: "That registration number and email do not match our records." });
     }
-    res.json({ token: session.sign(reg, secret), card: cardFromRow(r) });
+    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg) });
   } catch (err) {
     console.error("Portal sign-in failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -398,10 +403,39 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached();
     const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
     if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
-    res.json(cardFromRow(r));
+    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg) });
   } catch (err) {
     console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// A signed-in student replaces their own passport photo. The reg number comes from the sign-in token,
+// never from the request, so a student can only ever change their own photo.
+const photoEditLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many tries. Please try again in an hour." },
+});
+const ALREADY_CHANGED = "You have already changed your photo once. A photo can only be changed one time.";
+const photoEditing = new Set(); // regs being saved right now, so two quick taps cannot both pass the check
+app.put("/api/portal/photo", photoEditLimiter, studentAuth, async (req, res) => {
+  const photo = checkPhoto((req.body || {}).photo);
+  if (!photo) return res.status(400).json({ error: "That photo could not be used. Choose a clear photo of your face (JPG or PNG)." });
+  const reg = req.studentReg;
+  if (photoEditing.has(reg)) return res.status(429).json({ error: "Your photo is already being saved." });
+  photoEditing.add(reg);
+  try {
+    const result = await store.setPhoto(reg, photo);
+    if (result === "already") return res.status(403).json({ error: ALREADY_CHANGED, photoChanged: true });
+    res.json({ ok: true, photoChanged: true });
+  } catch (err) {
+    console.error("Photo update failed for", reg, err.message);
+    res.status(500).json({ error: "We could not save your photo. Please try again shortly." });
+  } finally {
+    photoEditing.delete(reg);
   }
 });
 
