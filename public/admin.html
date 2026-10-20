@@ -28,12 +28,12 @@
   <main class="adm-main">
     <section id="login" class="adm-login">
       <h1>Dashboard sign in</h1>
-      <p class="lead">Choose your username, then enter your password.</p>
+      <p class="lead">Choose your username (Owner, Admin, Moderator...), then enter your password.</p>
       <form id="loginForm" novalidate>
         <div class="field">
-          <label for="unSel">Sign in as</label>
-          <select id="unSel" aria-label="Choose your username" hidden></select>
-          <input id="un" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+          <label for="unSel">Username</label>
+          <select id="unSel" aria-label="Choose your role" hidden></select>
+          <input id="un" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false" hidden />
         </div>
         <div class="field">
           <label for="pw">Password</label>

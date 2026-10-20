@@ -1549,32 +1549,26 @@
   });
   $("csvBtn").addEventListener("click", downloadCsv);
 
-  // "Sign in as" drop-down: pick your username from the list. If the list cannot load, type it instead.
+  // "Sign in as" drop-down: the username is the role name (Owner, Admin, Moderator, ...).
+  // If the list cannot load, a username box is shown instead.
   var unSel = $("unSel"), unInput = $("un");
-  function useTyped(on) { unInput.hidden = !on; if (on) unInput.focus(); }
-  unSel.addEventListener("change", function () { useTyped(unSel.value === ""); });
   fetch("/api/admin/login-users").then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (list) {
-    if (!Array.isArray(list) || !list.length) return;
+    if (!Array.isArray(list) || !list.length) return Promise.reject();
     unSel.replaceChildren();
-    list.forEach(function (u, i) {
+    list.forEach(function (u) {
       var o = document.createElement("option");
-      o.value = u.username;
-      o.textContent = u.username + " (" + u.label + ")";
+      o.value = u.key; o.textContent = u.label;
       unSel.appendChild(o);
     });
-    var other = document.createElement("option");
-    other.value = ""; other.textContent = "Another username...";
-    unSel.appendChild(other);
     unSel.hidden = false;
-    useTyped(false);
     unInput.hidden = true;
   }).catch(function () { unSel.hidden = true; unInput.hidden = false; });
   unInput.hidden = false;
 
   $("loginForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var un = (unSel.hidden || unSel.value === "" ? $("un").value : unSel.value).trim(), pw = $("pw").value;
-    if (!un) { $("loginErr").textContent = "Choose or enter your username."; return; }
+    var useRole = !unSel.hidden, un = unInput.value.trim(), pw = $("pw").value;
+    if (!useRole && !un) { $("loginErr").textContent = "Enter your username."; return; }
     if (!pw) { $("loginErr").textContent = "Enter your password."; return; }
     var b = $("loginBtn");
     b.disabled = true;
@@ -1583,7 +1577,7 @@
     fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: un, password: pw }),
+      body: JSON.stringify(useRole ? { role: unSel.value, password: pw } : { username: un, password: pw }),
     })
       .then(function (r) {
         return r.json().then(function (body) {
