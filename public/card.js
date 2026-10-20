@@ -174,7 +174,7 @@
       facts.appendChild(row);
     }
     fact("Country", d.country);
-    if (d.state) fact("State", d.state);
+    if (d.state) fact("State", /^abuja federal capital territory$/i.test(d.state.trim()) ? "FCT Abuja" : d.state);
     fact("Gender", d.gender);
     if (status !== "Team Member") { // programme and admission year are student details
       fact("Programme", d.programme);
