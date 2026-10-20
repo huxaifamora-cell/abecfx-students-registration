@@ -53,6 +53,7 @@
     $("shTable").replaceChildren();
     $("shSearch").value = "";
     me = null;
+    setDashTitle();
     teamData = null;
     if ($("tmDlg").open) $("tmDlg").close();
     if ($("pwDlg").open) $("pwDlg").close();
@@ -89,7 +90,15 @@
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
   var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
+  // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
+  function setDashTitle() {
+    var name = me && me.roleLabel ? me.roleLabel + " dashboard" : "Dashboard";
+    var tag = document.querySelector(".adm-brand i");
+    if (tag) tag.textContent = name;
+    document.title = name + " | ABEC-FX";
+  }
   function applyRole() {
+    setDashTitle();
     Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
     $("who").textContent = me.name + " · " + me.roleLabel;
     $("acctBtn").hidden = !me.canChangePassword;
