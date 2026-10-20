@@ -1,6 +1,6 @@
 // ID card rules: who gets an expiry date, and the date maths behind it.
 // An ID card is one of four kinds: Uncertified, Certified, Team Member or Alumni Member.
-// Certified students are graduates (their ID card says "Certified Graduate"). Only Uncertified students have IDs
+// Certified students are graduates (their ID card says "Certified"). Only Uncertified students have IDs
 // that are valid for 2 months from the issue date. Certified, Team Member and Alumni Member have no expiry.
 // "Graduate" is no longer a status of its own. Rows that still hold it in the sheet are read as Certified.
 // Old Mentor, Staff Member and CEO rows are read as Team Member.
