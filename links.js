@@ -30,7 +30,7 @@ const DEFAULTS = {
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   about:
-    "Adebass Base Edge Consult (ABEC-FX) runs a forex mentorship that teaches students how to trade with discipline, " +
+    "Adebass Base Edge Consult (ABEC-FX) runs a forex course that teaches students how to trade with discipline, " +
     "risk control and a clear edge. Register to get your student number, ID card and the Mentorship Handbook.",
 };
 

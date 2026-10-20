@@ -83,7 +83,7 @@ function create(store) {
         label: "Add student",
         help: "The registration number, sign-up time and ID issue date are filled in for you. A student added here has no photo, so the ID card shows their initials.",
         fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 14, 10],
-        defaults: { 3: "Forex Mentorship", 9: "Uncertified" },
+        defaults: { 3: "Forex Course", 9: "Uncertified" },
       },
       deleteWarning: "This also deletes the student's photo, quiz results and handbook progress, and cannot be undone. Their registration number will never be given to anyone else.",
       check(p, cur, rows) {

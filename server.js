@@ -35,7 +35,9 @@ const QUIZ_APP_ORIGIN = httpsOrigin(process.env.QUIZ_APP_URL);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const PROGRAMMES = ["Forex Mentorship"];
+const PROGRAMMES = ["Forex Course"];
+// Students who registered before the rename have "Forex Mentorship" stored; they are shown as "Forex Course".
+const programmeName = (v) => (/^forex mentorship$/i.test(String(v || "").trim()) ? "Forex Course" : String(v || ""));
 const GENDERS = ["Male", "Female"];
 
 app.set("trust proxy", 1); // Render sits behind a proxy
@@ -161,7 +163,7 @@ function cardFromRow(r) {
     country: r[2] || "",
     state: r[12] || "",
     countryCode: countryCodes[r[2]] || "",
-    programme: r[3] || "",
+    programme: programmeName(r[3]),
     admitted: Number.isNaN(yy) ? "" : 2000 + yy,
     issued: issuedISO ? idrules.formatISO(issuedISO) : (r[1] || "").split(",")[0],
     status,

@@ -1,4 +1,6 @@
 // Statistics for the editor dashboard. Pure functions: rows in, numbers out.
+// Students who registered before the rename have "Forex Mentorship" stored; they are shown as "Forex Course".
+const programmeName = (v) => (/^forex mentorship$/i.test(String(v || "").trim()) ? "Forex Course" : String(v || ""));
 // Student row columns: 0 reg, 1 registered at, 2 country, 3 programme, 4 name, 7 gender, 9 status, 12 state.
 // Quiz row columns: 0 submitted at, 1 reg, 2 name, 3 score, 4 total, 5 percent, 6 grade, 7 attempt.
 const idrules = require("./idrules");
@@ -14,7 +16,7 @@ const BLANK = "Not recorded";
 const KEYS = {
   gender: (r) => r[7],
   country: (r) => r[2],
-  programme: (r) => r[3],
+  programme: (r) => programmeName(r[3]),
   state: (r) => (r[12] ? `${r[12]}${r[2] ? ", " + r[2] : ""}` : ""),
   year: (r) => {
     // year joined = the registration number's year, which is the admission year
@@ -164,7 +166,7 @@ function studentOut(r) {
     gender: r[7] || "",
     country: r[2] || "",
     state: r[12] || "",
-    programme: r[3] || "",
+    programme: programmeName(r[3]),
     status: statusOf(r),
     joined: iso ? idrules.formatISO(iso) : "",
   };
