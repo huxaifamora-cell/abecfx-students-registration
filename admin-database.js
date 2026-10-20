@@ -303,8 +303,9 @@ function create(store) {
       multiline: [2],
       newestFirst: false,
       check(p, cur) {
-        const key = (cur[0] || "").trim().toLowerCase();
-        if (!links.FIELDS.some((f) => f.key === key)) return { 2: "This row is not one of the website's links, so it cannot be changed here." };
+        const field = links.fieldFor(cur[0]);
+        const key = field ? field.key : "";
+        if (!field) return { 2: "This row is not one of the website's links, so it cannot be changed here." };
         const out = links.sanitize({ [key]: p[2] });
         if (out.errors[key]) return { 2: out.errors[key] };
         p[2] = out.values[key];

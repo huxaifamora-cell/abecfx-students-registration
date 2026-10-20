@@ -67,13 +67,19 @@ function sanitize(input) {
   return { values, errors };
 }
 
+// Finds a field by its sheet key, ignoring capitals (the keys are camelCase, e.g. communityWhatsapp).
+function fieldFor(key) {
+  const k = String(key || "").trim().toLowerCase();
+  return FIELDS.find((f) => f.key.toLowerCase() === k) || null;
+}
+
 // Rows from the sheet tab: [key, label, value]. Unknown keys are ignored; empty tab -> defaults.
 function fromRows(rows) {
   const out = {};
   const seen = new Set();
   for (const r of rows || []) {
-    const k = String((r && r[0]) || "").trim().toLowerCase();
-    if (FIELDS.some((f) => f.key === k)) { seen.add(k); out[k] = (r[2] == null ? "" : String(r[2])).trim(); }
+    const f = fieldFor(r && r[0]);
+    if (f) { seen.add(f.key); out[f.key] = (r[2] == null ? "" : String(r[2])).trim(); }
   }
   const { values } = sanitize(out);
   // a hand-typed value that fails the checks is dropped rather than shown
@@ -109,6 +115,6 @@ function communityFor(values) {
 }
 
 module.exports = {
-  FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
+  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
   siteFields, communityFields, pick, siteKeys,
 };
