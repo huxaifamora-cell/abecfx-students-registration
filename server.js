@@ -813,7 +813,7 @@ function teamRoute(handler) {
   };
 }
 
-// The sign-in page's "Sign in as" drop-down: usernames and role names only.
+// The sign-in page's "Sign in as" drop-down: role names only (no usernames).
 app.get("/api/admin/login-users", adminLimiter, teamRoute(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.json(await teamService.loginChoices());
@@ -823,7 +823,18 @@ app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
   const pw = process.env.ADMIN_PASSWORD;
   if (!pw) throw new team.TeamError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
   const b = req.body || {};
-  const who = await teamService.login(clean(b.username, 40), typeof b.password === "string" ? b.password.slice(0, 200) : "", pw, safeEqual);
+  const given = typeof b.password === "string" ? b.password.slice(0, 200) : "";
+  let who = null;
+  if (b.role) {
+    // Signing in as a role: the role name is the username. Try the accounts with that role.
+    let lastErr = null;
+    for (const name of await teamService.loginNames(clean(b.role, 40))) {
+      try { who = await teamService.login(name, given, pw, safeEqual); break; } catch (e) { lastErr = e; if (!(e instanceof team.TeamError) || e.status !== 401) throw e; }
+    }
+    if (!who) throw lastErr || new team.TeamError(401, "Wrong username or password.");
+  } else {
+    who = await teamService.login(clean(b.username, 40), given, pw, safeEqual);
+  }
   res.json({ token: team.signToken(who.username, pw), me: await meOf(who) });
 }));
 

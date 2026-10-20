@@ -270,15 +270,30 @@ function create(store, opts = {}) {
     return { username: u.username, name: u.name, role: u.role };
   }
 
-  // For the sign-in drop-down: who can be picked. Only the username and role name, never anything else.
+  // For the sign-in drop-down: the roles somebody can sign in as, and how many accounts each has.
+  // Usernames are never listed.
   async function loginChoices() {
-    const out = [{ username: OWNER, label: ROLES.owner.label }];
+    const out = [{ key: "owner", label: ROLES.owner.label, count: 1 }];
+    const byRole = new Map();
     for (const u of await list()) {
       if (!u.active || u.role === "owner") continue;
-      const info = await roleInfo(u.role);
-      if (info) out.push({ username: u.username, label: info.label });
+      byRole.set(u.role, (byRole.get(u.role) || 0) + 1);
     }
+    for (const [key, count] of byRole) {
+      const info = await roleInfo(key);
+      if (info) out.push({ key, label: info.label, count });
+    }
+    const order = ["owner", "admin", "editor", "moderator"];
+    out.sort((a, b) => (order.indexOf(a.key) + 1 || 99) - (order.indexOf(b.key) + 1 || 99) || a.label.localeCompare(b.label));
     return out;
+  }
+
+  // The sign-in page picks a role, and the role name is the username. Return the accounts that hold that role;
+  // the password then decides which of them is signing in.
+  async function loginNames(roleKey) {
+    const role = String(roleKey || "").toLowerCase();
+    if (role === "owner") return [OWNER];
+    return (await list()).filter((u) => u.active && u.role === role).map((u) => u.username);
   }
 
   async function members() {
@@ -476,7 +491,7 @@ function create(store, opts = {}) {
   }
 
   return {
-    lookup, login, loginChoices, members, add, update, remove, changeOwnPassword,
+    lookup, login, loginChoices, loginNames, members, add, update, remove, changeOwnPassword,
     roles, roleInfo, permsOf, allow, addRole, updateRole, removeRole,
   };
 }
