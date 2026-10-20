@@ -368,11 +368,21 @@ async function readLinks(ttlMs = 30000) {
 }
 
 async function saveLinks(values) {
-  await call(`/values/${range(`A2:${LINKS_LAST_COL}${links.FIELDS.length + 1}`, LINKS_TAB)}?valueInputOption=RAW`, {
+  const last = links.FIELDS.length + 1;
+  await call(`/values/${range(`A2:${LINKS_LAST_COL}${last}`, LINKS_TAB)}?valueInputOption=RAW`, {
     method: "PUT",
     data: { values: links.toRows(values) },
   });
-  linksCache = { at: Date.now(), values };
+  // Clear any leftover rows below the settings (old duplicates): a stale copy of a key further down the tab
+  // would otherwise win when the sheet is read back and bring the previous link back.
+  await call(`/values/${range(`A${last + 1}:${LINKS_LAST_COL}`, LINKS_TAB)}:clear`, { method: "POST", data: {} });
+  // Read it back from the sheet itself and make sure it really stuck; a save that did not stick is reported, not hidden.
+  linksCache = { at: 0, values: null };
+  const saved = await readLinks(0);
+  for (const f of links.FIELDS) {
+    const want = links.sanitize({ [f.key]: values[f.key] || "" }).values[f.key] || "";
+    if ((saved[f.key] || "") !== want) throw new Error(`Site link "${f.key}" did not persist in the sheet`);
+  }
 }
 
 // ---- Chapter videos ----

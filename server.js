@@ -597,6 +597,7 @@ app.get("/api/links", linksLimiter, async (_req, res) => {
 // Student portal: the community WhatsApp and Telegram groups. Only for signed-in students, so the invite
 // links are not public. Only the groups set on the dashboard's Community tab are offered (no fallback).
 app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
+  res.set("Cache-Control", "no-store");
   try {
     res.json(links.communityFor(await store.readLinks()));
   } catch (err) {
