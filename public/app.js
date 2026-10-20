@@ -57,8 +57,8 @@
     stateText.value = "";
     if (!country) { stateField.hidden = true; return; }
     var word = STATE_WORD[country] || "State / Region";
-    stateLabel.textContent = word;
-    stateText.placeholder = word === "State / Region" ? "State, province or region" : word;
+    stateLabel.textContent = "State of residence";
+    stateText.placeholder = "State of residence";
     stateField.hidden = false;
     useStateControl(false); // text box until the list arrives
     fetch("/api/states?country=" + encodeURIComponent(country))
@@ -66,7 +66,7 @@
       .then(function (list) {
         if (mine !== stateReq || !list.length) return;
         var first = document.createElement("option");
-        first.value = ""; first.textContent = "Select your " + word.toLowerCase();
+        first.value = ""; first.textContent = "Select your state of residence";
         stateSel.appendChild(first);
         list.forEach(function (s) {
           var o = document.createElement("option");
