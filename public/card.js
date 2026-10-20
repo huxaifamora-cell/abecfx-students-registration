@@ -44,14 +44,14 @@
     return status === "Team Member" ? "Team ID card" : status === "Alumni Member" ? "Alumni ID card" : "Student ID card";
   }
 
-  // What the card calls a status. A Certified student is a certified graduate.
-  function statusLabel(status) { return status === "Certified" ? "Certified Graduate" : status; }
+  // What the card calls a status. A Certified student shows as "Certified".
+  function statusLabel(status) { return status; }
 
-  // Round stamp: "Certified graduate", "Team member" or "Alumni member".
-  var STAMP_TOP = { "Certified": "CERTIFIED GRADUATE", "Team Member": "TEAM MEMBER", "Alumni Member": "ALUMNI MEMBER" };
-  var STAMP_LABEL = { "Certified": "Certified graduate of ABEC-FX", "Team Member": "Team member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
+  // Round stamp: "Certified", "Team member" or "Alumni member".
+  var STAMP_TOP = { "Certified": "CERTIFIED", "Team Member": "TEAM MEMBER", "Alumni Member": "ALUMNI MEMBER" };
+  var STAMP_LABEL = { "Certified": "Certified student of ABEC-FX", "Team Member": "Team member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
   function buildStamp(status, dateText) {
-    var top = STAMP_TOP[status] || "CERTIFIED GRADUATE";
+    var top = STAMP_TOP[status] || "CERTIFIED";
     var label = STAMP_LABEL[status] || STAMP_LABEL.Certified;
     var id = "stamp" + ++stampCounter;
 
