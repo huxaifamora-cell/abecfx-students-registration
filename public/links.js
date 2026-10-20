@@ -69,7 +69,7 @@
   }
 
   function showAbout(text) {
-    openDialog("About ABECFX", function (body) {
+    openDialog("About ABEC-FX", function (body) {
       String(text).split(/\n{2,}/).forEach(function (para) {
         var p = document.createElement("p");
         p.textContent = para.trim();

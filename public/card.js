@@ -108,7 +108,7 @@
   // Message shown under the card when an ID has expired or is about to.
   window.expiryNotice = function (d) {
     if (d.expiryKind !== "date") return null;
-    if (d.expired) return { level: "bad", text: "This ID expired on " + d.expires + ". Speak to ABECFX to renew it." };
+    if (d.expired) return { level: "bad", text: "This ID expired on " + d.expires + ". Speak to ABEC-FX to renew it." };
     if (d.daysLeft <= 14) {
       var when = d.daysLeft === 0 ? "today" : d.daysLeft === 1 ? "tomorrow" : "in " + d.daysLeft + " days";
       return { level: "soon", text: "This ID expires " + when + " (" + d.expires + ")." };
@@ -133,7 +133,7 @@
     var logo = el("img");
     logo.src = "/logo-white.png"; logo.alt = ""; logo.width = 30; logo.height = 23;
     brand.appendChild(logo);
-    brand.appendChild(el("span", null, "ABECFX"));
+    brand.appendChild(el("span", null, "ABEC-FX"));
     top.appendChild(brand);
     card.appendChild(top);
     card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Team / Alumni ID card

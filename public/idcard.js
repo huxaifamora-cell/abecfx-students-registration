@@ -40,7 +40,7 @@
     logo.width = 29;
     logo.height = 22;
     top.appendChild(logo);
-    top.appendChild(el("span", "idcard-brand", "ABECFX " + kind));
+    top.appendChild(el("span", "idcard-brand", "ABEC-FX " + kind));
 
     var middle = el("div");
     middle.appendChild(el("h3", "idcard-name", d.fullName));

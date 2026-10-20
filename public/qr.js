@@ -1,6 +1,6 @@
 /*
  * Minimal QR Code generator (byte mode, error correction level M, versions 1-10).
- * Written for the ABECFX ID card so the site needs no outside QR service.
+ * Written for the ABEC-FX ID card so the site needs no outside QR service.
  * Exposes: QR.encode(text) -> { size, modules[y][x] }  and  QR.toSvg(text, { border })
  */
 (function () {

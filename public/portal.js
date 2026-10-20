@@ -30,7 +30,7 @@
   var quizGateNote = document.getElementById("quizGateNote");
   var quizOpenNote = document.getElementById("quizOpenNote");
   var quizLinkEl = document.getElementById("quizLink");
-  var GATE_NOTE = "The quiz is locked. Enter the one-time quiz code your mentor or ABECFX gave you to open it.";
+  var GATE_NOTE = "The quiz is locked. Enter the one-time quiz code your mentor or ABEC-FX gave you to open it.";
   var GATE_NOTE_DONE = "You have finished the quiz. To take it again, enter a new one-time quiz code.";
 
   function remember(reg, token) {
@@ -161,7 +161,7 @@
       });
   }
 
-  // ---- Quiz results (taken in the ABECFX Telegram quiz bot) ----
+  // ---- Quiz results (taken in the ABEC-FX Telegram quiz bot) ----
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
