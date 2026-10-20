@@ -1,6 +1,6 @@
-# ABECFX Student Platform: Project Status
+# ABEC-FX Student Platform: Project Status
 
-**Owner:** Adebass Base Edge Consult (ABECFX), forex mentorship
+**Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
 **Last updated:** {{DATE}} (Lagos time), after change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge). Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
