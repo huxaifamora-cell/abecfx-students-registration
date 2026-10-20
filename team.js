@@ -270,6 +270,17 @@ function create(store, opts = {}) {
     return { username: u.username, name: u.name, role: u.role };
   }
 
+  // For the sign-in drop-down: who can be picked. Only the username and role name, never anything else.
+  async function loginChoices() {
+    const out = [{ username: OWNER, label: ROLES.owner.label }];
+    for (const u of await list()) {
+      if (!u.active || u.role === "owner") continue;
+      const info = await roleInfo(u.role);
+      if (info) out.push({ username: u.username, label: info.label });
+    }
+    return out;
+  }
+
   async function members() {
     return (await listFresh()).map(publicUser);
   }
@@ -465,7 +476,7 @@ function create(store, opts = {}) {
   }
 
   return {
-    lookup, login, members, add, update, remove, changeOwnPassword,
+    lookup, login, loginChoices, members, add, update, remove, changeOwnPassword,
     roles, roleInfo, permsOf, allow, addRole, updateRole, removeRole,
   };
 }

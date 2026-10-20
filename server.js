@@ -813,6 +813,12 @@ function teamRoute(handler) {
   };
 }
 
+// The sign-in page's "Sign in as" drop-down: usernames and role names only.
+app.get("/api/admin/login-users", adminLimiter, teamRoute(async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json(await teamService.loginChoices());
+}));
+
 app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
   const pw = process.env.ADMIN_PASSWORD;
   if (!pw) throw new team.TeamError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
