@@ -77,6 +77,11 @@
               <button type="button" id="downloadBtn" class="btn ghost">Download ID card</button>
               <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
             </div>
+            <div class="photo-edit" id="photoEdit">
+              <input id="newPhoto" type="file" accept="image/*" class="sr-only" aria-label="Choose a new passport photo" />
+              <label for="newPhoto" class="btn ghost wide" id="newPhotoBtn">Change my photo (once only)</label>
+              <p class="formErr" id="photoMsg" role="status"></p>
+            </div>
 
             <a class="journey" id="journeyCard" href="#/handbook" aria-label="Open the Mentorship Handbook">
               <span class="journey-top"><strong>Your learning journey</strong><span class="journey-pct" id="journeyPct">&ndash;</span></span>
@@ -151,6 +156,7 @@
   <script src="/card.js"></script>
   <script src="/download.js"></script>
   <script src="/handbook.js"></script>
+  <script src="/photo.js"></script>
   <script src="/portal.js"></script>
 </body>
 </html>

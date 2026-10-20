@@ -38,6 +38,13 @@
     window.abecNav.refresh(); // signed in: the menu no longer offers "Register"
   }
   function forget() { try { localStorage.removeItem(KEY); localStorage.removeItem(TKEY); } catch (e) {} window.abecNav.refresh(); }
+  // After a photo change the browser may still hold the old /api/photo for a few minutes, so the card asks
+  // for the photo with a version that changes whenever the student saves a new one.
+  function photoUrl(reg) {
+    var v = "";
+    try { v = localStorage.getItem("abecfx_photo_v") || ""; } catch (e) {}
+    return v ? "/api/photo?reg=" + encodeURIComponent(reg) + "&v=" + v : undefined;
+  }
   function saved() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
   function token() { try { return localStorage.getItem(TKEY) || ""; } catch (e) { return ""; } }
 
@@ -86,12 +93,14 @@
     signin.hidden = true;
     var first = (d.fullName || "").split(" ")[0];
     document.getElementById("welcome").textContent = first ? "Welcome back, " + first : "Welcome back";
-    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d));
+    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     var live = document.getElementById("liveLine");
     live.textContent = note ? note.text : "Live record, checked at " + t;
     live.className = "live" + (note ? " live-" + note.level : "");
+    setPhotoEditable(!d.photoChanged);
+    photoNote("");
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
@@ -353,7 +362,7 @@
         if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
         remember(res.body.card.regNumber, res.body.token);
         emailInput.value = "";
-        showHome(res.body.card);
+        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged }));
       })
       .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
       .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
@@ -373,6 +382,49 @@
       setTimeout(function () { dlBtn.textContent = label; }, 3500);
     }).then(function () { dlBtn.disabled = false; });
   });
+  // ---- Change my photo: shrink it in the browser, save it, then redraw the card with the new photo ----
+  var newPhoto = document.getElementById("newPhoto");
+  var newPhotoBtn = document.getElementById("newPhotoBtn");
+  var photoMsg = document.getElementById("photoMsg");
+  var photoBusy = false;
+  // Each student can change their photo once. After that the button goes away.
+  function setPhotoEditable(can) { newPhotoBtn.hidden = !can; newPhoto.disabled = !can; }
+  function photoNote(text, ok) {
+    photoMsg.textContent = text || "";
+    photoMsg.style.color = ok ? "var(--violet, #5a1060)" : "";
+  }
+  newPhoto.addEventListener("change", function () {
+    var file = newPhoto.files && newPhoto.files[0];
+    if (!file || photoBusy || !currentReg) return;
+    photoBusy = true;
+    var label = newPhotoBtn.textContent;
+    newPhotoBtn.textContent = "Saving...";
+    photoNote("");
+    window.abecPhoto.process(file)
+      .then(function (dataUrl) {
+        return authFetch("/api/portal/photo", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photo: dataUrl.slice(dataUrl.indexOf(",") + 1) }),
+        }).then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (b) {
+            if (r.status === 401) { signedOut(b.error); return; }
+            if (r.status === 403 && b.photoChanged) { setPhotoEditable(false); throw new Error(b.error); }
+            if (!r.ok) throw new Error(b.error || "We could not save your photo. Please try again.");
+            try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
+            // Show the photo just chosen (the saved copy can be cached by the browser for a few minutes)
+            return myCard().then(function (res) {
+              if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl }));
+              setPhotoEditable(false);
+              photoNote("Your photo has been updated. A photo can only be changed once, so this is final.", true);
+            });
+          });
+        });
+      })
+      .catch(function (e) { photoNote(e && e.message ? e.message : "Network problem. Check your connection and try again."); })
+      .then(function () { photoBusy = false; newPhotoBtn.textContent = label; newPhoto.value = ""; });
+  });
+
   document.getElementById("switchBtn").addEventListener("click", function () {
     closeQuiz(true);
     window.abecHandbook.reset();
