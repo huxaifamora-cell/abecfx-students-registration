@@ -835,6 +835,23 @@ app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req
   res.json(await teamService.changeOwnPassword(req.admin.username, b.current, b.next));
 }));
 
+// ID cards: an admin (anyone with the "team" access) can find any student or team member and see their card.
+// The cards carry the same details as the public ID card (never email or WhatsApp number).
+app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
+  try {
+    const q = clean(req.query.q, 80).toLowerCase();
+    const rows = (await store.readCached()).filter((r) => r && r[0]);
+    const hit = q ? rows.filter((r) => [r[0], r[4], r[2], r[9], r[12]].some((v) => String(v || "").toLowerCase().includes(q))) : rows;
+    const limit = 40;
+    // newest first (the sheet is in registration order)
+    const cards = hit.slice().reverse().slice(0, limit).map(cardFromRow);
+    res.json({ total: hit.length, shown: cards.length, cards });
+  } catch (err) {
+    console.error("ID card list failed:", err.message);
+    res.status(500).json({ error: "Could not read the student list. Please try again shortly." });
+  }
+});
+
 app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
   res.json({ members: await teamService.members(), roles: await teamService.roles(req.admin), permissions: team.PERMS });
 }));
