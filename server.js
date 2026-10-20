@@ -46,6 +46,8 @@ app.use(
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         // national flags on the ID card come from flagcdn.com
         "img-src": ["'self'", "data:", "https://flagcdn.com"],
+        // the portal's Download ID card button reads the card's flag and fonts to draw the picture
+        "connect-src": ["'self'", "https://flagcdn.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
         // the quiz is shown inside the student portal
         "frame-src": ["'self'", "https://www.youtube-nocookie.com", ...(QUIZ_APP_ORIGIN ? [QUIZ_APP_ORIGIN] : [])],
       },
