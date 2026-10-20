@@ -207,3 +207,14 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
   .linkbtn:hover { text-decoration-color: var(--violet); }
   .adm-select select:hover, .filters select:hover, .sh-dlg select:not(:disabled):hover { border-color: var(--violet); }
 }
+
+/* ID cards tab */
+.idc-admin { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 20px; margin-top: 14px; align-items: start; }
+.idc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 640px; overflow: auto; }
+.idc-item { width: 100%; text-align: left; display: grid; justify-items: start; justify-content: stretch; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font: inherit; color: var(--ink); }
+.idc-item b { font-size: .95rem; }
+.idc-item span { font-size: .78rem; color: var(--muted); }
+.idc-item:hover { border-color: var(--violet); }
+.idc-list li.on .idc-item { border-color: var(--violet); background: var(--bone); }
+.idc-view .pass-actions { display: flex; justify-content: center; margin-top: 12px; }
+@media (max-width: 760px) { .idc-admin { grid-template-columns: 1fr; } .idc-list { max-height: 260px; } }

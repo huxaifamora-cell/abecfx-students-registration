@@ -88,7 +88,7 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team", idcards: "team" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
@@ -1465,14 +1465,15 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team", "idcards"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes" || name === "idcards";
     if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
     if (name === "team") openTeam();
+    if (name === "idcards") openIdCards();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
@@ -1494,6 +1495,54 @@
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-team").addEventListener("click", function () { setTab("team"); });
+  $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
+
+  // ---------- ID cards (admin) ----------
+  var idTimer = null, idSeq = 0, idCurrent = null;
+  function showIdCard(c, li) {
+    idCurrent = c;
+    Array.prototype.forEach.call($("idList").children, function (x) { x.classList.toggle("on", x === li); });
+    $("idMount").replaceChildren(window.renderStudentCard(c));
+    $("idActions").hidden = false;
+  }
+  function loadIdCards() {
+    var seq = ++idSeq, q = $("idq").value.trim();
+    $("idMsg").textContent = "Loading...";
+    return api("/api/admin/id-cards?q=" + encodeURIComponent(q)).then(function (res) {
+      if (seq !== idSeq) return;
+      var list = $("idList");
+      list.replaceChildren();
+      res.cards.forEach(function (c) {
+        var li = el("li");
+        var b = el("button", "idc-item");
+        b.type = "button";
+        b.appendChild(el("b", null, c.fullName || "(no name)"));
+        b.appendChild(el("span", null, c.regNumber + " · " + c.status));
+        b.addEventListener("click", function () { showIdCard(c, li); });
+        li.appendChild(b);
+        list.appendChild(li);
+      });
+      $("idMsg").textContent = res.total === 0 ? "No one matches that search."
+        : (res.total > res.shown ? "Showing " + res.shown + " of " + res.total + ". Type to narrow the list." : res.total + (res.total === 1 ? " person." : " people."));
+      if (idCurrent && !res.cards.some(function (c) { return c.regNumber === idCurrent.regNumber; })) {
+        idCurrent = null;
+        $("idMount").replaceChildren();
+        $("idActions").hidden = true;
+      }
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("idMsg").textContent = err.message; });
+  }
+  function openIdCards() { loadIdCards(); }
+  $("idq").addEventListener("input", function () { clearTimeout(idTimer); idTimer = setTimeout(loadIdCards, 250); });
+  $("idDownload").addEventListener("click", function () {
+    var card = document.querySelector("#idMount .idc"), b = this;
+    if (!card || b.disabled) return;
+    var label = b.textContent;
+    b.disabled = true; b.textContent = "Preparing...";
+    window.downloadIdCard(card, idCurrent && idCurrent.regNumber).then(function () { b.textContent = label; }, function () {
+      b.textContent = "Could not download. Try again";
+      setTimeout(function () { b.textContent = label; }, 3500);
+    }).then(function () { b.disabled = false; });
+  });
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);

@@ -53,6 +53,7 @@
         <button type="button" role="tab" id="tab-community" aria-selected="false" aria-controls="view-community" hidden>Community</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
+        <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
       </nav>
 
@@ -221,6 +222,25 @@
         </article>
       </div>
 
+      <div id="view-idcards" role="tabpanel" aria-labelledby="tab-idcards" hidden>
+        <article class="adm-card wide">
+          <h3>ID cards</h3>
+          <p class="adm-note">Find any student or team member and open their ID card. Search by name, registration number, country, state or status.</p>
+          <div class="field" style="margin-top:12px;max-width:520px">
+            <label for="idq">Search</label>
+            <input id="idq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
+          </div>
+          <p class="adm-note" id="idMsg" role="status"></p>
+          <div class="idc-admin">
+            <ul class="idc-list" id="idList"></ul>
+            <div class="idc-view">
+              <div class="cardwrap" id="idMount"></div>
+              <p class="pass-actions" id="idActions" hidden><button type="button" class="btn ghost" id="idDownload">Download ID card</button></p>
+            </div>
+          </div>
+        </article>
+      </div>
+
       <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
         <article class="adm-card wide">
           <div class="adm-card-head">
@@ -381,6 +401,9 @@
     </div>
   </dialog>
 
+  <script src="/qr.js"></script>
+  <script src="/card.js"></script>
+  <script src="/download.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>
