@@ -129,6 +129,7 @@ function validate(body) {
     mentorshipCode: clean(body.mentorshipCode, 40).toUpperCase(),
     photo: checkPhoto(body.photo),
     signature: checkSignature(body.signature),
+    terms: body.terms === true,
   };
   const errors = {};
   if (!countries.includes(d.country)) errors.country = "Please select your country.";
@@ -155,6 +156,7 @@ function validate(body) {
   else if (!/^[A-Z0-9_-]{4,40}$/.test(d.mentorshipCode))
     errors.mentorshipCode = "That mentorship code is not valid. Check it and try again.";
   if (!d.photo) errors.photo = "Add a passport photograph. Choose a clear photo of your face.";
+  if (!d.terms) errors.terms = "Please tick the box to agree to the Terms and Conditions.";
   if (!d.signature) errors.signature = "Add your signature. Sign in the box, or upload a picture of it.";
   return { d, errors };
 }
