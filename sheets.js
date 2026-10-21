@@ -496,6 +496,32 @@ async function getPhoto(reg) {
 }
 
 // ---- Signatures (their own tab, like photos): one row per student, the newest save replaces the old one ----
+// The tab is made at start-up, but it is checked again here (once per run) so a start-up hiccup, or a tab
+// someone deleted, can never stop a student saving their signature.
+let sigReady = null;
+function ensureSigTab() {
+  if (!sigReady) {
+    sigReady = (async () => {
+      await ensureTab(SIG_TAB);
+      await ensureHeaders(SIG_TAB, SIG_HEADERS, "B");
+    })().catch((e) => { sigReady = null; throw e; });
+  }
+  return sigReady;
+}
+
+// Run a signature step; if Google refuses it, make sure the tab is there and try once more.
+async function withSigTab(fn) {
+  await ensureSigTab();
+  try {
+    return await fn();
+  } catch (e) {
+    console.error("Signature step failed, retrying once:", e && e.message);
+    sigReady = null;
+    await ensureSigTab();
+    return fn();
+  }
+}
+
 async function sigRow(reg) {
   const data = await call(`/values/${range("A2:A", SIG_TAB)}`);
   const regs = ((data && data.values) || []).map((r) => (r && r[0]) || "");
@@ -503,23 +529,27 @@ async function sigRow(reg) {
   return i < 0 ? 0 : i + 2; // sheet row number, or 0 when there is none
 }
 
-async function getSignature(reg) {
-  const row = await sigRow(reg);
-  if (!row) return null;
-  const data = await call(`/values/${range(`B${row}`, SIG_TAB)}`);
-  return (data.values && data.values[0] && data.values[0][0]) || null;
+function getSignature(reg) {
+  return withSigTab(async () => {
+    const row = await sigRow(reg);
+    if (!row) return null;
+    const data = await call(`/values/${range(`B${row}`, SIG_TAB)}`);
+    return (data.values && data.values[0] && data.values[0][0]) || null;
+  });
 }
 
-async function setSignature(reg, base64) {
-  const row = await sigRow(reg);
-  if (!row) {
-    await call(
-      `/values/${range("A:B", SIG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-      { method: "POST", data: { values: [[reg, base64]] } }
-    );
-    return;
-  }
-  await call(`/values/${range(`B${row}`, SIG_TAB)}?valueInputOption=RAW`, { method: "PUT", data: { values: [[base64]] } });
+function setSignature(reg, base64) {
+  return withSigTab(async () => {
+    const row = await sigRow(reg);
+    if (!row) {
+      await call(
+        `/values/${range("A:B", SIG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+        { method: "POST", data: { values: [[reg, base64]] } }
+      );
+      return;
+    }
+    await call(`/values/${range(`B${row}`, SIG_TAB)}?valueInputOption=RAW`, { method: "PUT", data: { values: [[base64]] } });
+  });
 }
 
 // ---- Generic tab access for the editor dashboard's "Sheets" view (the rules live in admin-sheets.js) ----
