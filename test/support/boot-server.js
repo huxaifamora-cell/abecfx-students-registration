@@ -46,7 +46,7 @@ async function boot(extraEnv = {}) {
   const studentToken = async (reg) => (await call("POST", "/api/portal/login", { body: { reg, email: email(reg) } })).body.token;
   const adminToken = async (username = "owner", password = OWNER_PW) => (await call("POST", "/api/admin/login", { body: { username, password } })).body.token;
   const bot = (method, url, body) => call(method, url, { body, headers: { "x-quiz-key": KEY } });
-  return { call, studentToken, adminToken, bot, stop: () => child.kill(), log: () => log };
+  return { base, call, studentToken, adminToken, bot, stop: () => child.kill(), log: () => log };
 }
 
 
