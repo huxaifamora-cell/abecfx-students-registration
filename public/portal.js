@@ -93,7 +93,10 @@
     signin.hidden = true;
     var first = (d.fullName || "").split(" ")[0];
     document.getElementById("welcome").textContent = first ? "Welcome back, " + first : "Welcome back";
+    mySig = "";
+    sigNote("");
     document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
+    loadSignature(d);
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     var live = document.getElementById("liveLine");
@@ -384,6 +387,72 @@
       setTimeout(function () { dlBtn.textContent = label; }, 3500);
     }).then(function () { dlBtn.disabled = false; });
   });
+  // ---- My signature: shown on the student's own card, drawn or uploaded, saved on the website ----
+  var mySig = "";
+  var sigToggle = document.getElementById("sigToggle");
+  var sigPanel = document.getElementById("sigPanel");
+  var sigSave = document.getElementById("sigSave");
+  var sigMsg = document.getElementById("sigMsg");
+  var sigWidget = null;
+  function sigNote(text, ok) {
+    sigMsg.textContent = text || "";
+    sigMsg.style.color = ok ? "var(--violet, #5a1060)" : "";
+  }
+  function redrawCard(d) {
+    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber), signatureSrc: mySig }));
+  }
+  function loadSignature(d) {
+    sigPanel.hidden = true;
+    sigToggle.textContent = "Add my signature";
+    authFetch("/api/portal/signature").then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, body: b }; });
+    }).then(function (res) {
+      if (!res.ok || !res.body.signature || currentReg !== d.regNumber) return;
+      mySig = "data:image/png;base64," + res.body.signature;
+      sigToggle.textContent = "Change my signature";
+      redrawCard(d);
+    }).catch(function () { /* the card simply shows without a signature */ });
+  }
+  sigToggle.addEventListener("click", function () {
+    if (sigPanel.hidden) {
+      if (!sigWidget) sigWidget = window.abecSignature.create(document.getElementById("sigPortalMount"));
+      sigPanel.hidden = false;
+      sigToggle.textContent = "Cancel";
+    } else {
+      sigPanel.hidden = true;
+      sigToggle.textContent = mySig ? "Change my signature" : "Add my signature";
+      if (sigWidget) sigWidget.clear();
+    }
+    sigNote("");
+  });
+  sigSave.addEventListener("click", function () {
+    if (!sigWidget || !currentReg) return;
+    sigSave.disabled = true;
+    sigNote("Saving...");
+    sigWidget.value().then(function (url) {
+      if (!url) { sigNote(""); return; }
+      return authFetch("/api/portal/signature", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signature: url.slice(url.indexOf(",") + 1) }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (b) {
+          if (r.status === 401) { signedOut(b.error); return; }
+          if (!r.ok) throw new Error(b.error || "We could not save your signature. Please try again.");
+          mySig = url;
+          return myCard().then(function (res) {
+            if (res.ok) redrawCard(res.body);
+            sigPanel.hidden = true;
+            sigToggle.textContent = "Change my signature";
+            sigWidget.clear();
+            sigNote("Your signature is saved and now shows on your ID card.", true);
+          });
+        });
+      });
+    }).catch(function (e) { sigNote(e && e.message ? e.message : "Network problem. Check your connection and try again."); })
+      .then(function () { sigSave.disabled = false; });
+  });
+
   // ---- Change my photo: shrink it in the browser, save it, then redraw the card with the new photo ----
   var newPhoto = document.getElementById("newPhoto");
   var newPhotoBtn = document.getElementById("newPhotoBtn");
@@ -416,7 +485,7 @@
             try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
             // Show the photo just chosen (the saved copy can be cached by the browser for a few minutes)
             return myCard().then(function (res) {
-              if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl }));
+              if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
               setPhotoEditable(false);
               photoNote("Your photo has been updated. A photo can only be changed once, so this is final.", true);
             });
@@ -431,6 +500,7 @@
     closeQuiz(true);
     window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
+    mySig = "";
     currentView = "";
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     forget();

@@ -83,6 +83,14 @@
               <label for="newPhoto" class="btn ghost wide" id="newPhotoBtn">Change my photo (once only)</label>
               <p class="formErr" id="photoMsg" role="status"></p>
             </div>
+            <div class="sig-edit" id="sigEdit">
+              <button type="button" class="btn ghost wide" id="sigToggle">Add my signature</button>
+              <div id="sigPanel" hidden>
+                <div id="sigPortalMount"></div>
+                <button type="button" class="btn primary wide" id="sigSave">Save my signature</button>
+              </div>
+              <p class="formErr" id="sigMsg" role="status"></p>
+            </div>
 
             <a class="journey" id="journeyCard" href="#/handbook" aria-label="Open the Handbook">
               <span class="journey-top"><strong>Your learning journey</strong><span class="journey-pct" id="journeyPct">&ndash;</span></span>
@@ -164,6 +172,7 @@
   <script src="/handbook.js"></script>
   <script src="/workbook.js"></script>
   <script src="/photo.js"></script>
+  <script src="/signature.js"></script>
   <script src="/portal.js"></script>
 </body>
 </html>

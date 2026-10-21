@@ -119,6 +119,7 @@
   /**
    * d: card data from /api/lookup or /api/register
    * opts.photoSrc: use this image instead of /api/photo (e.g. the just-taken photo)
+   * opts.signatureSrc: the holder's signature picture (shown only on their own card)
    */
   window.renderStudentCard = function (d, opts) {
     opts = opts || {};
@@ -195,6 +196,17 @@
     card.appendChild(el("h3", "idc-name", String(d.fullName || "").toUpperCase()));
     if (status === "Team Member" && d.teamRole) card.appendChild(el("p", "idc-roleline", d.teamRole));
     card.appendChild(el("p", "idc-reg", d.regNumber));
+
+    // ---- the student's own signature (only on their own card, never on the public find-a-student card)
+    if (opts.signatureSrc) {
+      var sigBox = el("div", "idc-sig");
+      var sigImg = el("img");
+      sigImg.src = opts.signatureSrc;
+      sigImg.alt = "Signature of " + d.fullName;
+      sigBox.appendChild(sigImg);
+      sigBox.appendChild(el("span", null, "Holder's signature"));
+      card.appendChild(sigBox);
+    }
 
     // ---- status (+ stamp for certified graduates, alumni and the team)
     var row = el("div", "idc-statusrow");

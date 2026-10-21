@@ -68,6 +68,13 @@
             </div>
 
             <div class="field">
+              <span class="label" id="sigLabel">Your signature</span>
+              <p class="sig-intro">It appears on your student ID card. Draw it, or upload a picture of it.</p>
+              <div id="sigMount" aria-labelledby="sigLabel"></div>
+              <span class="err" data-for="signature"></span>
+            </div>
+
+            <div class="field">
               <label for="email">Email address</label>
               <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
               <span class="err" data-for="email"></span>
@@ -162,6 +169,7 @@
   <script src="/links.js"></script>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
+  <script src="/signature.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

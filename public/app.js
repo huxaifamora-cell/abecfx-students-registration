@@ -85,6 +85,8 @@
   var photoIcon = document.getElementById("photoIcon");
   var photoBtn = document.getElementById("photoBtn");
   var regNumberText = "";
+  var sig = window.abecSignature.create(document.getElementById("sigMount"));
+  var sigDataUrl = "";
   var photoB64 = "";
   var photoDataUrl = "";
 
@@ -214,11 +216,17 @@
 
     btn.disabled = true;
     btn.textContent = "Registering...";
+    var sigReady = sig.value();
 
-    fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+    // The signature is made first. If it is missing the server reports it together with any other errors.
+    sigReady.then(function (sigUrl) {
+      sigDataUrl = sigUrl;
+      data.signature = sigUrl ? sigUrl.slice(sigUrl.indexOf(",") + 1) : "";
+      return fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
     })
       .then(function (r) {
         return r.json().then(function (body) { return { ok: r.ok, body: body }; });
@@ -230,7 +238,7 @@
             ? "You're registered, " + first
             : "You're registered";
           document.getElementById("cardMount").replaceChildren(
-            window.renderStudentCard(res.body.card, { photoSrc: photoDataUrl })
+            window.renderStudentCard(res.body.card, { photoSrc: photoDataUrl, signatureSrc: sigDataUrl })
           );
           regNumberText = res.body.regNumber;
           try { localStorage.setItem(KEY, res.body.regNumber); if (res.body.token) localStorage.setItem("abecfx_token", res.body.token); } catch (e) {}
