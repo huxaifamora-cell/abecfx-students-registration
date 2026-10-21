@@ -531,6 +531,45 @@ app.get("/handbook.pdf", handbookLimiter, (req, res) => {
   });
 });
 
+// Chapter workbooks (Word files, one per chapter). Like the PDF they live in private/, and a signed-in
+// student downloads them with a short-lived signed link.
+const WORKBOOK_DIR = path.join(__dirname, "private", "workbooks");
+function workbookFile(id) {
+  if (!/^\d{2}$/.test(id)) return null;
+  try {
+    const f = require("fs").readdirSync(WORKBOOK_DIR).find((n) => n.startsWith("Workbook_" + id + "_") && n.endsWith(".docx"));
+    return f || null;
+  } catch (e) { return null; }
+}
+
+app.get("/api/workbooks", handbookLimiter, studentAuth, (_req, res) => {
+  const items = handbook.CHAPTERS.map((c) => ({ id: c.id, title: c.title, available: !!workbookFile(c.id) }));
+  res.json({ workbooks: items });
+});
+
+app.get("/api/workbooks/link", handbookLimiter, studentAuth, (req, res) => {
+  const id = String(req.query.id || "");
+  if (!workbookFile(id)) return res.status(404).json({ error: "That workbook is not available yet." });
+  res.json({ url: "/workbook/" + id + "?t=" + encodeURIComponent(pdfLink.sign(req.studentReg, sessionSecret())) });
+});
+
+app.get("/workbook/:id", handbookLimiter, (req, res) => {
+  const secret = sessionSecret();
+  const reg = secret ? pdfLink.verify(String(req.query.t || ""), secret) : null;
+  if (!reg) {
+    return res.status(401).type("text/plain").send("This link has expired. Open the Workbook page in your student portal and try again.");
+  }
+  const file = workbookFile(String(req.params.id));
+  if (!file) return res.status(404).type("text/plain").send("That workbook is not available yet.");
+  res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
+  res.sendFile(path.join(WORKBOOK_DIR, file), {
+    headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "Content-Disposition": 'attachment; filename="ABEC-FX-' + file.replace(/^Workbook_/, "Workbook-").replace(/_/g, "-") + '"',
+    },
+  });
+});
+
 app.get("/api/photo", photoLimiter, async (req, res) => {
   const reg = normaliseReg(req.query.reg);
   if (!reg) return res.status(400).end();
