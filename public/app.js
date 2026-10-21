@@ -85,6 +85,13 @@
   var photoIcon = document.getElementById("photoIcon");
   var photoBtn = document.getElementById("photoBtn");
   var regNumberText = "";
+  var termsLink = document.getElementById("termsLink");
+  if (termsLink) termsLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    var det = document.getElementById("termsText");
+    det.open = true;
+    det.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
   var sig = window.abecSignature.create(document.getElementById("sigMount"));
   var sigDataUrl = "";
   var photoB64 = "";
@@ -212,6 +219,7 @@
     var data = {};
     new FormData(form).forEach(function (v, k) { if (k !== "photo") data[k] = v; });
     data.state = stateField.hidden ? "" : (stateSel.hidden ? stateText.value : stateSel.value);
+    data.terms = !!document.getElementById("terms").checked;
     data.photo = photoB64; // the server reports a missing photo together with any other errors
 
     btn.disabled = true;
@@ -221,6 +229,7 @@
     // The signature is made first. If it is missing the server reports it together with any other errors.
     sigReady.then(function (sigUrl) {
       sigDataUrl = sigUrl;
+      sig.setError(""); // the form shows one message for a missing signature, not two
       data.signature = sigUrl ? sigUrl.slice(sigUrl.indexOf(",") + 1) : "";
       return fetch("/api/register", {
         method: "POST",

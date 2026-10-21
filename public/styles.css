@@ -358,8 +358,8 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .status::before { content: ""; width: .6em; height: .6em; border-radius: 50%; background: currentColor; }
 .status span { color: #fff; }
 
-.idc-verify { display: flex; align-items: center; gap: 1.1em; margin: 1.5em 0 0; padding: 1.1em 0 1.2em; border-top: 1px dashed rgba(255, 255, 255, .28); }
-.idc-qr { flex: none; width: 7.6em; height: 7.6em; padding: .3em; background: #fff; border-radius: .8em; }
+.idc-verify { display: flex; align-items: center; gap: 1em; margin: .9em 0 0; padding: .8em 0 1em; border-top: 1px dashed rgba(255, 255, 255, .28); }
+.idc-qr { flex: none; width: 6em; height: 6em; padding: .3em; background: #fff; border-radius: .8em; }
 .idc-qr svg { width: 100%; height: 100%; display: block; }
 .idc-vtext { display: grid; gap: .35em; font-size: .98em; line-height: 1.3; }
 .idc-vtext strong { font-size: 1.1em; }
@@ -734,9 +734,9 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .wb-note { margin: 14px 0 0; font-size: .85rem; color: var(--muted); }
 
 /* Signature on the ID card and the signature box */
-.idc-sig { display: grid; justify-items: center; gap: 4px; margin: .7em 0 .3em; }
-.idc-sig img { box-sizing: content-box; height: 3.4em; max-width: 72%; object-fit: contain; padding: 4px 14px; background: #fff; border-radius: 10px; }
-.idc-sig span { text-align: center; font-size: .62em; letter-spacing: .1em; text-transform: uppercase; opacity: .75; }
+.idc-sig { display: grid; justify-items: center; gap: 2px; margin: .5em 0 0; }
+.idc-sig img { height: 3.2em; max-width: 72%; object-fit: contain; }
+.idc-sig span { text-align: center; font-size: .58em; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
 .sig { display: grid; gap: 10px; }
 .sig-intro { margin: 0 0 8px; font-size: .84rem; color: var(--muted); }
 .sig-tabs { display: flex; gap: 8px; }
@@ -756,3 +756,11 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .sig-edit { margin-top: 10px; display: grid; gap: 10px; }
 #sigPanel { display: grid; gap: 10px; padding: 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
 #sigPanel[hidden] { display: none; }
+
+/* Terms and conditions on the registration form */
+.terms-check { display: flex; align-items: flex-start; gap: 10px; font-size: .92rem; line-height: 1.4; cursor: pointer; }
+.terms-check input { flex: none; width: 20px; height: 20px; margin-top: 2px; }
+.terms-check a { color: var(--violet-deep); font-weight: 700; }
+.terms-text { margin-top: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .84rem; line-height: 1.45; }
+.terms-text summary { cursor: pointer; font-weight: 700; color: var(--violet-deep); }
+.terms-text ol { margin: 10px 0 0; padding-left: 1.2em; display: grid; gap: 8px; }

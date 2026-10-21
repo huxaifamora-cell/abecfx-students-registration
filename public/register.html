@@ -68,13 +68,6 @@
             </div>
 
             <div class="field">
-              <span class="label" id="sigLabel">Your signature</span>
-              <p class="sig-intro">It appears on your student ID card. Draw it, or upload a picture of it.</p>
-              <div id="sigMount" aria-labelledby="sigLabel"></div>
-              <span class="err" data-for="signature"></span>
-            </div>
-
-            <div class="field">
               <label for="email">Email address</label>
               <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required />
               <span class="err" data-for="email"></span>
@@ -133,6 +126,32 @@
               <label for="mentorshipCode">Mentorship code <em>(required)</em></label>
               <input id="mentorshipCode" name="mentorshipCode" type="text" required autocomplete="off" autocapitalize="characters" placeholder="Code given to you by your mentor" />
               <span class="err" data-for="mentorshipCode"></span>
+            </div>
+
+            <div class="field">
+              <span class="label" id="sigLabel">Your signature</span>
+              <p class="sig-intro">It appears on your student ID card. Draw it, or upload a picture of it.</p>
+              <div id="sigMount" aria-labelledby="sigLabel"></div>
+              <span class="err" data-for="signature"></span>
+            </div>
+
+            <div class="field terms">
+              <label class="terms-check">
+                <input id="terms" name="terms" type="checkbox" required />
+                <span>I have read and agree to the <a href="#termsText" id="termsLink">Terms and Conditions</a>.</span>
+              </label>
+              <details class="terms-text" id="termsText">
+                <summary>Read the Terms and Conditions</summary>
+                <ol>
+                  <li><strong>Your details.</strong> The information I give (name, country, state, gender, date of birth, email, WhatsApp number, passport photograph and signature) is true and is mine. I will keep it up to date.</li>
+                  <li><strong>How ABEC-FX uses my details.</strong> My details are used to run my student record, ID card, handbook progress and quiz. My email address, WhatsApp number and date of birth are never shown on the public ID card. My signature is shown only on my own ID card, after I sign in.</li>
+                  <li><strong>My ID card.</strong> My student ID card stays valid only for the period shown on it, and I will not lend it, copy it or use it to pretend to be someone else.</li>
+                  <li><strong>Mentorship code and course material.</strong> My mentorship code is for me alone. The handbook, workbooks and videos are for my own learning, and I will not copy, sell or share them.</li>
+                  <li><strong>Trading risk.</strong> Forex and synthetic-index trading carries a high risk of loss. The teaching is education, not financial advice, and no profit is promised. I am responsible for my own trading decisions and for only risking money I can afford to lose.</li>
+                  <li><strong>Behaviour.</strong> I will respect the mentors and other students. ABEC-FX may suspend or remove a student record that breaks these terms.</li>
+                </ol>
+              </details>
+              <span class="err" data-for="terms"></span>
             </div>
 
             <div class="hp" aria-hidden="true">

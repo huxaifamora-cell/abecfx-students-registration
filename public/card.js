@@ -116,6 +116,25 @@
     return null;
   };
 
+  // The signature is stored as dark ink on see-through. On the card it is drawn in white, so recolour it here.
+  function whiteInk(src, done) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        var ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        ctx.globalCompositeOperation = "source-in";
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, c.width, c.height);
+        done(c.toDataURL("image/png"));
+      } catch (e) { done(src); }
+    };
+    img.onerror = function () { done(src); };
+    img.src = src;
+  }
+
   /**
    * d: card data from /api/lookup or /api/register
    * opts.photoSrc: use this image instead of /api/photo (e.g. the just-taken photo)
@@ -197,17 +216,6 @@
     if (status === "Team Member" && d.teamRole) card.appendChild(el("p", "idc-roleline", d.teamRole));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 
-    // ---- the student's own signature (only on their own card, never on the public find-a-student card)
-    if (opts.signatureSrc) {
-      var sigBox = el("div", "idc-sig");
-      var sigImg = el("img");
-      sigImg.src = opts.signatureSrc;
-      sigImg.alt = "Signature of " + d.fullName;
-      sigBox.appendChild(sigImg);
-      sigBox.appendChild(el("span", null, "Holder's signature"));
-      card.appendChild(sigBox);
-    }
-
     // ---- status (+ stamp for certified graduates, alumni and the team)
     var row = el("div", "idc-statusrow");
     var col = el("div", "idc-statuscol");
@@ -224,6 +232,19 @@
       row.appendChild(stampWrap);
     }
     card.appendChild(row);
+
+    // ---- the student's own signature, white ink straight under "Since ..." (only on their own card,
+    // never on the public find-a-student card)
+    if (opts.signatureSrc) {
+      var sigBox = el("div", "idc-sig");
+      var sigImg = el("img");
+      sigImg.alt = "Signature of " + d.fullName;
+      sigImg.hidden = true;
+      whiteInk(opts.signatureSrc, function (url) { sigImg.src = url; sigImg.hidden = false; });
+      sigBox.appendChild(sigImg);
+      sigBox.appendChild(el("span", null, "Holder's signature"));
+      card.appendChild(sigBox);
+    }
 
     // ---- QR code: opens this student's live status
     var url = (opts.origin || location.origin) + "/status?reg=" + d.regNumber;
