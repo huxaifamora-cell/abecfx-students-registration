@@ -1498,12 +1498,18 @@
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
 
   // ---------- ID cards (admin) ----------
-  var idTimer = null, idSeq = 0, idCurrent = null;
+  var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;
   function showIdCard(c, li) {
     idCurrent = c;
     Array.prototype.forEach.call($("idList").children, function (x) { x.classList.toggle("on", x === li); });
     $("idMount").replaceChildren(window.renderStudentCard(c));
     $("idActions").hidden = false;
+    // The signature is fetched separately, then the card is drawn again with it.
+    var mine = ++sigSeq;
+    api("/api/admin/id-cards/signature?reg=" + encodeURIComponent(c.regNumber)).then(function (res) {
+      if (mine !== sigSeq || idCurrent !== c || !res.signature) return;
+      $("idMount").replaceChildren(window.renderStudentCard(c, { signatureSrc: "data:image/png;base64," + res.signature }));
+    }).catch(function () { /* the card just shows without a signature */ });
   }
   function loadIdCards() {
     var seq = ++idSeq, q = $("idq").value.trim();

@@ -82,6 +82,7 @@
   }
 
   function showSignin(message) {
+    var dd = document.getElementById("dobDlg"); if (dd && dd.open) dd.close();
     loading.hidden = true;
     home.hidden = true;
     signin.hidden = false;
@@ -95,6 +96,7 @@
     document.getElementById("welcome").textContent = first ? "Welcome back, " + first : "Welcome back";
     mySig = "";
     sigNote("");
+    showDobNotice(d.dobNotice);
     document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
     loadSignature(d);
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -367,7 +369,7 @@
         if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
         remember(res.body.card.regNumber, res.body.token);
         emailInput.value = "";
-        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged }));
+        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged, dobNotice: res.body.dobNotice }));
       })
       .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
       .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
@@ -387,6 +389,72 @@
       setTimeout(function () { dlBtn.textContent = label; }, 3500);
     }).then(function () { dlBtn.disabled = false; });
   });
+  // ---- Age requirement notice: a pop-up for a student whose date of birth on file is too recent ----
+  var dobDlg = document.getElementById("dobDlg");
+  var dobForm = document.getElementById("dobForm");
+  var dobStart = document.getElementById("dobStart");
+  var dobMsg = document.getElementById("dobMsg");
+  var dobInput = document.getElementById("dobInput");
+  function niceDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+    if (!m) return iso || "";
+    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return Number(m[3]) + " " + months[Number(m[2]) - 1] + " " + m[1];
+  }
+  var lastDob = "";
+  function showDobNotice(n) {
+    if (n && n.dob) lastDob = n.dob; else if (n) n.dob = lastDob;
+    if (!n) { if (dobDlg.open) dobDlg.close(); return; }
+    var text = "The system has noticed that you do not meet our age requirements for registration. Your current date of birth is set as: " + niceDate(n.dob) + ".";
+    document.getElementById("dobText").textContent = n.canUpdate
+      ? text + " Please update it now to continue enjoying our services."
+      : text + " You have already used your one update, so please contact your mentor to correct it.";
+    document.getElementById("dobOpenForm").hidden = !n.canUpdate;
+    dobStart.hidden = false;
+    dobForm.hidden = true;
+    dobMsg.textContent = "";
+    dobInput.value = "";
+    if (!dobDlg.open) { if (dobDlg.showModal) dobDlg.showModal(); else dobDlg.setAttribute("open", ""); }
+  }
+  // The notice cannot be dismissed with Escape: the student updates their date of birth (or signs out).
+  dobDlg.addEventListener("cancel", function (e) { e.preventDefault(); });
+  document.getElementById("dobOpenForm").addEventListener("click", function () {
+    dobStart.hidden = true; dobForm.hidden = false; dobMsg.textContent = "";
+    dobInput.focus();
+  });
+  document.getElementById("dobBack").addEventListener("click", function () {
+    dobForm.hidden = true; dobStart.hidden = false; dobMsg.textContent = "";
+  });
+  document.getElementById("dobSignOut").addEventListener("click", function () {
+    if (dobDlg.open) dobDlg.close();
+    document.getElementById("switchBtn").click();
+  });
+  dobForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!dobInput.value) { dobMsg.textContent = "Please enter your date of birth."; return; }
+    var save = document.getElementById("dobSave");
+    save.disabled = true; dobMsg.textContent = "Saving...";
+    authFetch("/api/portal/dob", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dob: dobInput.value }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { if (dobDlg.open) dobDlg.close(); signedOut(b.error); return; }
+        if (!r.ok) {
+          dobMsg.textContent = b.error || "We could not save your date of birth. Please try again.";
+          if (b.canUpdate === false) showDobNotice({ dob: "", canUpdate: false });
+          return;
+        }
+        dobMsg.textContent = "";
+        dobDlg.close();
+        liveNote("Your date of birth has been updated.");
+      });
+    }).catch(function () { dobMsg.textContent = "Network problem. Check your connection and try again."; })
+      .then(function () { save.disabled = false; });
+  });
+  function liveNote(t) { var l = document.getElementById("liveLine"); if (l) { l.textContent = t; l.className = "live"; } }
+
   // ---- My signature: shown on the student's own card, drawn or uploaded, saved on the website ----
   var mySig = "";
   var sigToggle = document.getElementById("sigToggle");

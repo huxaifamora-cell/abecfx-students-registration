@@ -768,3 +768,14 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .sig-placeholder { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.15rem; font-weight: 600; color: #8a7a96; pointer-events: none; }
 .sig-placeholder[hidden] { display: none; }
 .signout-row { display: grid; margin: 22px auto 0; max-width: 360px; }
+
+/* Age requirement pop-up */
+.dobdlg { width: min(92vw, 440px); border: 0; border-radius: 18px; padding: 22px; box-shadow: 0 20px 60px rgba(30, 8, 40, .45); }
+.dobdlg::backdrop { background: rgba(20, 6, 30, .62); }
+.dobdlg h2 { margin: 0 0 10px; font-size: 1.25rem; }
+.dobdlg p { margin: 0 0 14px; line-height: 1.45; }
+.dobdlg .btn { margin-top: 10px; }
+.dobdlg form { display: grid; gap: 8px; }
+.dobdlg label { font-weight: 700; font-size: .9rem; }
+.dobdlg input[type="date"] { width: 100%; }
+.dob-warn { padding: 10px 12px; background: #fff6df; border: 1px solid var(--gold); border-radius: 12px; font-size: .88rem; }

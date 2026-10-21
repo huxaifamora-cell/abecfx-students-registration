@@ -163,6 +163,24 @@
           </div>
         </section>
 
+        <!-- Age requirement notice: shown to a signed-in student whose saved date of birth is too recent -->
+        <dialog id="dobDlg" class="dobdlg" aria-labelledby="dobTitle">
+          <h2 id="dobTitle">Please update your date of birth</h2>
+          <p id="dobText"></p>
+          <div id="dobStart">
+            <button type="button" class="btn primary wide" id="dobOpenForm">Update my date of birth</button>
+            <button type="button" class="btn ghost wide" id="dobSignOut">Sign out</button>
+          </div>
+          <form id="dobForm" hidden novalidate>
+            <p class="dob-warn" role="note"><strong>You can only update your date of birth once.</strong> Make sure it matches your documents before you save.</p>
+            <label for="dobInput">New date of birth</label>
+            <input id="dobInput" type="date" min="1920-01-01" autocomplete="bday" required />
+            <p class="formErr" id="dobMsg" role="alert"></p>
+            <button type="submit" class="btn primary wide" id="dobSave">Save my date of birth</button>
+            <button type="button" class="btn ghost wide" id="dobBack">Back</button>
+          </form>
+        </dialog>
+
         <p class="sheet-foot">&copy; <span id="year"></span> Adebass Base Edge Consult</p>
       </div>
     </main>
