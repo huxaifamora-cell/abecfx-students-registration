@@ -56,3 +56,14 @@ test("admin ID cards can load a student's signature; students and strangers cann
   assert.equal((await s.call("GET", "/api/admin/id-cards/signature?reg=nope", { token: admin })).status, 400);
   assert.equal((await s.call("GET", "/api/admin/id-cards/signature?reg=" + encodeURIComponent(B), { token: admin })).body.signature, "");
 });
+
+test("students without a signature are flagged until they add one", async (t) => {
+  const s = await boot();
+  t.after(() => s.stop());
+  const login = await s.call("POST", "/api/portal/login", { body: { reg: A, email: require("./support/boot-server").email(A) } });
+  assert.equal(login.body.signatureMissing, true);
+  const a = login.body.token;
+  assert.equal((await s.call("GET", "/api/portal/me", { token: a })).body.signatureMissing, true);
+  assert.equal((await s.call("PUT", "/api/portal/signature", { token: a, body: { signature: GOOD } })).status, 200);
+  assert.equal((await s.call("GET", "/api/portal/me", { token: a })).body.signatureMissing, false);
+});
