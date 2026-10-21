@@ -439,7 +439,7 @@ app.put("/api/portal/photo", photoEditLimiter, studentAuth, async (req, res) => 
   }
 });
 
-// ---- Mentorship Handbook (signed-in students only) ----
+// ---- Handbook (signed-in students only) ----
 // The handbook text is served from the website and each student's progress is kept in the sheet tab
 // "Handbook Progress". Progress = chapters marked as read / total chapters.
 const handbookLimiter = rateLimit({
@@ -522,7 +522,7 @@ app.get("/handbook.pdf", handbookLimiter, (req, res) => {
   const secret = sessionSecret();
   const reg = secret ? pdfLink.verify(String(req.query.t || ""), secret) : null;
   if (!reg) {
-    return res.status(401).type("text/plain").send("This link has expired. Open the Mentorship Handbook in your student portal and try again.");
+    return res.status(401).type("text/plain").send("This link has expired. Open the Handbook in your student portal and try again.");
   }
   res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
   res.type("application/pdf");

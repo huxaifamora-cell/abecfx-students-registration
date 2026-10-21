@@ -1,4 +1,4 @@
-// The Edge Handbook as shown in the student portal (Mentorship Handbook).
+// The Edge Handbook as shown in the student portal (Handbook).
 // Source: "ABEC FX - The Edge Handbook & Complete Workbook" PDF (served at /handbook.pdf).
 // Text and tables are copied from the PDF; charts, fill-in exercises and signature pages stay in
 // the PDF (each chapter links to it). Each section below is one "step" of a student's progress:
