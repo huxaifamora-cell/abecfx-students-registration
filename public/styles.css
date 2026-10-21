@@ -724,3 +724,11 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .photo-edit { max-width: 360px; margin: 10px auto 0; display: grid; gap: 6px; text-align: center; }
 .photo-edit .btn { cursor: pointer; }
 .photo-edit input:focus-visible + .btn { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* Workbook downloads */
+.wb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wb-row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.wb-row .hb-chapter-txt { flex: 1; }
+.wb-row .btn { flex: none; padding: 8px 14px; min-height: 0; font-size: .85rem; }
+.wb-soon { font-size: .8rem; color: var(--muted); flex: none; }
+.wb-note { margin: 14px 0 0; font-size: .85rem; color: var(--muted); }

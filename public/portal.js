@@ -58,7 +58,7 @@
   // The sign-in has expired or is not valid: back to the sign-in form.
   function signedOut(message) {
     closeQuiz(true);
-    window.abecHandbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -104,17 +104,17 @@
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentView = "";
     route();
   }
 
   // ---- My portal submenu: ID card, Quiz, Mentorship Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "community"];
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community"];
   var currentView = "";
 
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|community)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -129,16 +129,18 @@
       if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
       else links[i].removeAttribute("aria-current");
     }
-    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook");
+    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
+    if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
     if (r.view !== "handbook" || !r.chapter) window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Community: the WhatsApp and Telegram groups set on the dashboard, opened in a new tab ----
   function safeHttps(u) {
@@ -427,7 +429,7 @@
 
   document.getElementById("switchBtn").addEventListener("click", function () {
     closeQuiz(true);
-    window.abecHandbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
     currentView = "";
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
