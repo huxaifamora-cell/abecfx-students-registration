@@ -1,4 +1,4 @@
-// Mentorship Handbook inside the student portal: chapter list, reader and learning-progress bar.
+// Handbook inside the student portal: chapter list, reader and learning-progress bar.
 // Progress = chapters marked as read / total chapters, saved on the website (Google Sheet) for the
 // signed-in student. portal.js calls setup() once with its sign-in helpers.
 (function () {
@@ -56,7 +56,7 @@
       if (e.message === "signed out") return;
       document.getElementById("journeyPct").textContent = "";
       document.getElementById("journeyFill").style.width = "0%";
-      document.getElementById("journeySub").textContent = "Open the Mentorship Handbook to see your progress.";
+      document.getElementById("journeySub").textContent = "Open the Handbook to see your progress.";
     });
   }
 
@@ -165,7 +165,7 @@
   function renderList() {
     var p = data.progress;
     mount.replaceChildren();
-    mount.appendChild(el("h2", null, "Mentorship Handbook"));
+    mount.appendChild(el("h2", null, "Handbook"));
     mount.appendChild(el("p", "lead", "The Edge Handbook your quiz comes from. Read each chapter, then mark it as read to move your progress bar."));
     mount.appendChild(header(p));
 

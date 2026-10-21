@@ -109,7 +109,7 @@
     route();
   }
 
-  // ---- My portal submenu: ID card, Quiz, Mentorship Handbook (addresses #/card, #/quiz, #/handbook/03) ----
+  // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
   var VIEWS = ["card", "quiz", "handbook", "workbook", "community"];
   var currentView = "";
 

@@ -564,7 +564,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .journey-pct { font-family: var(--display); font-weight: 800; font-size: 1.5rem; color: var(--violet-deep); }
 .journey-sub { font-size: .88rem; color: var(--muted); }
 
-/* ---------- Mentorship Handbook ---------- */
+/* ---------- Handbook ---------- */
 .hb-progress { display: grid; gap: 10px; margin: 0 0 22px; padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: 18px; }
 .hb-progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .hb-progress-top strong { font-family: var(--display); font-size: 1.05rem; }
