@@ -113,7 +113,10 @@ function validDob(v, todayISO) {
   const y = +m[1], mo = +m[2], da = +m[3];
   const dt = new Date(Date.UTC(y, mo - 1, da));
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== da) return false;
-  return y >= 1920 && v <= todayISO;
+  // Must be at least 6 years old today. A failure gets the same generic message as any other bad date.
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayISO);
+  const cutoff = t ? String(+t[1] - 6).padStart(4, "0") + "-" + t[2] + "-" + t[3] : todayISO;
+  return y >= 1920 && v <= cutoff;
 }
 
 function validate(body) {
