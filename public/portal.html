@@ -61,7 +61,7 @@
         <section id="home" hidden>
           <!-- My portal submenu -->
           <nav class="subnav" id="subnav" aria-label="My portal">
-            <a href="#/card" data-view="card" aria-current="page">My ID card</a>
+            <a href="#/card" data-view="card" aria-current="page">ID card</a>
             <a href="#/community" data-view="community">Community</a>
             <a href="#/handbook" data-view="handbook">Handbook</a>
             <a href="#/workbook" data-view="workbook">Workbook</a>
@@ -76,7 +76,6 @@
             <p class="live" id="liveLine" role="status"></p>
             <div class="pass-actions">
               <button type="button" id="downloadBtn" class="btn ghost">Download ID card</button>
-              <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
             </div>
             <div class="photo-edit" id="photoEdit">
               <input id="newPhoto" type="file" accept="image/*" class="sr-only" aria-label="Choose a new passport photo" />
@@ -157,6 +156,10 @@
           <!-- View: Workbook -->
           <div id="viewWorkbook" class="view" hidden>
             <div id="wbMount"><p class="live" role="status">Opening the workbooks...</p></div>
+          </div>
+
+          <div class="signout-row">
+            <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
           </div>
         </section>
 

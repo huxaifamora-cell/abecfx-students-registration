@@ -135,7 +135,8 @@
     ctxPad.lineWidth = 6; ctxPad.lineCap = "round"; ctxPad.lineJoin = "round";
     ctxPad.strokeStyle = "rgb(" + INK.join(",") + ")";
     drawBox.appendChild(pad);
-    drawBox.appendChild(el("span", "sig-line", "Sign here"));
+    var drawHint = el("span", "sig-placeholder", "Please sign here");
+    drawBox.appendChild(drawHint);
     var clearBtn = el("button", "btn ghost sig-clear", "Clear");
     clearBtn.type = "button";
     var drawWrap = el("div", "sig-pane");
@@ -153,7 +154,7 @@
       drawing = true; last = pos(e);
       try { pad.setPointerCapture(e.pointerId); } catch (x) {}
       ctxPad.beginPath(); ctxPad.moveTo(last.x, last.y); ctxPad.lineTo(last.x + 0.01, last.y + 0.01); ctxPad.stroke();
-      drawn = true; setErr("");
+      drawn = true; drawHint.hidden = true; setErr("");
       e.preventDefault();
     });
     pad.addEventListener("pointermove", function (e) {
@@ -168,7 +169,7 @@
     pad.addEventListener("pointercancel", stop);
     pad.addEventListener("pointerleave", stop);
 
-    function clearPad() { ctxPad.clearRect(0, 0, PAD_W, PAD_H); drawn = false; }
+    function clearPad() { ctxPad.clearRect(0, 0, PAD_W, PAD_H); drawn = false; drawHint.hidden = false; }
     clearBtn.addEventListener("click", function () { clearPad(); setErr(""); });
 
     // ---- upload

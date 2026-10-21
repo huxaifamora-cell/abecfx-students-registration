@@ -372,7 +372,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .success-head .tick { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--violet); margin-bottom: 14px; }
 .success-head .tick svg { width: 20px; height: 20px; }
 .note { margin: 18px 0 0; font-size: .9rem; color: var(--muted); }
-.pass-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; max-width: 360px; margin-left: auto; margin-right: auto; }
+.pass-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; max-width: 360px; margin-left: auto; margin-right: auto; }
 .live { max-width: 360px; margin: 14px auto 0; font-size: .84rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #1f9d6b; box-shadow: 0 0 0 4px rgba(31, 157, 107, .18); }
 
@@ -764,3 +764,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .terms-text { margin-top: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .84rem; line-height: 1.45; }
 .terms-text summary { cursor: pointer; font-weight: 700; color: var(--violet-deep); }
 .terms-text ol { margin: 10px 0 0; padding-left: 1.2em; display: grid; gap: 8px; }
+
+.sig-placeholder { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.15rem; font-weight: 600; color: #8a7a96; pointer-events: none; }
+.sig-placeholder[hidden] { display: none; }
+.signout-row { display: grid; margin: 22px auto 0; max-width: 360px; }
