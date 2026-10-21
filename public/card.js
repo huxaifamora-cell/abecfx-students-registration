@@ -192,7 +192,7 @@
       mark.setAttribute("aria-hidden", "true");
       card.appendChild(mark);
     }
-    card.appendChild(el("h3", "idc-name", d.fullName));
+    card.appendChild(el("h3", "idc-name", String(d.fullName || "").toUpperCase()));
     if (status === "Team Member" && d.teamRole) card.appendChild(el("p", "idc-roleline", d.teamRole));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 

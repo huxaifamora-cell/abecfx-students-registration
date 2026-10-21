@@ -329,7 +329,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .idc-facts dt { font-size: .82em; opacity: .62; line-height: 1.2; }
 .idc-facts dd { margin: .12em 0 0; font-weight: 700; font-size: 1.08em; line-height: 1.2; word-break: break-word; }
 
-.idc-name { font-family: var(--display); font-weight: 700; font-size: 2em; line-height: 1.08; letter-spacing: -.02em; margin: 1.2em 0 .3em; word-break: break-word; }
+.idc-name { text-transform: uppercase; font-family: var(--display); font-weight: 700; font-size: 2em; line-height: 1.08; letter-spacing: -.02em; margin: 1.2em 0 .3em; word-break: break-word; }
 .idc-reg { margin: 0; font-weight: 700; letter-spacing: .1em; font-size: 1.15em; font-variant-numeric: tabular-nums; opacity: .92; }
 
 .idc-statusrow { display: flex; align-items: center; justify-content: space-between; gap: .6em; margin: 1em 0 0; min-height: 3.2em; }

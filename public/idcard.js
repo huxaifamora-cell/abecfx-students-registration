@@ -43,7 +43,7 @@
     top.appendChild(el("span", "idcard-brand", "ABEC-FX " + kind));
 
     var middle = el("div");
-    middle.appendChild(el("h3", "idcard-name", d.fullName));
+    middle.appendChild(el("h3", "idcard-name", String(d.fullName || "").toUpperCase()));
     middle.appendChild(el("p", "idcard-reg", d.regNumber));
 
     var meta = el("dl", "idcard-meta");
