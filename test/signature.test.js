@@ -40,3 +40,19 @@ test("registration needs a signature", async (t) => {
   assert.ok(r.body.errors.signature, "a missing signature is reported with the other errors");
   assert.ok(r.body.errors.terms, "so is a missing agreement to the Terms and Conditions");
 });
+
+test("admin ID cards can load a student's signature; students and strangers cannot use that route", async (t) => {
+  const s = await boot();
+  t.after(() => s.stop());
+  const a = await s.studentToken(A);
+  const admin = await s.adminToken();
+  await s.call("PUT", "/api/portal/signature", { token: a, body: { signature: GOOD } });
+
+  assert.equal((await s.call("GET", "/api/admin/id-cards/signature?reg=" + encodeURIComponent(A))).status, 401);
+  assert.equal((await s.call("GET", "/api/admin/id-cards/signature?reg=" + encodeURIComponent(A), { token: a })).status, 401, "a student token is not an admin sign-in");
+  const r = await s.call("GET", "/api/admin/id-cards/signature?reg=" + encodeURIComponent(A), { token: admin });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.signature, GOOD);
+  assert.equal((await s.call("GET", "/api/admin/id-cards/signature?reg=nope", { token: admin })).status, 400);
+  assert.equal((await s.call("GET", "/api/admin/id-cards/signature?reg=" + encodeURIComponent(B), { token: admin })).body.signature, "");
+});
