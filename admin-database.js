@@ -177,6 +177,7 @@ function create(store) {
         const reg = (row[0] || "").trim().toUpperCase();
         if (!reg) return;
         await store.deleteTabRowsByReg("photos", reg, 0);
+        await store.deleteTabRowsByReg("signatures", reg, 0);
         await store.deleteTabRowsByReg("quiz", reg, 1);
         await store.deleteTabRowsByReg("progress", reg, 0);
       },

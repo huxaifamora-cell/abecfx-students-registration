@@ -8,6 +8,7 @@ const quizcodes = require("./quizcodes");
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
 const PHOTO_TAB = process.env.GOOGLE_PHOTO_TAB || "Photos";
+const SIG_TAB = process.env.GOOGLE_SIGNATURE_TAB || "Signatures";
 const API = "https://sheets.googleapis.com/v4/spreadsheets";
 
 const STATUSES = [
@@ -35,6 +36,7 @@ const HEADERS = [
   "Team Role",
 ];
 const LAST_COL = "O";
+const SIG_HEADERS = ["Reg Number", "Signature (base64 PNG - do not edit)"];
 const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)", "Changed by student (date; clear this cell to allow one more change)"];
 const QUIZ_TAB = process.env.GOOGLE_QUIZ_TAB || "Quiz Results";
 const QUIZ_HEADERS = [
@@ -162,6 +164,9 @@ async function init() {
 
   const photos = await ensureTab(PHOTO_TAB);
   await ensureHeaders(PHOTO_TAB, PHOTO_HEADERS, "B");
+
+  await ensureTab(SIG_TAB);
+  await ensureHeaders(SIG_TAB, SIG_HEADERS, "B");
 
   await ensureTab(QUIZ_TAB);
   await ensureHeaders(QUIZ_TAB, QUIZ_HEADERS, QUIZ_LAST_COL);
@@ -490,6 +495,33 @@ async function getPhoto(reg) {
   return b64;
 }
 
+// ---- Signatures (their own tab, like photos): one row per student, the newest save replaces the old one ----
+async function sigRow(reg) {
+  const data = await call(`/values/${range("A2:A", SIG_TAB)}`);
+  const regs = ((data && data.values) || []).map((r) => (r && r[0]) || "");
+  const i = regs.lastIndexOf(reg);
+  return i < 0 ? 0 : i + 2; // sheet row number, or 0 when there is none
+}
+
+async function getSignature(reg) {
+  const row = await sigRow(reg);
+  if (!row) return null;
+  const data = await call(`/values/${range(`B${row}`, SIG_TAB)}`);
+  return (data.values && data.values[0] && data.values[0][0]) || null;
+}
+
+async function setSignature(reg, base64) {
+  const row = await sigRow(reg);
+  if (!row) {
+    await call(
+      `/values/${range("A:B", SIG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      { method: "POST", data: { values: [[reg, base64]] } }
+    );
+    return;
+  }
+  await call(`/values/${range(`B${row}`, SIG_TAB)}?valueInputOption=RAW`, { method: "PUT", data: { values: [[base64]] } });
+}
+
 // ---- Generic tab access for the editor dashboard's "Sheets" view (the rules live in admin-sheets.js) ----
 // The Photos tab is deliberately left out: it holds long image text that nobody should edit by hand.
 const EDITOR_TABS = {
@@ -501,6 +533,8 @@ const EDITOR_TABS = {
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
   // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
+  // Internal only, like photos: signature pictures. Used to remove a deleted student's signature.
+  signatures: { title: SIG_TAB, headers: SIG_HEADERS, lastCol: "B" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
   // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
@@ -610,7 +644,7 @@ async function deleteTabRowsByReg(key, reg, col = 0) {
 }
 
 module.exports = {
-  init, readAll, readCached, appendRow, appendPhoto, setPhoto, photoChanged, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
+  init, readAll, readCached, appendRow, appendPhoto, setPhoto, photoChanged, getPhoto, getSignature, setSignature, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
   EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
 };

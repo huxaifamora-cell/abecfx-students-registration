@@ -56,7 +56,7 @@ app.use(
     },
   })
 );
-app.use(express.json({ limit: "100kb" })); // registration includes a small passport photo
+app.use(express.json({ limit: "200kb" })); // registration includes a small passport photo and signature
 app.use(express.static(path.join(__dirname, "public")));
 
 // Year of admission, based on Lagos time -> "26"
@@ -97,6 +97,15 @@ function checkPhoto(p) {
   return p;
 }
 
+// The browser draws or cleans up the signature into a small transparent PNG (a few KB). Accept only that kind of file.
+function checkSignature(p) {
+  if (typeof p !== "string" || p.length < 200 || p.length > 46000) return null;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(p)) return null;
+  const head = Buffer.from(p.slice(0, 12), "base64");
+  if (!(head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47)) return null; // PNG signature
+  return p;
+}
+
 // Date of birth as YYYY-MM-DD: a real calendar date, not in the future, not before 1920.
 function validDob(v, todayISO) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
@@ -119,6 +128,7 @@ function validate(body) {
     dob: clean(body.dob, 10),
     mentorshipCode: clean(body.mentorshipCode, 40).toUpperCase(),
     photo: checkPhoto(body.photo),
+    signature: checkSignature(body.signature),
   };
   const errors = {};
   if (!countries.includes(d.country)) errors.country = "Please select your country.";
@@ -145,6 +155,7 @@ function validate(body) {
   else if (!/^[A-Z0-9_-]{4,40}$/.test(d.mentorshipCode))
     errors.mentorshipCode = "That mentorship code is not valid. Check it and try again.";
   if (!d.photo) errors.photo = "Add a passport photograph. Choose a clear photo of your face.";
+  if (!d.signature) errors.signature = "Add your signature. Sign in the box, or upload a picture of it.";
   return { d, errors };
 }
 
@@ -258,6 +269,16 @@ app.post("/api/register", limiter, async (req, res) => {
           await store.appendPhoto(reg, d.photo);
         } catch (e2) {
           console.error("Photo save failed for", reg, e2.message);
+        }
+      }
+      // The signature is saved the same way: it shows on the student's own ID card.
+      try {
+        await store.setSignature(reg, d.signature);
+      } catch (e1) {
+        try {
+          await store.setSignature(reg, d.signature);
+        } catch (e2) {
+          console.error("Signature save failed for", reg, e2.message);
         }
       }
       return cardFromRow(row);
@@ -568,6 +589,38 @@ app.get("/workbook/:id", handbookLimiter, (req, res) => {
       "Content-Disposition": 'attachment; filename="ABEC-FX-' + file.replace(/^Workbook_/, "Workbook-").replace(/_/g, "-") + '"',
     },
   });
+});
+
+const signatureLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 120, // the portal reads it each time the card opens; saving is a handful of tries
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many tries. Please try again in a while." },
+});
+
+// A student's own signature. It is only ever sent to that student (the reg number comes from the sign-in
+// token), so it does not appear on the public find-a-student card.
+app.get("/api/portal/signature", signatureLimiter, studentAuth, async (req, res) => {
+  try {
+    res.set("Cache-Control", "private, no-store");
+    res.json({ signature: (await store.getSignature(req.studentReg)) || "" });
+  } catch (err) {
+    console.error("Signature read failed for", req.studentReg, err.message);
+    res.status(500).json({ error: "We could not load your signature just now." });
+  }
+});
+
+app.put("/api/portal/signature", signatureLimiter, studentAuth, async (req, res) => {
+  const sig = checkSignature((req.body || {}).signature);
+  if (!sig) return res.status(400).json({ error: "That signature could not be used. Sign again, or upload a clearer picture." });
+  try {
+    await store.setSignature(req.studentReg, sig);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Signature save failed for", req.studentReg, err.message);
+    res.status(500).json({ error: "We could not save your signature just now. Please try again." });
+  }
 });
 
 app.get("/api/photo", photoLimiter, async (req, res) => {
