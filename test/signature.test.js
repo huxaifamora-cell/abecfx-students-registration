@@ -38,4 +38,5 @@ test("registration needs a signature", async (t) => {
   const r = await s.call("POST", "/api/register", { body: { fullName: "No Signature" } });
   assert.equal(r.status, 400);
   assert.ok(r.body.errors.signature, "a missing signature is reported with the other errors");
+  assert.ok(r.body.errors.terms, "so is a missing agreement to the Terms and Conditions");
 });
