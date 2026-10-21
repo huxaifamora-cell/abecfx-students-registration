@@ -36,6 +36,8 @@ const HEADERS = [
   "Team Role",
 ];
 const LAST_COL = "O";
+const DOB_TAB = process.env.GOOGLE_DOB_TAB || "DOB Changes";
+const DOB_HEADERS = ["Reg Number", "Old Date of Birth", "New Date of Birth", "Changed At (Lagos)"];
 const SIG_HEADERS = ["Reg Number", "Signature (base64 PNG - do not edit)"];
 const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)", "Changed by student (date; clear this cell to allow one more change)"];
 const QUIZ_TAB = process.env.GOOGLE_QUIZ_TAB || "Quiz Results";
@@ -167,6 +169,9 @@ async function init() {
 
   await ensureTab(SIG_TAB);
   await ensureHeaders(SIG_TAB, SIG_HEADERS, "B");
+
+  await ensureTab(DOB_TAB);
+  await ensureHeaders(DOB_TAB, DOB_HEADERS, "D");
 
   await ensureTab(QUIZ_TAB);
   await ensureHeaders(QUIZ_TAB, QUIZ_HEADERS, QUIZ_LAST_COL);
@@ -565,6 +570,8 @@ const EDITOR_TABS = {
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
   // Internal only, like photos: signature pictures. Used to remove a deleted student's signature.
   signatures: { title: SIG_TAB, headers: SIG_HEADERS, lastCol: "B" },
+  // Internal only: the one-time date of birth corrections students make themselves (old and new value, and when).
+  dobchanges: { title: DOB_TAB, headers: DOB_HEADERS, lastCol: "D" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
   // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.

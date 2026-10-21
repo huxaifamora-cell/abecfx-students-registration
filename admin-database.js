@@ -178,6 +178,7 @@ function create(store) {
         if (!reg) return;
         await store.deleteTabRowsByReg("photos", reg, 0);
         await store.deleteTabRowsByReg("signatures", reg, 0);
+        await store.deleteTabRowsByReg("dobchanges", reg, 0);
         await store.deleteTabRowsByReg("quiz", reg, 1);
         await store.deleteTabRowsByReg("progress", reg, 0);
       },

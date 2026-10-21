@@ -106,17 +106,27 @@ function checkSignature(p) {
   return p;
 }
 
-// Date of birth as YYYY-MM-DD: a real calendar date, not in the future, not before 1920.
+// The latest date of birth that still meets the age requirement today (6 years ago, as YYYY-MM-DD).
+function dobCutoff(todayISO) {
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayISO);
+  return t ? String(+t[1] - 6).padStart(4, "0") + "-" + t[2] + "-" + t[3] : todayISO;
+}
+
+// Date of birth as YYYY-MM-DD: a real calendar date, not before 1920, and at least 6 years ago.
 function validDob(v, todayISO) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
   if (!m) return false;
   const y = +m[1], mo = +m[2], da = +m[3];
   const dt = new Date(Date.UTC(y, mo - 1, da));
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== da) return false;
-  // Must be at least 6 years old today. A failure gets the same generic message as any other bad date.
-  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayISO);
-  const cutoff = t ? String(+t[1] - 6).padStart(4, "0") + "-" + t[2] + "-" + t[3] : todayISO;
-  return y >= 1920 && v <= cutoff;
+  // A failure gets the same generic message as any other bad date.
+  return y >= 1920 && v <= dobCutoff(todayISO);
+}
+
+// Someone already registered whose saved date of birth is too recent (younger than 6, or in the future).
+function dobTooRecent(dob) {
+  const v = String(dob || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) && v > dobCutoff(idrules.lagosToday());
 }
 
 function validate(body) {
@@ -400,6 +410,16 @@ async function photoUsed(reg) {
   try { return !!(await store.photoChanged(reg)); } catch (e) { return false; }
 }
 
+// A student whose date of birth on file is under the age requirement gets a notice in the portal. They may
+// correct it ONCE themselves (every correction is kept on the "DOB Changes" tab), after that only a mentor can.
+async function dobNotice(row, reg) {
+  const dob = String((row && row[13]) || "").trim();
+  if (!dobTooRecent(dob)) return null;
+  let used = false;
+  try { used = (await store.tabRows("dobchanges")).some((x) => String(x.cells[0] || "").trim().toUpperCase() === reg); } catch (e) { /* assume not used */ }
+  return { dob, canUpdate: !used };
+}
+
 app.post("/api/portal/login", loginLimiter, async (req, res) => {
   res.set("Cache-Control", "no-store");
   const secret = sessionSecret();
@@ -416,7 +436,7 @@ app.post("/api/portal/login", loginLimiter, async (req, res) => {
     if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
       return res.status(401).json({ error: "That registration number and email do not match our records." });
     }
-    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg) });
+    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg) });
   } catch (err) {
     console.error("Portal sign-in failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -429,7 +449,7 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached();
     const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
     if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
-    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg) });
+    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg) });
   } catch (err) {
     console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -602,6 +622,45 @@ const signatureLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many tries. Please try again in a while." },
+});
+
+const dobLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many tries. Please try again in a while." },
+});
+
+// A flagged student corrects their own date of birth, once. The reg number comes from the sign-in token.
+app.put("/api/portal/dob", dobLimiter, studentAuth, async (req, res) => {
+  const dob = clean((req.body || {}).dob, 10);
+  const reg = req.studentReg;
+  try {
+    const out = await exclusive(async () => {
+      const hit = (await store.tabRows("students")).find((x) => String(x.cells[0] || "").trim().toUpperCase() === reg);
+      if (!hit) return { status: 401, body: { error: "Please sign in to your student portal." } };
+      const old = String(hit.cells[13] || "").trim();
+      if (!dobTooRecent(old)) return { status: 403, body: { error: "Your date of birth does not need updating." } };
+      const used = (await store.tabRows("dobchanges")).some((x) => String(x.cells[0] || "").trim().toUpperCase() === reg);
+      if (used) return { status: 403, body: { error: "You have already updated your date of birth once. Please contact your mentor.", canUpdate: false } };
+      if (!validDob(dob, idrules.lagosToday())) {
+        return { status: 400, body: { error: "That date of birth does not meet our age requirements. Check your documents and enter the date on them." } };
+      }
+      await store.writeTabCells("students", hit.n, { 13: dob });
+      const record = [reg, old, dob, lagosTimestamp()];
+      try {
+        await store.appendTabRows("dobchanges", [record]);
+      } catch (e1) {
+        try { await store.appendTabRows("dobchanges", [record]); } catch (e2) { console.error("DOB change record failed for", reg, e2.message); }
+      }
+      return { status: 200, body: { ok: true } };
+    });
+    res.status(out.status).json(out.body);
+  } catch (err) {
+    console.error("DOB update failed for", reg, err.message);
+    res.status(500).json({ error: "We could not save your date of birth just now. Please try again." });
+  }
 });
 
 // A student's own signature. It is only ever sent to that student (the reg number comes from the sign-in
@@ -994,6 +1053,19 @@ app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
   } catch (err) {
     console.error("ID card list failed:", err.message);
     res.status(500).json({ error: "Could not read the student list. Please try again shortly." });
+  }
+});
+
+// The signature shown on a student's card in the admin ID cards view (same access as the cards themselves).
+app.get("/api/admin/id-cards/signature", adminLimiter, teamAuth, async (req, res) => {
+  const reg = normaliseReg(req.query.reg);
+  if (!reg) return res.status(400).json({ error: "Not a valid registration number." });
+  try {
+    res.set("Cache-Control", "private, no-store");
+    res.json({ signature: (await store.getSignature(reg)) || "" });
+  } catch (err) {
+    console.error("Admin signature read failed for", reg, err.message);
+    res.status(500).json({ error: "Could not load the signature." });
   }
 });
 
