@@ -420,6 +420,11 @@ async function dobNotice(row, reg) {
   return { dob, canUpdate: !used };
 }
 
+// A mentor typed "Yes" in the student's "Photo To Redo" cell: they must send a new passport photo.
+function photoRedo(row) {
+  return String((row && row[15]) || "").trim().toLowerCase() === "yes";
+}
+
 // True when the student has no signature on file yet (a read problem never nags them).
 async function signatureMissing(reg) {
   try { return !(await store.getSignature(reg)); } catch (e) { return false; }
@@ -441,7 +446,7 @@ app.post("/api/portal/login", loginLimiter, async (req, res) => {
     if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
       return res.status(401).json({ error: "That registration number and email do not match our records." });
     }
-    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg), signatureMissing: await signatureMissing(reg) });
+    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg), signatureMissing: await signatureMissing(reg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal sign-in failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -454,7 +459,7 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached();
     const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
     if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
-    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg) });
+    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -479,8 +484,20 @@ app.put("/api/portal/photo", photoEditLimiter, studentAuth, async (req, res) => 
   if (photoEditing.has(reg)) return res.status(429).json({ error: "Your photo is already being saved." });
   photoEditing.add(reg);
   try {
-    const result = await store.setPhoto(reg, photo);
+    // A student a mentor asked for a new photo may send one even if they already used their one change;
+    // that upload uses it up again and clears the request.
+    const row = (await store.readAll()).find((x) => String(x[0] || "").trim().toUpperCase() === reg);
+    const redo = photoRedo(row);
+    const result = await store.setPhoto(reg, photo, redo);
     if (result === "already") return res.status(403).json({ error: ALREADY_CHANGED, photoChanged: true });
+    if (redo) {
+      try {
+        await exclusive(async () => {
+          const hit = (await store.tabRows("students")).find((x) => String(x.cells[0] || "").trim().toUpperCase() === reg);
+          if (hit) await store.writeTabCells("students", hit.n, { 15: "" });
+        });
+      } catch (e) { console.error("Could not clear the photo request for", reg, e.message); }
+    }
     res.json({ ok: true, photoChanged: true });
   } catch (err) {
     console.error("Photo update failed for", reg, err.message);

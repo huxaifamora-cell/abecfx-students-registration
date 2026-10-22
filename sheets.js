@@ -34,8 +34,9 @@ const HEADERS = [
   "State / Region",
   "Date of Birth",
   "Team Role",
+  "Photo To Redo (type Yes: the student must send a new passport photo)",
 ];
-const LAST_COL = "O";
+const LAST_COL = "P";
 const DOB_TAB = process.env.GOOGLE_DOB_TAB || "DOB Changes";
 const DOB_HEADERS = ["Reg Number", "Old Date of Birth", "New Date of Birth", "Changed At (Lagos)"];
 const SIG_HEADERS = ["Reg Number", "Signature (base64 PNG - do not edit)"];
@@ -458,11 +459,11 @@ async function appendPhoto(reg, base64) {
 // extra rows for the same reg are left alone: getPhoto reads the LAST match, so replacing that one is enough.
 // Returns "ok", or "already" when the student has used their one change. A student with no photo row yet
 // gets one added, and that does not use up the change.
-async function setPhoto(reg, base64) {
+async function setPhoto(reg, base64, force = false) {
   const regs = await photoRegs(0); // always fresh: a stale index could overwrite the wrong row
   const i = regs.lastIndexOf(reg);
   if (i < 0) { await appendPhoto(reg, base64); return "ok"; }
-  if (photoIndex.changed[i]) return "already";
+  if (photoIndex.changed[i] && !force) return "already"; // force: a mentor asked this student to send a new photo
   const today = new Date().toISOString().slice(0, 10);
   await call("/values:batchUpdate", {
     method: "POST",

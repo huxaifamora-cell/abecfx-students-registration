@@ -74,8 +74,8 @@ function create(store) {
     students: {
       label: "Students",
       help: "One row per student. The registration number, sign-up time and mentorship code are locked. A student's photo can only be added when the student registers.",
-      editable: [2, 3, 4, 5, 6, 7, 9, 14, 10, 11, 12, 13],
-      selects: { 2: countries, 7: GENDERS, 9: store.STATUSES },
+      editable: [2, 3, 4, 5, 6, 7, 9, 14, 10, 11, 12, 13, 15],
+      selects: { 2: countries, 7: GENDERS, 9: store.STATUSES, 15: ["", "Yes"] },
       placeholders: { 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
@@ -140,6 +140,11 @@ function create(store) {
           } else {
             p[14] = "";
           }
+        }
+        if (changed(15)) {
+          p[15] = clean(p[15], 10);
+          if (p[15] && p[15].toLowerCase() !== "yes") errors[15] = "Choose Yes, or leave it empty.";
+          else if (p[15]) p[15] = "Yes";
         }
         if (changed(10)) p[10] = clean(p[10], 40);
         if (changed(11)) {
