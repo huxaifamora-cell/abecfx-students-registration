@@ -84,6 +84,7 @@
   function showSignin(message) {
     var dd = document.getElementById("dobDlg"); if (dd && dd.open) dd.close();
     var sd = document.getElementById("sigDlg"); if (sd && sd.open) sd.close();
+    var pd = document.getElementById("photoDlg"); if (pd && pd.open) pd.close();
     loading.hidden = true;
     home.hidden = true;
     signin.hidden = false;
@@ -98,8 +99,9 @@
     mySig = "";
     sigNote("");
     pendingSigNotice = !!d.signatureMissing;
+    pendingPhotoNotice = !!d.photoRedo;
     showDobNotice(d.dobNotice);
-    if (!d.dobNotice) showSigNotice();
+    if (!d.dobNotice) nextNotice();
     document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
     loadSignature(d);
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -372,7 +374,7 @@
         if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
         remember(res.body.card.regNumber, res.body.token);
         emailInput.value = "";
-        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged, dobNotice: res.body.dobNotice, signatureMissing: res.body.signatureMissing }));
+        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged, dobNotice: res.body.dobNotice, signatureMissing: res.body.signatureMissing, photoRedo: res.body.photoRedo }));
       })
       .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
       .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
@@ -393,6 +395,7 @@
     }).then(function () { dlBtn.disabled = false; });
   });
   var pendingSigNotice = false;
+  var pendingPhotoNotice = false;
   // ---- Age requirement notice: a pop-up for a student whose date of birth on file is too recent ----
   var dobDlg = document.getElementById("dobDlg");
   var dobForm = document.getElementById("dobForm");
@@ -410,6 +413,7 @@
     if (n && n.dob) lastDob = n.dob; else if (n) n.dob = lastDob;
     if (!n) { if (dobDlg.open) dobDlg.close(); return; }
     if (sigNoticeDlg.open) sigNoticeDlg.close();
+    if (photoNoticeDlg.open) photoNoticeDlg.close();
     var text = "The system has noticed that you do not meet our age requirements for registration. Your current date of birth is set as: " + niceDate(n.dob) + ".";
     document.getElementById("dobText").textContent = n.canUpdate
       ? text + " Please update it now to continue enjoying our services."
@@ -454,18 +458,86 @@
         dobMsg.textContent = "";
         dobDlg.close();
         liveNote("Your date of birth has been updated.");
-        showSigNotice();
+        nextNotice();
       });
     }).catch(function () { dobMsg.textContent = "Network problem. Check your connection and try again."; })
       .then(function () { save.disabled = false; });
   });
   function liveNote(t) { var l = document.getElementById("liveLine"); if (l) { l.textContent = t; l.className = "live"; } }
 
+  // ---- Photo notice: a pop-up for a student a mentor has asked to send a new passport photograph ----
+  var photoNoticeDlg = document.getElementById("photoDlg");
+  var photoNoticeData = "";
+  // The notices come one after another: date of birth, then photograph, then signature.
+  function nextNotice() {
+    if (dobDlg.open || photoNoticeDlg.open) return;
+    if (pendingPhotoNotice) { showPhotoNotice(); return; }
+    showSigNotice();
+  }
+  function showPhotoNotice() {
+    document.getElementById("photoDlgStart").hidden = false;
+    document.getElementById("photoDlgForm").hidden = true;
+    document.getElementById("photoDlgMsg").textContent = "";
+    photoNoticeData = "";
+    if (!photoNoticeDlg.open) { if (photoNoticeDlg.showModal) photoNoticeDlg.showModal(); else photoNoticeDlg.setAttribute("open", ""); }
+  }
+  photoNoticeDlg.addEventListener("cancel", function (e) { e.preventDefault(); });
+  document.getElementById("photoDlgSignOut").addEventListener("click", function () {
+    if (photoNoticeDlg.open) photoNoticeDlg.close();
+    document.getElementById("switchBtn").click();
+  });
+  var photoDlgFile = document.getElementById("photoDlgFile");
+  photoDlgFile.addEventListener("change", function () {
+    var f = photoDlgFile.files && photoDlgFile.files[0];
+    if (!f) return;
+    var msg = document.getElementById("photoDlgMsg");
+    msg.textContent = "";
+    window.abecPhoto.process(f).then(function (dataUrl) {
+      photoNoticeData = dataUrl;
+      document.getElementById("photoDlgPreview").src = dataUrl;
+      document.getElementById("photoDlgStart").hidden = true;
+      document.getElementById("photoDlgForm").hidden = false;
+    }, function (e) {
+      document.getElementById("photoDlgStart").hidden = true;
+      document.getElementById("photoDlgForm").hidden = false;
+      document.getElementById("photoDlgPreview").removeAttribute("src");
+      photoNoticeData = "";
+      msg.textContent = e && e.message ? e.message : "We could not use that photo. Try a different one.";
+    }).then(function () { photoDlgFile.value = ""; });
+  });
+  document.getElementById("photoDlgSave").addEventListener("click", function () {
+    var btn = document.getElementById("photoDlgSave"), msg = document.getElementById("photoDlgMsg");
+    if (!photoNoticeData || !currentReg) { msg.textContent = "Choose a photo first."; return; }
+    btn.disabled = true; msg.textContent = "Saving...";
+    var dataUrl = photoNoticeData;
+    authFetch("/api/portal/photo", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo: dataUrl.slice(dataUrl.indexOf(",") + 1) }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { if (photoNoticeDlg.open) photoNoticeDlg.close(); signedOut(b.error); return; }
+        if (!r.ok) { msg.textContent = b.error || "We could not save your photo. Please try again."; return; }
+        try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
+        pendingPhotoNotice = false;
+        return myCard().then(function (res) {
+          if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
+          setPhotoEditable(false);
+          msg.textContent = "";
+          photoNoticeDlg.close();
+          liveNote("Your new passport photograph has been saved.");
+          nextNotice();
+        });
+      });
+    }).catch(function () { msg.textContent = "Network problem. Check your connection and try again."; })
+      .then(function () { btn.disabled = false; });
+  });
+
   // ---- Signature notice: a pop-up for a student who has no signature on file yet ----
   var sigNoticeDlg = document.getElementById("sigDlg");
   var sigNoticeWidget = null;
   function showSigNotice() {
-    if (!pendingSigNotice || dobDlg.open) return;
+    if (!pendingSigNotice || dobDlg.open || photoNoticeDlg.open) return;
     document.getElementById("sigDlgStart").hidden = false;
     document.getElementById("sigDlgForm").hidden = true;
     document.getElementById("sigDlgMsg").textContent = "";

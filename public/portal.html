@@ -181,6 +181,24 @@
           </form>
         </dialog>
 
+        <!-- Photo notice: shown to a signed-in student a mentor has asked to send a new passport photo -->
+        <dialog id="photoDlg" class="dobdlg" aria-labelledby="photoDlgTitle">
+          <h2 id="photoDlgTitle">Please send a passport photograph</h2>
+          <p>The system has noticed that your photograph does not meet our requirements. Please upload a clear passport-size photograph of your face (facing the camera, plain background, no hat or sunglasses, no full-body or group pictures) to continue enjoying our services.</p>
+          <div id="photoDlgStart">
+            <input id="photoDlgFile" type="file" accept="image/*" class="sr-only" aria-label="Choose a passport photograph" />
+            <label for="photoDlgFile" class="btn primary wide" id="photoDlgPick">Choose passport photo</label>
+            <button type="button" class="btn ghost wide" id="photoDlgSignOut">Sign out</button>
+          </div>
+          <div id="photoDlgForm" hidden>
+            <p class="dob-warn" role="note"><strong>You can only do this once.</strong> Check that the photo below is a clear passport photo before you save.</p>
+            <img id="photoDlgPreview" class="photo-dlg-preview" alt="Preview of your new passport photograph" />
+            <p class="formErr" id="photoDlgMsg" role="alert"></p>
+            <button type="button" class="btn primary wide" id="photoDlgSave">Save this photo</button>
+            <label for="photoDlgFile" class="btn ghost wide">Choose a different photo</label>
+          </div>
+        </dialog>
+
         <!-- Signature notice: shown to a signed-in student who has no signature on file -->
         <dialog id="sigDlg" class="dobdlg" aria-labelledby="sigDlgTitle">
           <h2 id="sigDlgTitle">Please add your signature</h2>

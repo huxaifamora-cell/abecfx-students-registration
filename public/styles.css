@@ -779,3 +779,5 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .dobdlg label { font-weight: 700; font-size: .9rem; }
 .dobdlg input[type="date"] { width: 100%; }
 .dob-warn { padding: 10px 12px; background: #fff6df; border: 1px solid var(--gold); border-radius: 12px; font-size: .88rem; }
+.photo-dlg-preview { width: 120px; height: 150px; object-fit: cover; border-radius: 12px; border: 2px solid var(--violet); justify-self: center; background: #eee; }
+.dobdlg label.btn { display: grid; place-items: center; text-align: center; cursor: pointer; }
