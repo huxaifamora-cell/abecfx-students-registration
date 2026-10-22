@@ -83,6 +83,7 @@
 
   function showSignin(message) {
     var dd = document.getElementById("dobDlg"); if (dd && dd.open) dd.close();
+    var sd = document.getElementById("sigDlg"); if (sd && sd.open) sd.close();
     loading.hidden = true;
     home.hidden = true;
     signin.hidden = false;
@@ -96,7 +97,9 @@
     document.getElementById("welcome").textContent = first ? "Welcome back, " + first : "Welcome back";
     mySig = "";
     sigNote("");
+    pendingSigNotice = !!d.signatureMissing;
     showDobNotice(d.dobNotice);
+    if (!d.dobNotice) showSigNotice();
     document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
     loadSignature(d);
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -369,7 +372,7 @@
         if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
         remember(res.body.card.regNumber, res.body.token);
         emailInput.value = "";
-        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged, dobNotice: res.body.dobNotice }));
+        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged, dobNotice: res.body.dobNotice, signatureMissing: res.body.signatureMissing }));
       })
       .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
       .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
@@ -389,6 +392,7 @@
       setTimeout(function () { dlBtn.textContent = label; }, 3500);
     }).then(function () { dlBtn.disabled = false; });
   });
+  var pendingSigNotice = false;
   // ---- Age requirement notice: a pop-up for a student whose date of birth on file is too recent ----
   var dobDlg = document.getElementById("dobDlg");
   var dobForm = document.getElementById("dobForm");
@@ -405,6 +409,7 @@
   function showDobNotice(n) {
     if (n && n.dob) lastDob = n.dob; else if (n) n.dob = lastDob;
     if (!n) { if (dobDlg.open) dobDlg.close(); return; }
+    if (sigNoticeDlg.open) sigNoticeDlg.close();
     var text = "The system has noticed that you do not meet our age requirements for registration. Your current date of birth is set as: " + niceDate(n.dob) + ".";
     document.getElementById("dobText").textContent = n.canUpdate
       ? text + " Please update it now to continue enjoying our services."
@@ -449,11 +454,67 @@
         dobMsg.textContent = "";
         dobDlg.close();
         liveNote("Your date of birth has been updated.");
+        showSigNotice();
       });
     }).catch(function () { dobMsg.textContent = "Network problem. Check your connection and try again."; })
       .then(function () { save.disabled = false; });
   });
   function liveNote(t) { var l = document.getElementById("liveLine"); if (l) { l.textContent = t; l.className = "live"; } }
+
+  // ---- Signature notice: a pop-up for a student who has no signature on file yet ----
+  var sigNoticeDlg = document.getElementById("sigDlg");
+  var sigNoticeWidget = null;
+  function showSigNotice() {
+    if (!pendingSigNotice || dobDlg.open) return;
+    document.getElementById("sigDlgStart").hidden = false;
+    document.getElementById("sigDlgForm").hidden = true;
+    document.getElementById("sigDlgMsg").textContent = "";
+    if (!sigNoticeDlg.open) { if (sigNoticeDlg.showModal) sigNoticeDlg.showModal(); else sigNoticeDlg.setAttribute("open", ""); }
+  }
+  sigNoticeDlg.addEventListener("cancel", function (e) { e.preventDefault(); });
+  document.getElementById("sigDlgOpen").addEventListener("click", function () {
+    if (!sigNoticeWidget) sigNoticeWidget = window.abecSignature.create(document.getElementById("sigDlgMount"));
+    document.getElementById("sigDlgStart").hidden = true;
+    document.getElementById("sigDlgForm").hidden = false;
+  });
+  document.getElementById("sigDlgBack").addEventListener("click", function () {
+    document.getElementById("sigDlgForm").hidden = true;
+    document.getElementById("sigDlgStart").hidden = false;
+    document.getElementById("sigDlgMsg").textContent = "";
+  });
+  document.getElementById("sigDlgSignOut").addEventListener("click", function () {
+    if (sigNoticeDlg.open) sigNoticeDlg.close();
+    document.getElementById("switchBtn").click();
+  });
+  document.getElementById("sigDlgSave").addEventListener("click", function () {
+    var btn = document.getElementById("sigDlgSave"), msg = document.getElementById("sigDlgMsg");
+    if (!sigNoticeWidget || !currentReg) return;
+    btn.disabled = true; msg.textContent = "Saving...";
+    sigNoticeWidget.value().then(function (url) {
+      if (!url) { msg.textContent = ""; return; }
+      return authFetch("/api/portal/signature", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signature: url.slice(url.indexOf(",") + 1) }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (b) {
+          if (r.status === 401) { if (sigNoticeDlg.open) sigNoticeDlg.close(); signedOut(b.error); return; }
+          if (!r.ok) throw new Error(b.error || "We could not save your signature. Please try again.");
+          mySig = url;
+          pendingSigNotice = false;
+          sigToggle.textContent = "Change my signature";
+          return myCard().then(function (res) {
+            if (res.ok) redrawCard(res.body);
+            msg.textContent = "";
+            sigNoticeDlg.close();
+            sigNoticeWidget.clear();
+            sigNote("Your signature is saved and now shows on your ID card.", true);
+          });
+        });
+      });
+    }).catch(function (e) { msg.textContent = e && e.message ? e.message : "Network problem. Check your connection and try again."; })
+      .then(function () { btn.disabled = false; });
+  });
 
   // ---- My signature: shown on the student's own card, drawn or uploaded, saved on the website ----
   var mySig = "";

@@ -181,6 +181,22 @@
           </form>
         </dialog>
 
+        <!-- Signature notice: shown to a signed-in student who has no signature on file -->
+        <dialog id="sigDlg" class="dobdlg" aria-labelledby="sigDlgTitle">
+          <h2 id="sigDlgTitle">Please add your signature</h2>
+          <p id="sigDlgText">The system has noticed that you have not added your signature. Your signature appears on your ID card. Please add it now to continue enjoying our services.</p>
+          <div id="sigDlgStart">
+            <button type="button" class="btn primary wide" id="sigDlgOpen">Add my signature</button>
+            <button type="button" class="btn ghost wide" id="sigDlgSignOut">Sign out</button>
+          </div>
+          <div id="sigDlgForm" hidden>
+            <div id="sigDlgMount"></div>
+            <p class="formErr" id="sigDlgMsg" role="alert"></p>
+            <button type="button" class="btn primary wide" id="sigDlgSave">Save my signature</button>
+            <button type="button" class="btn ghost wide" id="sigDlgBack">Back</button>
+          </div>
+        </dialog>
+
         <p class="sheet-foot">&copy; <span id="year"></span> Adebass Base Edge Consult</p>
       </div>
     </main>
