@@ -636,6 +636,25 @@ async function writeTabCells(key, n, changes) {
   invalidate(key);
 }
 
+// Change a registration number inside one column of a tab, in every row that holds it (a photo, a signature,
+// quiz results, progress...). All the changes go in one request. Returns how many rows were changed.
+async function renameRegCells(key, col, oldReg, newReg) {
+  const t = editorTab(key);
+  const tab = await findTab(t.title);
+  if (!tab) return 0;
+  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  const writes = [];
+  (data.values || []).forEach((r, i) => {
+    if (String((r && r[col]) || "").trim().toUpperCase() === oldReg) {
+      writes.push({ range: `${quoteTab(t.title)}!${colLetter(col)}${i + 2}`, values: [[newReg]] });
+    }
+  });
+  if (!writes.length) return 0;
+  await call("/values:batchUpdate", { method: "POST", data: { valueInputOption: "RAW", data: writes } });
+  invalidate(key);
+  return writes.length;
+}
+
 async function appendTabRows(key, rows) {
   const t = editorTab(key);
   if (!rows.length) return;
@@ -684,5 +703,5 @@ async function deleteTabRowsByReg(key, reg, col = 0) {
 module.exports = {
   init, readAll, readCached, appendRow, appendPhoto, setPhoto, photoChanged, getPhoto, getSignature, setSignature, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
-  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
+  EDITOR_TABS, tabRows, tabRow, writeTabCells, renameRegCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
 };

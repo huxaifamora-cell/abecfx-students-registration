@@ -73,10 +73,10 @@ function create(store) {
   const TABS = {
     students: {
       label: "Students",
-      help: "One row per student. The registration number, sign-up time and mentorship code are locked. A student's photo can only be added when the student registers.",
-      editable: [2, 3, 4, 5, 6, 7, 9, 14, 10, 11, 12, 13, 15],
+      help: "One row per student. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
+      editable: [0, 2, 3, 4, 5, 6, 7, 9, 14, 10, 11, 12, 13, 15],
       selects: { 2: countries, 7: GENDERS, 9: store.STATUSES, 15: ["", "Yes"] },
-      placeholders: { 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      placeholders: { 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
       create: {
@@ -89,6 +89,11 @@ function create(store) {
       check(p, cur, rows) {
         const errors = {};
         const changed = (i) => p[i] !== cur[i];
+        if (changed(0) && cur[0] != null) {
+          p[0] = normReg(p[0]);
+          if (!REG_RE.test(p[0])) errors[0] = "Use the format ABECFX/26/0001 (ABECFX, a slash, the 2-digit year, a slash, a 4-digit number).";
+          else if (rows.some((r) => (r[0] || "").trim().toUpperCase() === p[0])) errors[0] = "Another student already has this registration number.";
+        }
         if (changed(2)) {
           p[2] = clean(p[2]);
           if (!countries.includes(p[2])) errors[2] = "Choose a country from the list.";
@@ -382,6 +387,36 @@ function create(store) {
     return (await store.tabRows(key)).filter((r) => r.n !== skipN).map((r) => r.cells);
   }
 
+  // Every place a registration number is stored besides the Students tab: [tab, column index].
+  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5]];
+
+  // A new number must not already appear anywhere as someone else's (including a deleted student's records).
+  async function regConflict(newReg) {
+    for (const [key, col] of REG_REFS) {
+      const rows = await rowsOf(key);
+      if (rows.some((r) => String((r && r[col]) || "").trim().toUpperCase() === newReg)) return store.EDITOR_TABS[key].title || key;
+    }
+    return "";
+  }
+
+  // Move everything that belongs to a registration number over to the new one. If a step fails, the steps
+  // already done are put back, so a student is never left half-renamed.
+  async function renameReg(oldReg, newReg) {
+    const done = [];
+    try {
+      for (const [key, col] of REG_REFS) {
+        await store.renameRegCells(key, col, oldReg, newReg);
+        done.push([key, col]);
+      }
+    } catch (e) {
+      console.error("Registration number change failed, undoing:", e.message);
+      for (const [key, col] of done.reverse()) {
+        try { await store.renameRegCells(key, col, newReg, oldReg); } catch (e2) { console.error("Could not undo", key, e2.message); }
+      }
+      throw new AdminError(500, "The registration number could not be changed everywhere, so nothing was changed. Please try again.");
+    }
+  }
+
   return {
     TABS,
     ORDER,
@@ -421,7 +456,19 @@ function create(store) {
       const changes = {};
       p.forEach((v, i) => { if (v !== current[i]) changes[i] = v; });
       if (!Object.keys(changes).length) return { row: current, changed: false };
-      await store.writeTabCells(key, n, changes);
+      const oldReg = String(current[0] || "").trim().toUpperCase();
+      const renaming = key === "students" && changes[0] !== undefined && oldReg;
+      if (renaming) {
+        const where = await regConflict(p[0]);
+        if (where) throw new AdminError(400, "Please fix the highlighted fields.", { 0: "This number is already recorded for someone else (in " + where + "), so it cannot be used." });
+        await renameReg(oldReg, p[0]);
+      }
+      try {
+        await store.writeTabCells(key, n, changes);
+      } catch (e) {
+        if (renaming) await renameReg(p[0], oldReg).catch(() => {});
+        throw e;
+      }
       return { row: p, changed: true };
     },
 
