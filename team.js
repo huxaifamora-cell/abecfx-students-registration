@@ -10,8 +10,11 @@
 //   team      Team accounts and roles.
 //
 // Built-in roles (fixed, cannot be changed or deleted)
-//   owner      The person who holds ADMIN_PASSWORD on Render. Always works, is not stored in the sheet and
-//              cannot be removed or locked out by anyone. Signs in with the username "owner".
+//   owner      Everything. The person who holds ADMIN_PASSWORD on Render is the main owner: always works, is not
+//              stored in the sheet and cannot be removed or locked out by anyone. Signs in with the username "owner".
+//              An owner can also give the Owner role to a team account (a co-owner). Only an owner can do that, and
+//              only an owner can change, disable or remove a co-owner. A co-owner has a normal account on the "Team"
+//              tab with their own username and password.
 //   admin      Everything, including the team and roles.
 //   editor     Statistics, site links, the student community links, chapter videos and the Database. (Not the team, and not quiz codes: give
 //              someone "quizcodes" through a custom role, e.g. a "Quiz supervisor" role with only that access.)
@@ -46,8 +49,8 @@ const ROLES = {
   editor: { label: "Editor", perms: ["view", "links", "community", "videos", "database"] },
   moderator: { label: "Moderator", perms: ["view"] },
 };
-// Built-in roles a person may be given (the owner is never assigned).
-const ASSIGNABLE = ["admin", "editor", "moderator"];
+// Built-in roles a person may be given. "owner" is in the list but only an owner may hand it out.
+const ASSIGNABLE = ["owner", "admin", "editor", "moderator"];
 const RESERVED_ROLE_KEYS = Object.keys(ROLES);
 
 // Sheet columns (also listed in sheets.js, and a test checks they match).
@@ -244,14 +247,14 @@ function create(store, opts = {}) {
     const count = (key) => users.filter((u) => u.role === key).length;
     const out = ASSIGNABLE.map((k) => ({ key: k, label: ROLES[k].label, perms: ROLES[k].perms.slice(), builtin: true }));
     custom.forEach((r) => out.push({ key: r.key, label: r.label, perms: r.perms.slice(), builtin: false, createdAt: r.createdAt, createdBy: r.createdBy }));
-    return out.map((r) => ({ ...r, members: count(r.key), canGrant: subsetOf(r.perms, have) }));
+    return out.map((r) => ({ ...r, members: count(r.key), canGrant: subsetOf(r.perms, have) && (r.key !== "owner" || !actor || actor.role === "owner") }));
   }
 
   // Who is this username right now? { username, name, role } or null (unknown, disabled or an unknown role).
   async function lookup(username) {
     if (username === OWNER) return { username: OWNER, name: "Owner", role: "owner" };
     const u = (await list()).find((x) => x.username === username);
-    if (!u || !u.active || u.role === "owner" || !(await roleInfo(u.role))) return null;
+    if (!u || !u.active || !(await roleInfo(u.role))) return null;
     return { username: u.username, name: u.name, role: u.role };
   }
 
@@ -266,20 +269,22 @@ function create(store, opts = {}) {
     const ok = await verifyPassword(String(password || ""), u ? u.hash : await DUMMY_HASH_PROMISE);
     if (!u || !ok) throw new TeamError(401, "Wrong username or password.");
     if (!u.active) throw new TeamError(403, "This account has been disabled. Ask an admin.");
-    if (u.role === "owner" || !(await roleInfo(u.role))) throw new TeamError(403, "This account has no valid role. Ask an admin.");
+    if (!(await roleInfo(u.role))) throw new TeamError(403, "This account has no valid role. Ask an admin.");
     return { username: u.username, name: u.name, role: u.role };
   }
 
   // For the sign-in drop-down: the roles somebody can sign in as, and how many accounts each has.
   // Usernames are never listed.
   async function loginChoices() {
+    // The main owner (ADMIN_PASSWORD) always counts as one, plus any co-owners on the team.
     const out = [{ key: "owner", label: ROLES.owner.label, count: 1 }];
     const byRole = new Map();
     for (const u of await list()) {
-      if (!u.active || u.role === "owner") continue;
+      if (!u.active) continue;
       byRole.set(u.role, (byRole.get(u.role) || 0) + 1);
     }
     for (const [key, count] of byRole) {
+      if (key === "owner") { out[0].count += count; continue; }
       const info = await roleInfo(key);
       if (info) out.push({ key, label: info.label, count });
     }
@@ -292,8 +297,8 @@ function create(store, opts = {}) {
   // the password then decides which of them is signing in.
   async function loginNames(roleKey) {
     const role = String(roleKey || "").toLowerCase();
-    if (role === "owner") return [OWNER];
-    return (await list()).filter((u) => u.active && u.role === role).map((u) => u.username);
+    const names = (await list()).filter((u) => u.active && u.role === role).map((u) => u.username);
+    return role === "owner" ? [OWNER, ...names] : names;
   }
 
   async function members() {
@@ -302,9 +307,13 @@ function create(store, opts = {}) {
 
   // A role the actor may give to someone: it must exist, must not be the owner, and may not allow more than the actor has.
   async function checkAssignable(role, actor, errors) {
-    if (!role || role === "owner") { errors.role = "Choose a role."; return false; }
+    if (!role) { errors.role = "Choose a role."; return false; }
     const info = await roleInfo(role);
     if (!info) { errors.role = "That role does not exist."; return false; }
+    if (role === "owner" && !(actor && actor.role === "owner")) {
+      errors.role = "Only an owner can make someone an owner.";
+      return false;
+    }
     if (actor && !subsetOf(info.perms, await permsOfActor(actor))) {
       errors.role = "You cannot give a role that allows more than you can do yourself.";
       return false;
@@ -357,6 +366,11 @@ function create(store, opts = {}) {
         if (self) throw new TeamError(400, "You cannot change your own role.");
         if (await checkAssignable(c.role, actor, errors)) write[COL.role] = c.role;
       }
+      // A co-owner is out of reach of everyone who is not an owner (an admin has the same access, so the access
+      // comparison below would not stop them).
+      if (!self && u.role === "owner" && actor.role !== "owner") {
+        throw new TeamError(403, "Only an owner can change an owner's account.");
+      }
       // Someone whose current role allows more than the actor can do is out of the actor's reach.
       if (!self && (write[COL.role] !== undefined || c.active !== undefined || (c.password !== undefined && c.password !== ""))) {
         const theirs = await permsOf(u.role);
@@ -387,6 +401,7 @@ function create(store, opts = {}) {
       if (target === actor.username) throw new TeamError(400, "You cannot remove your own account.");
       const u = (await listFresh()).find((x) => x.username === target);
       if (!u) throw new TeamError(404, "That account no longer exists.");
+      if (u.role === "owner" && actor.role !== "owner") throw new TeamError(403, "Only an owner can remove an owner.");
       if (!subsetOf(await permsOf(u.role), await permsOfActor(actor))) {
         throw new TeamError(403, "This person can do more than you can, so you cannot remove them.");
       }

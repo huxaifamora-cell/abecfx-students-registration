@@ -1010,7 +1010,7 @@ const teamLoginLimiter = rateLimit({
 });
 async function meOf(who) {
   const info = who.role === "owner" ? { label: team.ROLES.owner.label, perms: team.ROLES.owner.perms } : await teamService.roleInfo(who.role);
-  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.role !== "owner" };
+  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.username !== team.OWNER };
 }
 
 function teamRoute(handler) {
@@ -1056,7 +1056,7 @@ app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
 app.get("/api/admin/me", adminLimiter, adminAuth, teamRoute(async (req, res) => res.json(await meOf(req.admin))));
 
 app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req, res) => {
-  if (req.admin.role === "owner") throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
+  if (req.admin.username === team.OWNER) throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
   const b = req.body || {};
   res.json(await teamService.changeOwnPassword(req.admin.username, b.current, b.next));
 }));
