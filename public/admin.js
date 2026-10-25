@@ -1183,11 +1183,14 @@
       tr.appendChild(el("td", null, m.createdBy));
       tr.appendChild(el("td", null, m.createdAt));
       var act = el("td");
-      var b = el("button", "linkbtn", "Edit");
-      b.type = "button";
-      b.setAttribute("aria-label", "Edit " + m.name);
-      b.addEventListener("click", function () { openTeamDlg("edit", m); });
-      act.appendChild(b);
+      // only an owner can change a co-owner (the server enforces it too)
+      if (m.role !== "owner" || (me && me.role === "owner") || (me && m.username === me.username)) {
+        var b = el("button", "linkbtn", "Edit");
+        b.type = "button";
+        b.setAttribute("aria-label", "Edit " + m.name);
+        b.addEventListener("click", function () { openTeamDlg("edit", m); });
+        act.appendChild(b);
+      }
       tr.appendChild(act);
       body.appendChild(tr);
     });
