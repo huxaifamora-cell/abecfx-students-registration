@@ -39,7 +39,7 @@ test("built-in roles: owner and admin everything, editor everything but the team
   assert.equal(team.can("moderator", "view"), true);
   for (const p of ["links", "community", "videos", "quizcodes", "database", "team"]) assert.equal(team.can("moderator", p), false, "moderator " + p);
   assert.equal(team.can("nobody", "view"), false);
-  assert.deepEqual(team.ASSIGNABLE, ["admin", "editor", "moderator"]);
+  assert.deepEqual(team.ASSIGNABLE, ["owner", "admin", "editor", "moderator"]);
 });
 
 test("passwords are hashed with a salt and verified", async () => {
@@ -82,7 +82,6 @@ test("add: checks every field and rejects duplicates and the reserved name", asy
   await rejects(svc.add(newMod({ username: "has space" }), owner), 400, "username");
   await rejects(svc.add(newMod({ username: "Owner" }), owner), 400, "username");
   await rejects(svc.add(newMod({ fullName: "  " }), owner), 400, "fullName");
-  await rejects(svc.add(newMod({ role: "owner" }), owner), 400, "role");
   await rejects(svc.add(newMod({ role: "superuser" }), owner), 400, "role");
   await rejects(svc.add(newMod({ password: "short" }), owner), 400, "password");
   await svc.add(newMod(), owner);
@@ -122,11 +121,60 @@ test("lookup: role changes and removal apply immediately", async () => {
   assert.deepEqual(await svc.lookup("owner"), owner);
 });
 
-test("an unreadable role in the sheet gets no access", async () => {
-  const { store, svc } = setup();
-  store.data.team.push(["sneaky", "Sneaky", "owner", await team.hashPassword("goodpass1"), "Yes", "", ""]);
-  assert.equal(await svc.lookup("sneaky"), null, "owner cannot be granted by typing it in the sheet");
-  await rejects(svc.login("sneaky", "goodpass1", OWNER_PW, safeEqual), 403);
+test("an owner can make a co-owner, who signs in with their own password and has full access", async () => {
+  const { svc } = setup();
+  const made = await svc.add(newMod({ username: "coowner", fullName: "Co Owner", role: "owner" }), owner);
+  assert.equal(made.role, "owner");
+  const who = await svc.login("coowner", "goodpass1", OWNER_PW, safeEqual);
+  assert.deepEqual(who, { username: "coowner", name: "Co Owner", role: "owner" });
+  assert.deepEqual(await svc.lookup("coowner"), who);
+  assert.deepEqual(await svc.permsOf("owner"), team.PERM_KEYS);
+  // the role picker on the sign-in page: one Owner entry, counting the main owner and the co-owner
+  assert.equal((await svc.loginChoices()).find((c) => c.key === "owner").count, 2);
+  assert.deepEqual(await svc.loginNames("owner"), ["owner", "coowner"]);
+  // an existing member can be promoted too
+  await svc.add(newMod({ username: "amaka" }), owner);
+  assert.equal((await svc.update("amaka", { role: "owner" }, owner)).role, "owner");
+  // the main owner is unaffected: still works, still cannot be removed or edited through the team
+  assert.deepEqual(await svc.lookup("owner"), owner);
+  await rejects(svc.remove("owner", who), 404);
+});
+
+test("only an owner can give the Owner role or touch a co-owner (not an admin, not a custom role with the team access)", async () => {
+  const { svc } = setup();
+  await svc.add(newMod({ username: "coowner", role: "owner" }), owner);
+  const admin = await adminOf(svc);
+  await svc.add(newMod({ username: "amaka" }), owner);
+  await rejects(svc.add(newMod({ username: "sneaky", role: "owner" }), admin), 400, "role");
+  await rejects(svc.update("amaka", { role: "owner" }, admin), 400, "role");
+  await rejects(svc.update("coowner", { active: false }, admin), 403);
+  await rejects(svc.update("coowner", { password: "hijacked99" }, admin), 403);
+  await rejects(svc.update("coowner", { role: "moderator" }, admin), 403);
+  await rejects(svc.remove("coowner", admin), 403);
+  await svc.login("coowner", "goodpass1", OWNER_PW, safeEqual);
+  // a custom role with every access except being an owner has the same limits
+  await svc.addRole({ name: "Everything", perms: team.PERM_KEYS }, owner);
+  await svc.add(newMod({ username: "everyone", role: "everything" }), owner);
+  const every = await svc.lookup("everyone");
+  await rejects(svc.update("coowner", { active: false }, every), 403);
+  await rejects(svc.remove("coowner", every), 403);
+});
+
+test("co-owners can manage other owners but not themselves; demoting takes effect at once", async () => {
+  const { svc } = setup();
+  await svc.add(newMod({ username: "co1", role: "owner" }), owner);
+  await svc.add(newMod({ username: "co2", fullName: "Co Two", role: "owner" }), owner);
+  const co1 = await svc.lookup("co1");
+  await rejects(svc.update("co1", { role: "admin" }, co1), 400);
+  await rejects(svc.update("co1", { active: false }, co1), 400);
+  await rejects(svc.remove("co1", co1), 400);
+  assert.equal((await svc.add(newMod({ username: "co3", role: "owner" }), co1)).role, "owner");
+  assert.equal((await svc.update("co2", { role: "admin" }, co1)).role, "admin");
+  assert.equal((await svc.lookup("co2")).role, "admin");
+  assert.deepEqual(await svc.remove("co2", co1), { removed: "co2" });
+  // a co-owner changes their own password like any member
+  await svc.changeOwnPassword("co1", "goodpass1", "newpass123");
+  await svc.login("co1", "newpass123", OWNER_PW, safeEqual);
 });
 
 test("update: name, role, active, password; invalid input is rejected", async () => {
@@ -137,7 +185,6 @@ test("update: name, role, active, password; invalid input is rejected", async ()
   assert.equal(out.role, "admin");
   assert.equal((await svc.login("amaka", "brandnew99", OWNER_PW, safeEqual)).role, "admin");
   await rejects(svc.login("amaka", "goodpass1", OWNER_PW, safeEqual), 401);
-  await rejects(svc.update("amaka", { role: "owner" }, owner), 400, "role");
   await rejects(svc.update("amaka", { password: "short" }, owner), 400, "password");
   await rejects(svc.update("amaka", { fullName: "" }, owner), 400, "fullName");
   await rejects(svc.update("ghost", { active: false }, owner), 404);
@@ -199,15 +246,19 @@ test("editor: can be given to a person and gets exactly the editor access", asyn
   assert.equal((await svc.login("edna", "goodpass1", OWNER_PW, safeEqual)).role, "editor");
 });
 
-test("roles list: built-in roles plus custom ones, with member counts; the owner is never listed", async () => {
+test("roles list: built-in roles plus custom ones, with member counts; only an owner can grant Owner", async () => {
   const { svc } = setup();
   await svc.add(newMod({ username: "edna", role: "editor" }), owner);
   await svc.addRole({ name: "Support", perms: ["links"] }, owner);
   const list = await svc.roles(owner);
-  assert.deepEqual(list.map((r) => r.key), ["admin", "editor", "moderator", "support"]);
+  assert.deepEqual(list.map((r) => r.key), ["owner", "admin", "editor", "moderator", "support"]);
   assert.equal(list.find((r) => r.key === "editor").members, 1);
   assert.equal(list.find((r) => r.key === "support").builtin, false);
   assert.ok(list.every((r) => r.canGrant));
+  const admin = await adminOf(svc);
+  const forAdmin = await svc.roles(admin);
+  assert.equal(forAdmin.find((r) => r.key === "owner").canGrant, false);
+  assert.ok(forAdmin.filter((r) => r.key !== "owner").every((r) => r.canGrant));
 });
 
 test("addRole: stores a name and the picked access; \"view\" is always included; order is standard", async () => {
@@ -304,7 +355,7 @@ test("roles typed into the sheet cannot raise anyone: unknown access is ignored,
   store.data.roles.push(["admin", "Fake admin", "view,team", "", ""]);
   assert.deepEqual(await svc.permsOf("sneaky"), ["view", "links"]);
   assert.deepEqual(await svc.permsOf("admin"), team.PERM_KEYS, "the built-in admin wins over a row in the sheet");
-  assert.deepEqual((await svc.roles(owner)).map((r) => r.key), ["admin", "editor", "moderator", "sneaky"]);
+  assert.deepEqual((await svc.roles(owner)).map((r) => r.key), ["owner", "admin", "editor", "moderator", "sneaky"]);
 });
 
 test("nobody can give access they do not have: roles, assignments", async () => {
@@ -324,7 +375,7 @@ test("nobody can give access they do not have: roles, assignments", async () => 
   await svc.add(newMod({ username: "nn4", role: "moderator" }), lead);
   // and the roles list marks what it may hand out
   const marks = Object.fromEntries((await svc.roles(lead)).map((r) => [r.key, r.canGrant]));
-  assert.deepEqual(marks, { admin: false, editor: false, moderator: true, "team-lead": true, "links-only": true });
+  assert.deepEqual(marks, { owner: false, admin: false, editor: false, moderator: true, "team-lead": true, "links-only": true });
 });
 
 test("a person with less access cannot change, disable, re-role or remove someone with more", async () => {
