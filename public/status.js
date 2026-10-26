@@ -17,6 +17,9 @@
     var note = window.expiryNotice(d);
     liveLine.textContent = note ? note.text : "Live record, checked at " + t;
     liveLine.className = "live" + (note ? " live-" + note.level : "");
+    var certLink = document.getElementById("certLink");
+    certLink.hidden = d.status !== "Certified";
+    certLink.href = "/certificate?reg=" + encodeURIComponent(d.regNumber);
     result.hidden = false;
     try { history.replaceState(null, "", "/status?reg=" + d.regNumber); } catch (e) {}
     if (window.matchMedia("(max-width: 900px)").matches) {

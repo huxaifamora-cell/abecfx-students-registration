@@ -58,6 +58,7 @@
     if ($("tmDlg").open) $("tmDlg").close();
     if ($("pwDlg").open) $("pwDlg").close();
     $("tmTable").replaceChildren();
+    $("certMount").replaceChildren(); $("certList").replaceChildren(); $("certActions").hidden = true; certCurrent = null;
     if ($("rlDlg").open) $("rlDlg").close();
     $("rlTable").replaceChildren();
     $("qcTable").replaceChildren();
@@ -88,7 +89,7 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team", idcards: "team" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team", idcards: "team", certificates: "certificates" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
@@ -1468,15 +1469,16 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team", "idcards"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team", "idcards", "certificates"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes" || name === "idcards";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes" || name === "idcards" || name === "certificates";
     if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
     if (name === "team") openTeam();
     if (name === "idcards") openIdCards();
+    if (name === "certificates") openCertificates();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
@@ -1499,6 +1501,7 @@
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-team").addEventListener("click", function () { setTab("team"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
+  $("tab-certificates").addEventListener("click", function () { setTab("certificates"); });
 
   // ---------- ID cards (admin) ----------
   var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;
@@ -1552,6 +1555,134 @@
       setTimeout(function () { b.textContent = label; }, 3500);
     }).then(function () { b.disabled = false; });
   });
+  // ---------- Certificates (admin) ----------
+  var certTimer = null, certSeq = 0, certCurrent = null, certSig = "", certSigWidget = null, certSigNew = "";
+  var CERT_FIELDS = ["certSigner", "certSignerTitle", "certOrg", "certRc"];
+
+  function showCertSignature() {
+    var box = $("certSigCur");
+    box.replaceChildren();
+    if (certSigNew || certSig) {
+      var img = el("img");
+      img.alt = "Signature printed on every certificate";
+      img.src = "data:image/png;base64," + (certSigNew || certSig);
+      box.appendChild(img);
+    } else {
+      box.appendChild(el("span", null, "No signature yet. Certificates print a blank line until you add one."));
+    }
+    $("certSigRemove").hidden = !certSig || !!certSigNew;
+  }
+  function showCertErrors(errs) {
+    CERT_FIELDS.concat(["signature"]).forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("cert-e-" + f).textContent = msg;
+      $("cert-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadCertSettings() {
+    return api("/api/admin/certificate-settings").then(function (r) {
+      CERT_FIELDS.forEach(function (f) { $("cert-" + f).value = r.values[f] || ""; });
+      certSig = r.signature || "";
+      certSigNew = "";
+      showCertSignature();
+    });
+  }
+  function showCertificate(c, li) {
+    certCurrent = c;
+    Array.prototype.forEach.call($("certList").children, function (x) { x.classList.toggle("on", x === li); });
+    $("certMount").replaceChildren(window.renderCertificate(c, { signature: certSig, origin: location.origin }));
+    $("certActions").hidden = false;
+  }
+  function loadCertificates() {
+    var seq = ++certSeq, q = $("certq").value.trim();
+    $("certMsg").textContent = "Loading...";
+    return api("/api/admin/certificates?q=" + encodeURIComponent(q)).then(function (res) {
+      if (seq !== certSeq) return;
+      certSig = res.signature || "";
+      var list = $("certList");
+      list.replaceChildren();
+      res.certificates.forEach(function (c) {
+        var li = el("li");
+        var b = el("button", "idc-item");
+        b.type = "button";
+        b.appendChild(el("b", null, c.fullName || "(no name)"));
+        b.appendChild(el("span", null, c.certNo + (c.awarded ? " · " + c.awarded : "")));
+        b.addEventListener("click", function () { showCertificate(c, li); });
+        li.appendChild(b);
+        list.appendChild(li);
+      });
+      $("certMsg").textContent = res.total === 0 ? (q ? "No certified student matches that search." : "No student is Certified yet.")
+        : (res.total > res.shown ? "Showing " + res.shown + " of " + res.total + ". Type to narrow the list." : res.total + (res.total === 1 ? " certificate." : " certificates."));
+      if (certCurrent && !res.certificates.some(function (c) { return c.certNo === certCurrent.certNo; })) {
+        certCurrent = null;
+        $("certMount").replaceChildren();
+        $("certActions").hidden = true;
+      }
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("certMsg").textContent = err.message; });
+  }
+  function openCertificates() {
+    $("certSetMsg").textContent = "";
+    showCertErrors(null);
+    loadCertSettings().then(loadCertificates).catch(function (err) { if (err.auth) showLogin(err.message); else $("certMsg").textContent = err.message; });
+  }
+  $("certq").addEventListener("input", function () { clearTimeout(certTimer); certTimer = setTimeout(loadCertificates, 250); });
+  $("certSigChange").addEventListener("click", function () {
+    var panel = $("certSigPanel");
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden && !certSigWidget) certSigWidget = window.abecSignature.create($("certSigMount"), { high: true });
+  });
+  $("certSigRemove").addEventListener("click", function () {
+    if (!window.confirm("Remove the signature? Every certificate will show a blank line until you add a new one.")) return;
+    api("/api/admin/certificate-settings", "PUT", certSettingsBody({ removeSignature: true })).then(function (r) {
+      certSig = r.signature || "";
+      showCertSignature();
+      $("certSetMsg").textContent = "Signature removed.";
+      return loadCertificates();
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("certSetMsg").textContent = err.message; });
+  });
+  function certSettingsBody(extra) {
+    var b = {};
+    CERT_FIELDS.forEach(function (f) { b[f] = $("cert-" + f).value; });
+    return Object.assign(b, extra || {});
+  }
+  $("certForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("certSave");
+    btn.disabled = true;
+    showCertErrors(null);
+    $("certSetMsg").textContent = "Saving...";
+    var pending = certSigWidget && $("certSigPanel").hidden === false && certSigWidget.has() ? certSigWidget.value() : Promise.resolve("");
+    pending.then(function (url) {
+      if (certSigWidget && certSigWidget.has() && !$("certSigPanel").hidden && !url) { $("certSetMsg").textContent = ""; return; }
+      var extra = url ? { signature: url.slice(url.indexOf(",") + 1) } : {};
+      return api("/api/admin/certificate-settings", "PUT", certSettingsBody(extra)).then(function (r) {
+        CERT_FIELDS.forEach(function (f) { $("cert-" + f).value = r.values[f] || ""; });
+        certSig = r.signature || "";
+        certSigNew = "";
+        if (url && certSigWidget) { certSigWidget.clear(); $("certSigPanel").hidden = true; }
+        showCertSignature();
+        $("certSetMsg").textContent = "Saved. Every certificate now shows these details.";
+        return loadCertificates();
+      });
+    }).catch(function (err) {
+      if (err.auth) return showLogin(err.message);
+      showCertErrors(err.fields);
+      $("certSetMsg").textContent = err.message;
+    }).then(function () { btn.disabled = false; });
+  });
+  [["certPng", "png"], ["certPdf", "pdf"]].forEach(function (x) {
+    $(x[0]).addEventListener("click", function () {
+      var frame = document.querySelector("#certMount .cert-frame"), b = this;
+      if (!frame || b.disabled || !certCurrent) return;
+      var label = b.textContent;
+      b.disabled = true; b.textContent = "Preparing...";
+      window.downloadCertificate(frame, certCurrent.certNo, x[1]).then(function () { b.textContent = label; }, function () {
+        b.textContent = "Could not download. Try again";
+        setTimeout(function () { b.textContent = label; }, 3500);
+      }).then(function () { b.disabled = false; });
+    });
+  });
+
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);

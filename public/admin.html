@@ -54,6 +54,7 @@
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
         <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
+        <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
       </nav>
 
@@ -241,6 +242,51 @@
         </article>
       </div>
 
+      <div id="view-certificates" role="tabpanel" aria-labelledby="tab-certificates" hidden>
+        <article class="adm-card wide">
+          <h3>Who signs the certificates</h3>
+          <p class="adm-note">The name, title and signature below are printed on <b>every</b> certificate, together with the organisation name and the CAC RC number. Changing them updates every certificate straight away, including ones students already have open.</p>
+          <form id="certForm" class="lk-form" novalidate>
+            <div class="field" id="cert-w-certSigner"><label for="cert-certSigner">Name of the person who signs</label><input id="cert-certSigner" type="text" maxlength="60" autocomplete="off" /><p class="lk-err" id="cert-e-certSigner"></p></div>
+            <div class="field" id="cert-w-certSignerTitle"><label for="cert-certSignerTitle">Their title</label><input id="cert-certSignerTitle" type="text" maxlength="40" autocomplete="off" /><span class="hint">For example CEO. It prints in brackets after the name.</span><p class="lk-err" id="cert-e-certSignerTitle"></p></div>
+            <div class="field" id="cert-w-certOrg"><label for="cert-certOrg">Organisation name</label><input id="cert-certOrg" type="text" maxlength="60" autocomplete="off" /><p class="lk-err" id="cert-e-certOrg"></p></div>
+            <div class="field" id="cert-w-certRc"><label for="cert-certRc">CAC RC number</label><input id="cert-certRc" type="text" maxlength="20" autocomplete="off" /><span class="hint">Printed as &ldquo;CAC RC: 9420199&rdquo;. Type the number only.</span><p class="lk-err" id="cert-e-certRc"></p></div>
+            <div class="field" id="cert-w-signature">
+              <span class="label">Signature</span>
+              <div class="cert-sigcur" id="certSigCur"></div>
+              <button type="button" class="btn ghost" id="certSigChange">Add or change the signature</button>
+              <div id="certSigPanel" hidden><div id="certSigMount"></div></div>
+              <p class="lk-err" id="cert-e-signature"></p>
+            </div>
+            <div class="lk-bar">
+              <button type="submit" class="primary" id="certSave">Save</button>
+              <button type="button" class="btn ghost sh-del" id="certSigRemove" hidden>Remove signature</button>
+            </div>
+            <p class="adm-note" id="certSetMsg" role="status"></p>
+          </form>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Certificates</h3>
+          <p class="adm-note">Every Certified student has one. Search by name or registration number, then download it as a picture (PNG) or a PDF.</p>
+          <div class="field" style="margin-top:12px;max-width:520px">
+            <label for="certq">Search</label>
+            <input id="certq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
+          </div>
+          <p class="adm-note" id="certMsg" role="status"></p>
+          <div class="idc-admin cert-admin">
+            <ul class="idc-list" id="certList"></ul>
+            <div class="idc-view">
+              <div id="certMount"></div>
+              <p class="cert-actions" id="certActions" hidden>
+                <button type="button" class="btn ghost" id="certPng">Download PNG</button>
+                <button type="button" class="btn ghost" id="certPdf">Download PDF</button>
+              </p>
+            </div>
+          </div>
+        </article>
+      </div>
+
       <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
         <article class="adm-card wide">
           <div class="adm-card-head">
@@ -404,6 +450,8 @@
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
   <script src="/download.js"></script>
+  <script src="/certificate.js"></script>
+  <script src="/signature.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>

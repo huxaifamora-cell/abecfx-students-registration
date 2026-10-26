@@ -77,6 +77,18 @@
             <div class="pass-actions">
               <button type="button" id="downloadBtn" class="btn ghost">Download ID card</button>
             </div>
+
+            <!-- Certificate: only for Certified students, shown straight under the ID card -->
+            <section class="cert-block" id="certBlock" aria-labelledby="certHead" hidden>
+              <h3 id="certHead">Your certificate</h3>
+              <p class="cert-note">Congratulations on completing the course. This is your certificate of completion.</p>
+              <div id="certMount"></div>
+              <div class="cert-actions">
+                <button type="button" class="btn ghost" id="certPng">Download certificate (PNG)</button>
+                <button type="button" class="btn ghost" id="certPdf">Download certificate (PDF)</button>
+              </div>
+              <p class="formErr" id="certMsg" role="status"></p>
+            </section>
             <div class="photo-edit" id="photoEdit">
               <input id="newPhoto" type="file" accept="image/*" class="sr-only" aria-label="Choose a new passport photo" />
               <label for="newPhoto" class="btn ghost wide" id="newPhotoBtn">Change my photo (once only)</label>
@@ -224,6 +236,7 @@
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
   <script src="/download.js"></script>
+  <script src="/certificate.js"></script>
   <script src="/handbook.js"></script>
   <script src="/workbook.js"></script>
   <script src="/photo.js"></script>

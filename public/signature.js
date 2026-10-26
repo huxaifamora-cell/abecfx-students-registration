@@ -9,6 +9,9 @@
   var PAD_W = 720, PAD_H = 240;
   var OUT = [[360, 120], [300, 100], [240, 80]];
   var MAX_CHARS = 40000;
+  // The certificate signature is printed big on every certificate, so it keeps more detail (a cell holds 50,000 characters).
+  var OUT_HIGH = [[720, 240], [600, 200], [480, 160], [360, 120], [300, 100]];
+  var MAX_CHARS_HIGH = 48000;
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -60,12 +63,12 @@
   }
 
   // Trim to the ink and fit it into a small transparent PNG.
-  function finish(srcCanvas) {
+  function finish(srcCanvas, high) {
     var box = inkBox(srcCanvas);
     if (!box) return "";
-    var pad = 6;
-    for (var i = 0; i < OUT.length; i++) {
-      var ow = OUT[i][0], oh = OUT[i][1];
+    var pad = 6, sizes = high ? OUT_HIGH : OUT, maxChars = high ? MAX_CHARS_HIGH : MAX_CHARS;
+    for (var i = 0; i < sizes.length; i++) {
+      var ow = sizes[i][0], oh = sizes[i][1];
       var c = document.createElement("canvas");
       c.width = ow; c.height = oh;
       var scale = Math.min((ow - pad * 2) / box.w, (oh - pad * 2) / box.h);
@@ -74,13 +77,13 @@
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(srcCanvas, box.x, box.y, box.w, box.h, (ow - dw) / 2, (oh - dh) / 2, dw, dh);
       var url = c.toDataURL("image/png");
-      if (url.length <= MAX_CHARS) return url;
+      if (url.length <= maxChars) return url;
     }
     return "";
   }
 
   // A picture of a signature on paper: keep the dark ink, make the paper see-through.
-  function fromPicture(file) {
+  function fromPicture(file, high) {
     if (file.type && !/^image\//.test(file.type)) return Promise.reject(new Error("Choose an image file (JPG or PNG)."));
     if (file.size > 15 * 1024 * 1024) return Promise.reject(new Error("That picture is too large. Choose one under 15 MB."));
     return openImage(file).then(function (im) {
@@ -101,7 +104,7 @@
         d[i] = INK[0]; d[i + 1] = INK[1]; d[i + 2] = INK[2]; d[i + 3] = a;
       }
       ctx.putImageData(img, 0, 0);
-      var url = finish(c);
+      var url = finish(c, high);
       if (!url) throw new Error("We could not see a signature in that picture. Use dark ink on plain white paper, in good light.");
       return url;
     }, function () {
@@ -109,7 +112,8 @@
     });
   }
 
-  function create(root) {
+  function create(root, options) {
+    var high = !!(options && options.high);
     var mode = "draw";
     var uploaded = "";
     var drawn = false;
@@ -196,7 +200,7 @@
       var f = file.files && file.files[0];
       if (!f) return;
       setErr("");
-      fromPicture(f).then(function (url) {
+      fromPicture(f, high).then(function (url) {
         uploaded = url;
         prevImg.src = url; prevImg.hidden = false; prevHint.hidden = true;
         pick.textContent = "Choose a different picture";
@@ -234,7 +238,7 @@
           return Promise.resolve(uploaded);
         }
         if (!drawn) { setErr("Please sign in the box first."); return Promise.resolve(""); }
-        var url = finish(pad);
+        var url = finish(pad, high);
         if (!url) setErr("We could not read that signature. Clear the box and sign again.");
         return Promise.resolve(url);
       },

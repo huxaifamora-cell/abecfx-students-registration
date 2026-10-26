@@ -104,6 +104,7 @@
     if (!d.dobNotice) nextNotice();
     document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
     loadSignature(d);
+    loadCertificate();
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     var live = document.getElementById("liveLine");
@@ -394,6 +395,41 @@
       setTimeout(function () { dlBtn.textContent = label; }, 3500);
     }).then(function () { dlBtn.disabled = false; });
   });
+  // ---- Certificate: shown under the ID card once the student is Certified, with PNG and PDF downloads ----
+  var certBlock = document.getElementById("certBlock");
+  var certMsg = document.getElementById("certMsg");
+  var certNo = "";
+  function loadCertificate() {
+    certBlock.hidden = true;
+    certMsg.textContent = "";
+    authFetch("/api/portal/certificate").then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, body: b }; });
+    }).then(function (res) {
+      if (!res.ok || !res.body.eligible) return;
+      certNo = res.body.certificate.certNo;
+      document.getElementById("certMount").replaceChildren(
+        window.renderCertificate(res.body.certificate, { signature: res.body.signature, origin: location.origin })
+      );
+      certBlock.hidden = false;
+    }).catch(function () { /* no certificate shown; the ID card is unaffected */ });
+  }
+  [["certPng", "png"], ["certPdf", "pdf"]].forEach(function (x) {
+    var b = document.getElementById(x[0]);
+    b.addEventListener("click", function () {
+      var frame = document.querySelector("#certMount .cert-frame");
+      if (!frame || b.disabled) return;
+      var label = b.textContent;
+      b.disabled = true;
+      b.textContent = "Preparing...";
+      window.downloadCertificate(frame, certNo, x[1]).then(function () {
+        b.textContent = label;
+      }, function () {
+        b.textContent = "Could not download. Try again";
+        setTimeout(function () { b.textContent = label; }, 3500);
+      }).then(function () { b.disabled = false; });
+    });
+  });
+
   var pendingSigNotice = false;
   var pendingPhotoNotice = false;
   // ---- Age requirement notice: a pop-up for a student whose date of birth on file is too recent ----
