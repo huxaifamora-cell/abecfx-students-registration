@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Certificate | ABEC-FX</title>
+  <meta name="description" content="Check an ABEC-FX certificate of completion using the certificate number (registration number)." />
+  <meta name="theme-color" content="#5a1060" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="stage">
+    <aside class="panel">
+      <a class="brandbar" href="/" aria-label="ABEC-FX home">
+        <img src="/logo-white.png" alt="" />
+        <span><span class="name">ABEC-FX</span><span class="tag">Adebass Base Edge Consult</span></span>
+      </a>
+
+      <div class="pitch">
+        <h1>Check a certificate.</h1>
+        <p>Enter the certificate number, or scan the QR code on a certificate, to confirm it is genuine.</p>
+      </div>
+
+      <nav class="nav" aria-label="Main">
+        <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 13h3"/></svg><span>My portal</span></a>
+        <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
+        <a href="/status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
+        <a href="/certificate" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M7 9h10M7 12.5h6M9 17l-1.5 3.5L12 19l4.5 1.5L15 17"/></svg><span>Check a certificate</span></a>
+      </nav>
+
+      <div class="social" id="siteLinks" hidden></div>
+    </aside>
+
+    <main class="sheet">
+      <div class="sheet-inner">
+        <h2>Check a certificate</h2>
+        <p class="lead">Enter the certificate number, for example ABECFX/26/0001. It is printed on every certificate, and the QR code opens this page.</p>
+
+        <form id="lookupForm" novalidate>
+          <div class="search">
+            <div class="field">
+              <label for="reg" class="sr-only">Certificate number</label>
+              <input id="reg" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" required />
+            </div>
+            <button type="submit" id="lookupBtn" class="primary" style="width:auto">Check certificate</button>
+          </div>
+          <p class="formErr" id="lookupErr" role="alert" style="margin-top:12px"></p>
+        </form>
+
+        <div class="result" id="result" hidden>
+          <p class="cert-verified" id="certOk" hidden>This certificate is genuine and was issued by ABEC-FX.</p>
+          <p class="cert-none" id="certNone" hidden></p>
+          <div id="certMount"></div>
+          <p class="cert-note" id="certView" style="text-align:center;margin-top:12px" hidden>This is a view-only copy for checking. The certificate holder can download their own copy from their ABEC-FX portal.</p>
+        </div>
+
+        <p class="sheet-foot">&copy; <span id="year"></span> Adebass Base Edge Consult</p>
+      </div>
+    </main>
+  </div>
+  <script src="/nav.js"></script>
+  <script src="/links.js"></script>
+  <script src="/qr.js"></script>
+  <script src="/certificate.js"></script>
+  <script src="/certificate-page.js"></script>
+</body>
+</html>
