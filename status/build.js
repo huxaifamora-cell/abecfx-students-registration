@@ -14,7 +14,7 @@ const SITE_FILES = [
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
   "public/portal.html", "public/portal.js", "public/handbook.js",
-  "public/status.html", "public/status.js",
+  "public/status.html", "public/status.js", "public/lookup-kind.js",
   "public/card.js", "public/qr.js", "public/nav.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
   "public/styles.css", "public/links.js", "links.js", "videos.js",
