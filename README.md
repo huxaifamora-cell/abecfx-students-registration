@@ -229,3 +229,11 @@ Old rows with a blank Status count as Uncertified.
 - Registration numbers run in order, so someone could try numbers one after another and view
   names and photos. Lookups are rate limited (30 searches and 20 photo views per 10 minutes per
   visitor), which slows this down but does not stop it.
+
+## Certificates
+
+A **Certified** student has a certificate of completion. They see it under their ID card in the portal and can download it (PNG or PDF). Anyone can check one at `/certificate` (or by scanning the QR code on it) and sees a watermarked view-only copy.
+
+- Certificate number = the student's registration number. Award date = the student's **Status Date**, printed as "1st June 2026".
+- On the dashboard, the **Certificates** tab (access "Certificates", held by Owner and Admin, or given to a custom role) sets who signs: name, title, signature, organisation name and CAC RC number. These print on every certificate. The same tab lists every certificate for viewing and download.
+- The signer's signature is kept on the `Signatures` tab under the name `CERTIFICATE-SIGNER`; the text settings are rows on the `Site Links` tab.

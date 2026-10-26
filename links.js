@@ -15,6 +15,11 @@ const FIELDS = [
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
+  // Printed on every certificate. They belong to the Certificates tab (its own access), not to Site links.
+  { key: "certSigner", label: "Certificate: name of the person who signs", kind: "line", hint: "Adebisi Abass Mayowa", max: 60, group: "certificate" },
+  { key: "certSignerTitle", label: "Certificate: their title", kind: "line", hint: "CEO", max: 40, group: "certificate" },
+  { key: "certOrg", label: "Certificate: organisation name", kind: "line", hint: "Adebass Base Edge Consult FX", max: 60, group: "certificate" },
+  { key: "certRc", label: "Certificate: CAC RC number", kind: "line", hint: "9420199", max: 20, group: "certificate" },
 ];
 
 const DEFAULTS = {
@@ -29,6 +34,10 @@ const DEFAULTS = {
   communityTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
+  certSigner: "Adebisi Abass Mayowa",
+  certSignerTitle: "CEO",
+  certOrg: "Adebass Base Edge Consult FX",
+  certRc: "9420199",
   about:
     "Adebass Base Edge Consult (ABEC-FX) runs a forex course that teaches students how to trade with discipline, " +
     "risk control and a clear edge. Register to get your student number, ID card and the Mentorship Handbook.",
@@ -45,6 +54,11 @@ function sanitize(input) {
   const errors = {};
   for (const f of FIELDS) {
     if (!(f.key in src)) { values[f.key] = ""; continue; }
+    if (f.kind === "line") {
+      // plain one-line text (a name, a title, a number): no links, no line breaks
+      values[f.key] = oneLine(src[f.key], f.max || 60);
+      continue;
+    }
     if (f.kind === "text") {
       values[f.key] = String(src[f.key] == null ? "" : src[f.key]).replace(/\r/g, "").trim().slice(0, f.max || 700);
       continue;
@@ -94,16 +108,19 @@ function toRows(values) {
 // The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
 // handed to anyone who visits the site.
 const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram"];
+// The certificate settings are not site links either: they are only sent with a certificate.
 function publicView(values) {
   const out = { ...values };
-  for (const k of STUDENT_ONLY) delete out[k];
+  for (const k of STUDENT_ONLY.concat(CERT_KEYS)) delete out[k];
   return out;
 }
 
 // Which fields belong to which dashboard tab. The "Site links" tab (links access) has everything without a group;
 // the "Community" tab (community access) has the two student group links. Each tab saves only its own fields.
 const COMMUNITY_KEYS = FIELDS.filter((f) => f.group === "community").map((f) => f.key);
-const siteFields = () => FIELDS.filter((f) => f.group !== "community");
+const CERT_KEYS = FIELDS.filter((f) => f.group === "certificate").map((f) => f.key);
+const siteFields = () => FIELDS.filter((f) => !f.group);
+const certFields = () => FIELDS.filter((f) => f.group === "certificate");
 const communityFields = () => FIELDS.filter((f) => f.group === "community");
 const pick = (values, keys) => Object.fromEntries(keys.map((k) => [k, (values && values[k]) || ""]));
 const siteKeys = () => siteFields().map((f) => f.key);
@@ -116,5 +133,5 @@ function communityFor(values) {
 
 module.exports = {
   fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
-  siteFields, communityFields, pick, siteKeys,
+  siteFields, communityFields, pick, siteKeys, CERT_KEYS, certFields,
 };

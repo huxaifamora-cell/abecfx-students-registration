@@ -20,6 +20,7 @@ const links = require("./links");
 const videos = require("./videos");
 const adminDatabase = require("./admin-database");
 const team = require("./team");
+const certificate = require("./certificate");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -98,8 +99,8 @@ function checkPhoto(p) {
 }
 
 // The browser draws or cleans up the signature into a small transparent PNG (a few KB). Accept only that kind of file.
-function checkSignature(p) {
-  if (typeof p !== "string" || p.length < 200 || p.length > 46000) return null;
+function checkSignature(p, max = 46000) {
+  if (typeof p !== "string" || p.length < 200 || p.length > max) return null;
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(p)) return null;
   const head = Buffer.from(p.slice(0, 12), "base64");
   if (!(head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47)) return null; // PNG signature
@@ -350,6 +351,7 @@ const page = (name) => (_req, res) => res.sendFile(path.join(__dirname, "public"
 app.get("/", page("portal.html"));
 app.get("/portal", (_req, res) => res.redirect(301, "/"));
 app.get("/register", page("register.html"));
+app.get("/certificate", (_req, res) => res.sendFile(path.join(__dirname, "public", "certificate.html")));
 app.get("/status", (_req, res) =>
   res.sendFile(path.join(__dirname, "public", "status.html"))
 );
@@ -462,6 +464,57 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal card failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// ---- Certificates (see certificate.js) ----
+// Anyone can look a certificate up by registration number and SEE it (that is how it is verified, e.g. from its QR
+// code). Downloading is for the signed-in student and the dashboard. The signer's signature picture is kept on the
+// Signatures tab under a name that is not a registration number.
+const CERT_SIG_KEY = "CERTIFICATE-SIGNER";
+let certSigCache = { at: 0, value: "" };
+async function certSignature() {
+  if (Date.now() - certSigCache.at < 60000) return certSigCache.value;
+  let value = "";
+  try { value = (await store.getSignature(CERT_SIG_KEY)) || ""; } catch (e) { console.error("Certificate signature read failed:", e.message); return certSigCache.value; }
+  certSigCache = { at: Date.now(), value };
+  return value;
+}
+async function certSettings() {
+  let v = {};
+  try { v = await store.readLinks(); } catch (e) { v = links.DEFAULTS; }
+  return links.pick(v, links.CERT_KEYS);
+}
+// What the page needs to draw one certificate (never an email or WhatsApp number).
+async function certificateFor(row) {
+  const card = cardFromRow(row);
+  const cert = certificate.forCard(card, await certSettings());
+  if (!cert) return { eligible: false, regNumber: card.regNumber, fullName: card.fullName, status: card.status };
+  return { eligible: true, certificate: cert, signature: await certSignature() };
+}
+
+app.get("/api/certificate", lookupLimiter, async (req, res) => {
+  const reg = normaliseReg(req.query.reg);
+  if (!reg) return res.status(400).json({ error: "Enter a valid registration number, e.g. ABECFX/26/0001." });
+  try {
+    const r = (await store.readCached()).find((row) => (row[0] || "").toUpperCase() === reg);
+    if (!r) return res.status(404).json({ error: "No student found with that registration number." });
+    res.set("Cache-Control", "no-cache");
+    res.json(await certificateFor(r));
+  } catch (err) {
+    console.error("Certificate lookup failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+app.get("/api/portal/certificate", lookupLimiter, studentAuth, async (req, res) => {
+  try {
+    const r = (await store.readCached()).find((row) => (row[0] || "").toUpperCase() === req.studentReg);
+    if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
+    res.json(await certificateFor(r));
+  } catch (err) {
+    console.error("Portal certificate failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
   }
 });
@@ -786,6 +839,7 @@ const linksAuth = requirePerm("links"); // site links
 const communityAuth = requirePerm("community"); // the student WhatsApp / Telegram groups
 const videosAuth = requirePerm("videos"); // chapter videos
 const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
+const certAuth = requirePerm("certificates"); // certificate signer settings, and every certificate
 const databaseAuth = requirePerm("database"); // the Database tab
 const teamAuth = requirePerm("team"); // team accounts and roles
 
@@ -1091,6 +1145,64 @@ app.get("/api/admin/id-cards/signature", adminLimiter, teamAuth, async (req, res
   }
 });
 
+// ---- Certificates (dashboard) ----
+// Everyone Certified, newest first, with the signer's settings. Anyone with the "certificates" access can open and
+// download them, and set who signs them.
+app.get("/api/admin/certificates", adminLimiter, certAuth, async (req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    const q = clean(req.query.q, 80).toLowerCase();
+    const settings = await certSettings();
+    const all = (await store.readCached()).filter((r) => r && r[0]).map(cardFromRow).filter((c) => certificate.isEligible(c.status));
+    const hit = q ? all.filter((c) => [c.regNumber, c.fullName, c.country, c.state].some((v) => String(v || "").toLowerCase().includes(q))) : all;
+    const certificates = hit.slice().reverse().slice(0, 40).map((c) => certificate.forCard(c, settings));
+    res.json({ total: hit.length, shown: certificates.length, certificates, signature: await certSignature() });
+  } catch (err) {
+    console.error("Admin certificates failed:", err.message);
+    res.status(500).json({ error: "Could not read the student list. Please try again shortly." });
+  }
+});
+
+app.get("/api/admin/certificate-settings", adminLimiter, certAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    certSigCache = { at: 0, value: "" };
+    res.json({ fields: links.certFields(), values: links.pick(await store.readLinks(0), links.CERT_KEYS), signature: await certSignature() });
+  } catch (err) {
+    console.error("Certificate settings read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+// Body: the four text settings, and optionally "signature" (a new base64 PNG) or "removeSignature": true.
+app.put("/api/admin/certificate-settings", adminLimiter, certAuth, async (req, res) => {
+  const src = req.body && typeof req.body === "object" ? req.body : {};
+  const body = {};
+  links.CERT_KEYS.forEach((k) => { body[k] = src[k]; });
+  const { values, errors } = links.sanitize(body);
+  const mine = Object.fromEntries(Object.entries(errors).filter(([k]) => links.CERT_KEYS.includes(k)));
+  for (const f of links.certFields()) if (!values[f.key]) mine[f.key] = "This cannot be empty: it is printed on every certificate.";
+  let sig = "";
+  if (src.signature !== undefined && src.signature !== "") {
+    // a little larger than a student's signature: it is printed big on every certificate (a cell holds up to 50,000 characters)
+    sig = checkSignature(src.signature, 49000);
+    if (!sig) mine.signature = "That signature could not be used. Draw it again, or upload a clearer picture.";
+  }
+  if (Object.keys(mine).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors: mine });
+  try {
+    const current = await store.readLinks(0);
+    const merged = { ...current, ...links.pick(values, links.CERT_KEYS) };
+    await store.saveLinks(merged);
+    if (sig) await store.setSignature(CERT_SIG_KEY, sig);
+    else if (src.removeSignature === true) await store.setSignature(CERT_SIG_KEY, "");
+    certSigCache = { at: 0, value: "" };
+    res.json({ ok: true, values: links.pick(merged, links.CERT_KEYS), signature: await certSignature() });
+  } catch (err) {
+    console.error("Certificate settings save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
+  }
+});
+
 app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
   res.json({ members: await teamService.members(), roles: await teamService.roles(req.admin), permissions: team.PERMS });
 }));
@@ -1160,12 +1272,12 @@ app.get("/api/admin/links", adminLimiter, linksAuth, async (_req, res) => {
 // Site links never touch the student community groups: those belong to the Community tab and its own access.
 app.put("/api/admin/links", adminLimiter, linksAuth, async (req, res) => {
   const body = { ...(req.body && typeof req.body === "object" ? req.body : {}) };
-  links.COMMUNITY_KEYS.forEach((k) => delete body[k]);
+  links.COMMUNITY_KEYS.concat(links.CERT_KEYS).forEach((k) => delete body[k]);
   const { values, errors } = links.sanitize(body);
   if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
   try {
     const current = await store.readLinks(0);
-    const merged = { ...values, ...links.pick(current, links.COMMUNITY_KEYS) };
+    const merged = { ...values, ...links.pick(current, links.COMMUNITY_KEYS.concat(links.CERT_KEYS)) };
     await store.saveLinks(merged);
     res.json({ ok: true, values: links.pick(merged, links.siteKeys()) });
   } catch (err) {

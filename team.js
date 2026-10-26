@@ -6,6 +6,7 @@
 //   community Student community: the WhatsApp and Telegram groups the portal's Community page opens.
 //   videos    Chapter videos.
 //   quizcodes Quiz codes: make and cancel the one-time codes students need to unlock the quiz.
+//   certificates Certificates: choose who signs them (name, title, signature), and open and download any certificate.
 //   database  The Database tab: add, edit and delete records.
 //   team      Team accounts and roles.
 //
@@ -37,6 +38,7 @@ const PERMS = [
   { key: "community", label: "Student community", help: "Set the WhatsApp and Telegram groups students open from the Community page of their portal." },
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
+  { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "team", label: "Team and roles", help: "Add team members, create roles and choose their access." },
 ];
