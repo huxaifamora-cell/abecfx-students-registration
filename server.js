@@ -176,9 +176,13 @@ function validate(body) {
 }
 
 // What the public ID card is allowed to show. Email and WhatsApp number are never included.
-function cardFromRow(r) {
-  const raw = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
-  const status = store.STATUSES.includes(raw) ? raw : "Uncertified";
+// kind: "student", "alumni" or "team" picks which of the person's cards to build. Left out, it builds the person's
+// main card (student first, then alumni, then team). `cards` always lists every card the person holds, and
+// `certified` says whether they have a certificate, so the page can offer the right choices.
+function cardFromRow(r, kind) {
+  if (typeof kind !== "string") kind = undefined; // .map(cardFromRow) passes the row number as the second argument
+  const cards = idrules.idCards(r);
+  const status = kind ? idrules.kindStatus(kind, r) : idrules.primaryStatus(r);
   const reg = r[0] || "";
   const yy = parseInt((reg.split("/")[1] || ""), 10);
   const issuedISO = idrules.parseIssued(r);
@@ -194,6 +198,8 @@ function cardFromRow(r) {
     admitted: Number.isNaN(yy) ? "" : 2000 + yy,
     issued: issuedISO ? idrules.formatISO(issuedISO) : (r[1] || "").split(",")[0],
     status,
+    cards,
+    certified: idrules.idKinds(r).student === "Certified",
     teamRole: status === "Team Member" ? (r[14] || "").trim() : "",
     statusDate: status === "Uncertified" ? "" : r[10] || "",
     ...expiry, // expiryKind, expires, expired, daysLeft
@@ -372,7 +378,21 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
     if (!r) {
       return res.status(404).json({ error: "No student found with that registration number." });
     }
-    res.json(cardFromRow(r));
+    // ?kind=student|alumni|team picks the card. A person only has the cards the editor ticked for them.
+    const kind = String(req.query.kind || "").toLowerCase();
+    if (kind) {
+      if (!["student", "alumni", "team"].includes(kind)) return res.status(400).json({ error: "Choose a Student, Alumni or Team ID card." });
+      if (!idrules.idCards(r).includes(kind)) {
+        const base = cardFromRow(r);
+        const names = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+        return res.status(404).json({
+          error: `${base.fullName} (${base.regNumber}) does not have a ${names[kind]}.`,
+          cards: base.cards,
+          certified: base.certified,
+        });
+      }
+    }
+    res.json(cardFromRow(r, kind || undefined));
   } catch (err) {
     console.error("Lookup failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -493,7 +513,7 @@ async function signerOf(reg, rows) {
   if (!r) return { found: false, regNumber: "", name: "", title: "", signature: "" };
   const row = (rows || (await store.readCached())).find((x) => (x[0] || "").toUpperCase() === r);
   if (!row) return { found: false, regNumber: r, name: "", title: "", signature: "" };
-  const card = cardFromRow(row);
+  const card = cardFromRow(row, idrules.idCards(row).includes("team") ? "team" : undefined);
   return { found: true, regNumber: r, name: card.fullName, title: card.teamRole || "", signature: await signatureOf(r) };
 }
 // The settings certificate.forCard prints, with the signer filled in from their record.

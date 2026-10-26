@@ -48,10 +48,15 @@ function nextYm(ym) {
   return `${y}-${String(m).padStart(2, "0")}`;
 }
 
+// The one status a person is counted under in the bars: student standing first, then alumni, then team.
+// (A Certified student who is also a team member is counted once, as Certified, so the bars add up to the total.)
 function statusOf(r) {
-  const v = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
+  const v = idrules.primaryStatus(r);
   return STATUS_ORDER.includes(v) ? v : "Uncertified";
 }
+// The tiles count everyone who holds the card, however many cards they hold.
+const isGraduate = (r) => { const k = idrules.idKinds(r); return k.student === "Certified" || k.alumni; };
+const isTeam = (r) => idrules.idKinds(r).team;
 
 function buildStats(rows, quizRows, todayISO) {
   const total = rows.length;
@@ -118,9 +123,9 @@ function buildStats(rows, quizRows, todayISO) {
     state: tally(rows.map(KEYS.state)),
     programme: tally(rows.map(KEYS.programme)),
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
-    graduates: sum(GRADUATE_STATUSES), // Certified + Alumni Member
-    uncertified: statusCounts.Uncertified,
-    team: sum(TEAM_STATUSES), // Team Member
+    graduates: rows.filter(isGraduate).length, // Certified students + Alumni members
+    uncertified: rows.filter((r) => idrules.idKinds(r).student === "Uncertified").length,
+    team: rows.filter(isTeam).length, // everyone ticked as a Team Member, including students who are also team
     byYear,
     months,
     monthsByYear,
@@ -189,9 +194,9 @@ function drill(rows, quizRows, kind, value) {
 
   switch (kind) {
     case "all": title = "All students"; pick = () => true; break;
-    case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
-    case "uncertified": title = "Uncertified students"; pick = (r) => statusOf(r) === "Uncertified"; break;
-    case "team": title = "Team members"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
+    case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = isGraduate; break;
+    case "uncertified": title = "Uncertified students"; pick = (r) => idrules.idKinds(r).student === "Uncertified"; break;
+    case "team": title = "Team members"; pick = isTeam; break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
       title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;

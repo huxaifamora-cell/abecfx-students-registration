@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 26 Oct 2026, 10:18 (Lagos time), after change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design). Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 26 Oct 2026, 10:40 (Lagos time), after change 13 (find a student now offers Student ID card, Alumni ID card, Team ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -32,6 +32,8 @@
 14. **Change 10 (owner, 18 Oct 2026): an "Editor" role, and when an admin creates a role they choose its access control** [DONE, awaiting live check].
 
 15. **Change 11 (owner, 18 Oct 2026): the quiz section is only accessible after entering a one-time quiz code made by an admin or other roles in charge. A code unlocks the quiz until it is completed; after that another code is needed** [DONE, awaiting live check].
+
+16. **Change 13 (owner, 26 Oct 2026): the "Find a student" dropdown offers Student ID card, Alumni ID card, Team ID card and Certificate.** A person can be a student (certified or uncertified) and also a team member; a person can be a team member with no Student ID; what each person has depends on what the admin ticked; the certificate is only for Certified students [DONE, awaiting live check].
 
 ## 2. Decisions
 
@@ -94,6 +96,10 @@
 | 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
 | 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `team.js`, `public/portal.*`, `public/admin.*`. |
 | 2026-10-26 | **Change 12: the certificate uses the real design of the owner's approved certificate image.** (1) **Background:** the purple band and black block top left, the thin purple line and white stripe, the big purple panel, the bottom purple and black strips, the black bar under the title and the black CAC tag are drawn as vector shapes whose corners were **measured from the owner's image** (a pixel check against the image differs only on one-pixel edges). The canvas is now 1280 x 909, the size of that image (was 1280 x 905). (2) **Emblem:** the bull-horn logo is the real `logo-purple.png`, and the gold seal is the **real seal picture cut out of the owner's image** (laurels, stars, four ribbon tails), with its printed "2026" painted out so the page prints each certificate's own year on it. Both live in `public/certificate-art.js` as embedded pictures, so they also appear in the PNG and PDF downloads. (3) "Certificate", "OF COMPLETION", the organisation name under the logo, the stamp, the certificate number and the CAC tag moved to the places they have in the image. The wording of the certificate, the signature block and the dynamic fields are unchanged | Owner request ("use the actual designs of the background, and the emblem"). **Assumed:** "emblem" means both the bull-horn logo and the gold seal. The seal picture is only about 175 px wide in the owner's image, so it is a little soft when printed large; a separate high-resolution copy of the seal (PNG with transparent background) can replace the picture in `certificate-art.js` without any other change. The words "ADEBASS BASE / EDGE CONSULT" under the logo are drawn as text, not cut from the image (the image copy is too small to stay sharp). The PDF now keeps the picture's own proportions on the A4 page (centred, a thin white margin top and bottom). |
+| 2026-10-26 | **Change 13: one person, up to three ID cards.** The Students sheet keeps **column J "Status"** for the Student ID: **Uncertified**, **Certified** or the new **Not a student** (no Student ID). Two new tick columns: **Q "Team Member"** and **R "Alumni Member"** (dropdown: Yes or empty). Student ID card = Uncertified or Certified; Team ID card = Q is Yes; Alumni ID card = R is Yes; **Certificate = Certified only** (unchanged rule, now independent of the other ticks, so a Certified student who is also a team member keeps the certificate). Rules live in `idrules.js` (`idKinds`, `idCards`, `kindStatus`, `primaryStatus`) | Owner request ("a person can be a student whether certified or uncertified and still be a team member ... a person can be a team member without having a student ID ... this depends on the status ticked by admin"). **Assumed:** Alumni is also a tick that can sit beside a student standing (the owner described students and team; alumni was handled the same way). A Certified student who is Alumni keeps their certificate. |
+| 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Team Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old team member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
+| 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Team ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|team`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Team ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then team) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Team ID card's QR opens the Team ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
+| 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Team Member, Alumni Member) beside Status; the role box shows only while Team Member is ticked; **Not a student** is refused unless Team Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then team), so they add up to the total; the **Team** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
 
 ## 3. Current state
 
@@ -114,6 +120,7 @@
 - **New:** the quiz runs inside the student portal ("Take the quiz here"): the student is signed in automatically, cannot switch to another number, the result is graded and saved, and the portal's results card refreshes by itself. "Close quiz" and "Not you?" remove the running quiz. Telegram still works as before.
 - **New (change 12):** certificates (on the public check page, in the portal download and in the dashboard) are drawn on the owner's approved design: the same purple, black and white shapes, the bull-horn emblem and the gold seal with the certificate year on it. Checked by rendering the certificate in a headless browser, comparing the background pixel by pixel with the owner's image, and downloading the PNG and the PDF. **Not yet seen on live Render** with a real Certified student and signature.
 
+- **New (change 13):** the find-a-student dropdown (Student ID card, Alumni ID card, Team ID card, Certificate); a person can hold several cards, set by the Team Member and Alumni Member ticks in the sheet or the Database tab. Checked with the unit tests that can run without the web packages (`test/status.test.js`, `test/admin-database.test.js`) and a direct run of the card builder. **Not run end to end** (the Express packages could not be installed here) and **not seen on live Render**.
 **Pages and endpoints (registration site):**
 
 | Address | Purpose |
@@ -159,6 +166,8 @@
 **Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 ## 4. Next steps
+
+**Owner action for change 13:** push the changed `idrules.js`, `sheets.js`, `server.js`, `stats.js`, `admin-database.js`, `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js`, `public/admin.js`, the `test/` folder, `status/STATUS-SOURCE.md` and `PROJECT-STATUS.md`. No new Render variable and no new package. On start the site adds the two headers (Team Member, Alumni Member) to the Students tab and refreshes the Status dropdown. Then in `/admin` > Database > Students (or in the sheet) tick **Team Member** and/or **Alumni Member** for the right people, and set **Status** to **Not a student** for anyone who is team only. Check on `/status`: pick each of the four choices for a student who is also a team member; a Certified student shows a certificate, an Uncertified one does not.
 
 **Owner action for the Database buttons fix:** push `public/admin.js` and `public/admin.css`. Open `/admin` > Database: every row should show Edit and Delete. Try Delete on a test record.
 
@@ -244,6 +253,7 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Team ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
 | 2026-10-26 | **Change 12: certificate design.** New `public/certificate-art.js` (the real bull-horn logo and the gold seal as embedded pictures); `public/certificate.js` rewritten around the measured background shapes of the owner's design, canvas 1280 x 909, new title, logo, seal, stamp, certificate number and CAC-tag positions, PDF keeps proportions; `portal.html`, `admin.html` and `certificate.html` load `certificate-art.js` before `certificate.js`; `status/build.js` now also embeds the certificate files in the latest-code section. |
 | 2026-10-18 | **Community page in the student portal.** New **Community** item in the portal's My portal menu (`#/community`) with a "Join on WhatsApp" and a "Join on Telegram" button that open the official group in a new tab. The addresses are two new fields on the dashboard's **Site links** tab (`communityWhatsapp`, `communityTelegram`, https only); when one is empty the page uses the official WhatsApp / Telegram already on Site links, and if nothing is set it says the link is coming soon. The community links are served only to signed-in students (`GET /api/community`) and are left out of the public `/api/links`. On startup the site adds the two missing rows to the Site Links tab. Files: `links.js`, `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `test/community.test.js`, `test/support/boot-server.js`, `test/support/fake-sheets.js`, `test/quiz-gate.test.js`. 3 new tests. |
 | 2026-10-26 | **Find a student now has an ID card / Certificate dropdown.** "Check a certificate" is removed from the main menu (and the phone tab bar); "Find a student" is the one entry. Its page opens with a dropdown, **ID card** or **Certificate**, and choosing one opens that lookup (the certificate page keeps "Find a student" highlighted). New `public/lookup-kind.js`; changed `public/status.html`, `public/certificate.html`, `public/styles.css`. Owner action: push those four files. |
@@ -273,7 +283,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 26 Oct 2026, 10:18 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 26 Oct 2026, 10:40 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -460,9 +470,13 @@ function validate(body) {
 }
 
 // What the public ID card is allowed to show. Email and WhatsApp number are never included.
-function cardFromRow(r) {
-  const raw = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
-  const status = store.STATUSES.includes(raw) ? raw : "Uncertified";
+// kind: "student", "alumni" or "team" picks which of the person's cards to build. Left out, it builds the person's
+// main card (student first, then alumni, then team). `cards` always lists every card the person holds, and
+// `certified` says whether they have a certificate, so the page can offer the right choices.
+function cardFromRow(r, kind) {
+  if (typeof kind !== "string") kind = undefined; // .map(cardFromRow) passes the row number as the second argument
+  const cards = idrules.idCards(r);
+  const status = kind ? idrules.kindStatus(kind, r) : idrules.primaryStatus(r);
   const reg = r[0] || "";
   const yy = parseInt((reg.split("/")[1] || ""), 10);
   const issuedISO = idrules.parseIssued(r);
@@ -478,6 +492,8 @@ function cardFromRow(r) {
     admitted: Number.isNaN(yy) ? "" : 2000 + yy,
     issued: issuedISO ? idrules.formatISO(issuedISO) : (r[1] || "").split(",")[0],
     status,
+    cards,
+    certified: idrules.idKinds(r).student === "Certified",
     teamRole: status === "Team Member" ? (r[14] || "").trim() : "",
     statusDate: status === "Uncertified" ? "" : r[10] || "",
     ...expiry, // expiryKind, expires, expired, daysLeft
@@ -656,7 +672,21 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
     if (!r) {
       return res.status(404).json({ error: "No student found with that registration number." });
     }
-    res.json(cardFromRow(r));
+    // ?kind=student|alumni|team picks the card. A person only has the cards the editor ticked for them.
+    const kind = String(req.query.kind || "").toLowerCase();
+    if (kind) {
+      if (!["student", "alumni", "team"].includes(kind)) return res.status(400).json({ error: "Choose a Student, Alumni or Team ID card." });
+      if (!idrules.idCards(r).includes(kind)) {
+        const base = cardFromRow(r);
+        const names = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+        return res.status(404).json({
+          error: `${base.fullName} (${base.regNumber}) does not have a ${names[kind]}.`,
+          cards: base.cards,
+          certified: base.certified,
+        });
+      }
+    }
+    res.json(cardFromRow(r, kind || undefined));
   } catch (err) {
     console.error("Lookup failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -777,7 +807,7 @@ async function signerOf(reg, rows) {
   if (!r) return { found: false, regNumber: "", name: "", title: "", signature: "" };
   const row = (rows || (await store.readCached())).find((x) => (x[0] || "").toUpperCase() === r);
   if (!row) return { found: false, regNumber: r, name: "", title: "", signature: "" };
-  const card = cardFromRow(row);
+  const card = cardFromRow(row, idrules.idCards(row).includes("team") ? "team" : undefined);
   return { found: true, regNumber: r, name: card.fullName, title: card.teamRole || "", signature: await signatureOf(r) };
 }
 // The settings certificate.forCard prints, with the signer filled in from their record.
@@ -1773,11 +1803,12 @@ const PHOTO_TAB = process.env.GOOGLE_PHOTO_TAB || "Photos";
 const SIG_TAB = process.env.GOOGLE_SIGNATURE_TAB || "Signatures";
 const API = "https://sheets.googleapis.com/v4/spreadsheets";
 
+// Column J. "Not a student" means no Student ID (a team or alumni member who never took the course).
+// Team and Alumni are ticked in columns Q and R, so one person can be a student and also a team member.
 const STATUSES = [
   "Uncertified",
   "Certified",
-  "Team Member",
-  "Alumni Member",
+  "Not a student",
 ];
 
 const HEADERS = [
@@ -1797,8 +1828,10 @@ const HEADERS = [
   "Date of Birth",
   "Team Role",
   "Photo To Redo (type Yes: the student must send a new passport photo)",
+  "Team Member (Yes gives a Team ID card)",
+  "Alumni Member (Yes gives an Alumni ID card)",
 ];
-const LAST_COL = "P";
+const LAST_COL = "R";
 const DOB_TAB = process.env.GOOGLE_DOB_TAB || "DOB Changes";
 const DOB_HEADERS = ["Reg Number", "Old Date of Birth", "New Date of Birth", "Changed At (Lagos)"];
 const SIG_HEADERS = ["Reg Number", "Signature (base64 PNG - do not edit)"];
@@ -2000,6 +2033,17 @@ async function init() {
                 type: "ONE_OF_LIST",
                 values: STATUSES.map((s) => ({ userEnteredValue: s })),
               },
+              showCustomUi: true,
+              strict: true,
+            },
+          },
+        },
+        {
+          // Dropdowns on Team Member (Q) and Alumni Member (R): Yes or empty.
+          setDataValidation: {
+            range: { sheetId: students.sheetId, startRowIndex: 1, startColumnIndex: 16, endColumnIndex: 18 },
+            rule: {
+              condition: { type: "ONE_OF_LIST", values: [{ userEnteredValue: "Yes" }] },
               showCustomUi: true,
               strict: true,
             },
@@ -3326,16 +3370,16 @@ function create(store) {
   const TABS = {
     students: {
       label: "Students",
-      help: "One row per student. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
-      editable: [0, 2, 3, 4, 5, 6, 7, 9, 14, 10, 11, 12, 13, 15],
-      selects: { 2: countries, 7: GENDERS, 9: store.STATUSES, 15: ["", "Yes"] },
-      placeholders: { 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      help: "One row per person. Status says whether they hold a Student ID (Uncertified, Certified) or none (Not a student). Tick Team Member and/or Alumni Member to give them those ID cards too; only Certified students get a certificate. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
+      editable: [0, 2, 3, 4, 5, 6, 7, 9, 16, 17, 14, 10, 11, 12, 13, 15],
+      selects: { 2: countries, 7: GENDERS, 9: store.STATUSES, 15: ["", "Yes"], 16: ["", "Yes"], 17: ["", "Yes"] },
+      placeholders: { 16: "Yes gives a Team ID card (a student can also be a team member)", 17: "Yes gives an Alumni ID card", 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
       create: {
         label: "Add student",
         help: "The registration number, sign-up time and ID issue date are filled in for you. A student added here has no photo, so the ID card shows their initials.",
-        fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 14, 10],
+        fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 16, 17, 14, 10],
         defaults: { 3: "Forex Course", 9: "Uncertified" },
       },
       deleteWarning: "This also deletes the student's photo, quiz results and handbook progress, and cannot be undone. Their registration number will never be given to anyone else.",
@@ -3390,13 +3434,26 @@ function create(store) {
           p[9] = clean(p[9]);
           if (!store.STATUSES.includes(p[9])) errors[9] = "Choose a status from the list.";
         }
-        // The role only exists for a Team Member: it is required for them and cleared for everyone else.
-        if (!errors[9]) {
-          if (p[9] === "Team Member") {
+        // Team Member and Alumni Member are ticks: Yes, or empty. Each tick gives that person that ID card.
+        for (const i of [16, 17]) {
+          if (changed(i)) {
+            p[i] = clean(p[i], 10);
+            if (p[i] && !idrules.isTick(p[i])) errors[i] = "Choose Yes, or leave it empty.";
+            else p[i] = p[i] ? "Yes" : "";
+          }
+        }
+        if (!errors[9] && !errors[16] && !errors[17]) {
+          const k = idrules.idKinds(p);
+          // The role only exists for a Team Member: it is required for them and cleared for everyone else.
+          if (k.team) {
             p[14] = clean(p[14], 40);
             if (p[14].length < 2) errors[14] = "Type this team member's role, e.g. Mentor, CEO or Support Staff.";
           } else {
             p[14] = "";
+          }
+          // "Not a student" means no Student ID, so the person must hold some other card.
+          if (p[9] === "Not a student" && !k.team && !k.alumni) {
+            errors[9] = "A person with no Student ID must be ticked as a Team Member or an Alumni Member (columns Team Member / Alumni Member). Otherwise they have no ID card at all.";
           }
         }
         if (changed(15)) {
@@ -3790,6 +3847,47 @@ function normalizeStatus(v) {
   return LEGACY_STATUS[s.toLowerCase()] || s;
 }
 
+// ---- Which ID cards a person has -------------------------------------------------------------------------------
+// A person can hold more than one card. The editor decides which, by what is ticked in the Students sheet:
+//   Column J "Status": Uncertified, Certified or Not a student. This is the Student ID card (and the certificate,
+//     which only a Certified student has). "Not a student" means no Student ID at all.
+//   Column Q "Team Member": Yes gives a Team ID card. Works with any column J value, including Not a student.
+//   Column R "Alumni Member": Yes gives an Alumni ID card.
+// Old rows that still hold Team Member or Alumni Member in column J keep working as before: that person has only
+// that one card (no Student ID) until the editor ticks more.
+const TICK = /^(yes|y|true|1|x|tick|ticked|\u2713|\u2714)$/i;
+function isTick(v) {
+  return TICK.test(String(v == null ? "" : v).trim());
+}
+// row: one Students row. Returns { student: "Uncertified" | "Certified" | "", team: boolean, alumni: boolean }.
+function idKinds(row) {
+  const raw = normalizeStatus(row[9]);
+  const legacyTeam = raw === "Team Member";
+  const legacyAlumni = raw === "Alumni Member";
+  const none = raw === "Not a student" || legacyTeam || legacyAlumni;
+  return {
+    student: none ? "" : raw === "Certified" ? "Certified" : "Uncertified",
+    team: isTick(row[16]) || legacyTeam,
+    alumni: isTick(row[17]) || legacyAlumni,
+  };
+}
+// The cards a person has, in the order the dropdown lists them: ["student", "alumni", "team"] (only those they hold).
+function idCards(row) {
+  const k = idKinds(row);
+  return [k.student && "student", k.alumni && "alumni", k.team && "team"].filter(Boolean);
+}
+// The status that one kind of card shows: "Uncertified" / "Certified", "Alumni Member" or "Team Member".
+function kindStatus(kind, row) {
+  const k = idKinds(row);
+  return kind === "team" ? "Team Member" : kind === "alumni" ? "Alumni Member" : k.student || "Uncertified";
+}
+// The one status that stands for the person where a single status is needed (the portal, the dashboard counts):
+// their student standing first, then alumni, then team.
+function primaryStatus(row) {
+  const k = idKinds(row);
+  return k.student || (k.alumni ? "Alumni Member" : k.team ? "Team Member" : "Uncertified");
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const EXPIRING_STATUSES = ["Uncertified"];
 const VALID_MONTHS = 2;
@@ -3853,6 +3951,7 @@ function expiryInfo(status, issuedISO, todayISO) {
 }
 
 module.exports = {
+  isTick, idKinds, idCards, kindStatus, primaryStatus,
   normalizeStatus, lagosToday, parseIssued, parseRegistered, addMonthsISO, formatISO, daysBetween, expiryInfo, EXPIRING_STATUSES };
 ```
 
@@ -3936,10 +4035,15 @@ function nextYm(ym) {
   return `${y}-${String(m).padStart(2, "0")}`;
 }
 
+// The one status a person is counted under in the bars: student standing first, then alumni, then team.
+// (A Certified student who is also a team member is counted once, as Certified, so the bars add up to the total.)
 function statusOf(r) {
-  const v = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
+  const v = idrules.primaryStatus(r);
   return STATUS_ORDER.includes(v) ? v : "Uncertified";
 }
+// The tiles count everyone who holds the card, however many cards they hold.
+const isGraduate = (r) => { const k = idrules.idKinds(r); return k.student === "Certified" || k.alumni; };
+const isTeam = (r) => idrules.idKinds(r).team;
 
 function buildStats(rows, quizRows, todayISO) {
   const total = rows.length;
@@ -4006,9 +4110,9 @@ function buildStats(rows, quizRows, todayISO) {
     state: tally(rows.map(KEYS.state)),
     programme: tally(rows.map(KEYS.programme)),
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
-    graduates: sum(GRADUATE_STATUSES), // Certified + Alumni Member
-    uncertified: statusCounts.Uncertified,
-    team: sum(TEAM_STATUSES), // Team Member
+    graduates: rows.filter(isGraduate).length, // Certified students + Alumni members
+    uncertified: rows.filter((r) => idrules.idKinds(r).student === "Uncertified").length,
+    team: rows.filter(isTeam).length, // everyone ticked as a Team Member, including students who are also team
     byYear,
     months,
     monthsByYear,
@@ -4077,9 +4181,9 @@ function drill(rows, quizRows, kind, value) {
 
   switch (kind) {
     case "all": title = "All students"; pick = () => true; break;
-    case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
-    case "uncertified": title = "Uncertified students"; pick = (r) => statusOf(r) === "Uncertified"; break;
-    case "team": title = "Team members"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
+    case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = isGraduate; break;
+    case "uncertified": title = "Uncertified students"; pick = (r) => idrules.idKinds(r).student === "Uncertified"; break;
+    case "team": title = "Team members"; pick = isTeam; break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
       title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;
@@ -6537,7 +6641,7 @@ _missing_
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ID Card | ABEC-FX</title>
+  <title>Find a student | ABEC-FX</title>
   <meta name="description" content="Find an ABEC-FX ID card and check a member's live status using their registration number." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
@@ -6570,11 +6674,13 @@ _missing_
         <div class="field kind-pick">
           <label for="lookupKind">What do you want to check?</label>
           <select id="lookupKind">
-            <option value="/status" selected>ID card</option>
-            <option value="/certificate">Certificate</option>
+            <option value="student" selected>Student ID card</option>
+            <option value="alumni">Alumni ID card</option>
+            <option value="team">Team ID card</option>
+            <option value="certificate">Certificate</option>
           </select>
         </div>
-        <h2>ID card</h2>
+        <h2 id="kindTitle">Student ID card</h2>
         <p class="lead">Enter the registration number, for example ABECFX/26/0001.</p>
 
         <form id="lookupForm" novalidate>
@@ -6623,21 +6729,36 @@ _missing_
   var mount = document.getElementById("cardMount");
   var liveLine = document.getElementById("liveLine");
   var currentReg = "";
+  var sel = document.getElementById("lookupKind");
+  var kindTitle = document.getElementById("kindTitle");
+  var NAMES = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+  // The card kind is "explicit" once the visitor picks one (or opens a link that names one). Until then a lookup
+  // shows the person's main card, so an old QR code (/status?reg=...) still opens something the person has.
+  var explicit = !!new URLSearchParams(location.search).get("kind");
+  function kindOfStatus(st) { return st === "Team Member" ? "team" : st === "Alumni Member" ? "alumni" : "student"; }
+  function kind() { return sel && sel.value !== "certificate" ? sel.value : "student"; }
+  function labelFor() {
+    var n = NAMES[kind()];
+    if (kindTitle) kindTitle.textContent = n;
+    btn.textContent = "Find " + n.replace(/ card$/, " card");
+  }
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
   function show(d) {
     currentReg = d.regNumber;
+    if (sel && !explicit) sel.value = kindOfStatus(d.status); // main card of a person found without choosing a kind
+    labelFor();
     mount.replaceChildren(window.renderStudentCard(d));
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     liveLine.textContent = note ? note.text : "Live record, checked at " + t;
     liveLine.className = "live" + (note ? " live-" + note.level : "");
     var certLink = document.getElementById("certLink");
-    certLink.hidden = d.status !== "Certified";
+    certLink.hidden = !d.certified; // only a Certified student has a certificate
     certLink.href = "/certificate?reg=" + encodeURIComponent(d.regNumber);
     result.hidden = false;
-    try { history.replaceState(null, "", "/status?reg=" + d.regNumber); } catch (e) {}
+    try { history.replaceState(null, "", "/status?kind=" + kindOfStatus(d.status) + "&reg=" + d.regNumber); } catch (e) {}
     if (window.matchMedia("(max-width: 900px)").matches) {
       result.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -6654,13 +6775,19 @@ _missing_
     }
     btn.disabled = true;
     btn.textContent = "Searching...";
-    fetch("/api/lookup?reg=" + encodeURIComponent(reg))
+    fetch("/api/lookup?reg=" + encodeURIComponent(reg) + (explicit ? "&kind=" + kind() : ""))
       .then(function (r) {
         return r.json().then(function (b) { return { ok: r.ok, body: b }; });
       })
       .then(function (res) {
         if (!res.ok) {
-          err.textContent = res.body.error || "Something went wrong. Please try again.";
+          var msg = res.body.error || "Something went wrong. Please try again.";
+          if (res.body.cards && res.body.cards.length) {
+            msg += " Choose " + res.body.cards.map(function (k) { return NAMES[k]; }).join(" or ") + (res.body.certified ? " or Certificate" : "") + " from the list.";
+          } else if (res.body.certified) {
+            msg += " Choose Certificate from the list.";
+          }
+          err.textContent = msg;
           return;
         }
         show(res.body);
@@ -6670,7 +6797,7 @@ _missing_
       })
       .then(function () {
         btn.disabled = false;
-        btn.textContent = "Find ID card";
+        labelFor();
       });
   }
 
@@ -6681,7 +6808,7 @@ _missing_
 
   document.getElementById("linkBtn").addEventListener("click", function () {
     var b = this;
-    var link = location.origin + "/status?reg=" + currentReg;
+    var link = location.origin + "/status?kind=" + kind() + "&reg=" + currentReg;
     function done() {
       b.textContent = "Link copied";
       setTimeout(function () { b.textContent = "Copy link"; }, 1800);
@@ -6689,6 +6816,17 @@ _missing_
     if (navigator.clipboard) navigator.clipboard.writeText(link).then(done, done);
     else done();
   });
+
+  // Picking another card (Student, Alumni or Team) looks the same person up again as that card.
+  if (sel) {
+    sel.addEventListener("change", function () {
+      if (sel.value === "certificate") return; // lookup-kind.js opens the certificate page
+      explicit = true;
+      labelFor();
+      if (input.value.trim()) search();
+    });
+  }
+  labelFor();
 
   // Opened from a QR code (or shared link): look the student up straight away.
   var pre = new URLSearchParams(location.search).get("reg");
@@ -6702,12 +6840,34 @@ _missing_
 #### `public/lookup-kind.js`
 
 ```js
-// "Find a student" dropdown: choose ID card or certificate; the matching page opens.
+// "Find a student" dropdown: Student ID card, Alumni ID card, Team ID card or Certificate.
+// Choosing Certificate opens the certificate page; choosing an ID card on the certificate page opens the ID page.
+// Moving between the three ID cards stays on the same page (status.js listens to the same dropdown).
 (function () {
   var sel = document.getElementById("lookupKind");
   if (!sel) return;
+  var onCert = location.pathname.indexOf("/certificate") === 0;
+  var qs = new URLSearchParams(location.search);
+
+  // A link such as /status?kind=team&reg=ABECFX/26/0001 opens with that card already chosen.
+  var wanted = qs.get("kind");
+  if (!onCert && wanted && Array.prototype.some.call(sel.options, function (o) { return o.value === wanted && o.value !== "certificate"; })) {
+    sel.value = wanted;
+  }
+
+  function typedReg() {
+    var box = document.getElementById("reg");
+    return ((box && box.value) || qs.get("reg") || "").trim();
+  }
+
   sel.addEventListener("change", function () {
-    if (sel.value && sel.value !== location.pathname) location.href = sel.value;
+    var reg = typedReg();
+    var tail = reg ? "reg=" + encodeURIComponent(reg) : "";
+    if (sel.value === "certificate" && !onCert) {
+      location.href = "/certificate" + (tail ? "?" + tail : "");
+    } else if (sel.value !== "certificate" && onCert) {
+      location.href = "/status?kind=" + sel.value + (tail ? "&" + tail : "");
+    }
   });
 })();
 ```
@@ -6969,7 +7129,8 @@ _missing_
     }
 
     // ---- QR code: opens this student's live status
-    var url = (opts.origin || location.origin) + "/status?reg=" + d.regNumber;
+    var qrKind = status === "Team Member" ? "team" : status === "Alumni Member" ? "alumni" : "student";
+    var url = (opts.origin || location.origin) + "/status?kind=" + qrKind + "&reg=" + d.regNumber;
     var verify = el("div", "idc-verify");
     var qr = el("div", "idc-qr");
     try { qr.appendChild(window.QR.toSvg(url, { border: 1 })); } catch (e) { qr.textContent = ""; }
@@ -8096,7 +8257,7 @@ _missing_
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "Certified graduates = Certified and Alumni Member.";
+    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Team), so the Team and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
@@ -8752,11 +8913,14 @@ _missing_
       box.appendChild(wrap);
     });
     if (d.key === "students") {
-      // The role box only shows while the status is Team Member.
-      var stSel = $("sh-f-9"), roleWrap = $("sh-wrap-14");
-      if (stSel && roleWrap) {
-        var syncRole = function () { roleWrap.hidden = stSel.value !== "Team Member"; };
-        stSel.addEventListener("change", syncRole);
+      // The role box only shows while Team Member is ticked (or an old row still says Team Member in Status).
+      var stSel = $("sh-f-9"), teamSel = $("sh-f-16"), roleWrap = $("sh-wrap-14");
+      if (roleWrap && (teamSel || stSel)) {
+        var syncRole = function () {
+          roleWrap.hidden = !((teamSel && teamSel.value === "Yes") || (stSel && stSel.value === "Team Member"));
+        };
+        if (teamSel) teamSel.addEventListener("change", syncRole);
+        if (stSel) stSel.addEventListener("change", syncRole);
         syncRole();
       }
       var dl = el("datalist");
@@ -11299,8 +11463,10 @@ module.exports = { ELIGIBLE, SETTING_KEYS, parseDate, longDate, isEligible, forC
         <div class="field kind-pick">
           <label for="lookupKind">What do you want to check?</label>
           <select id="lookupKind">
-            <option value="/status">ID card</option>
-            <option value="/certificate" selected>Certificate</option>
+            <option value="student">Student ID card</option>
+            <option value="alumni">Alumni ID card</option>
+            <option value="team">Team ID card</option>
+            <option value="certificate" selected>Certificate</option>
           </select>
         </div>
         <h2>Check a certificate</h2>

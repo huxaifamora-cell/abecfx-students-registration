@@ -11,11 +11,12 @@ const PHOTO_TAB = process.env.GOOGLE_PHOTO_TAB || "Photos";
 const SIG_TAB = process.env.GOOGLE_SIGNATURE_TAB || "Signatures";
 const API = "https://sheets.googleapis.com/v4/spreadsheets";
 
+// Column J. "Not a student" means no Student ID (a team or alumni member who never took the course).
+// Team and Alumni are ticked in columns Q and R, so one person can be a student and also a team member.
 const STATUSES = [
   "Uncertified",
   "Certified",
-  "Team Member",
-  "Alumni Member",
+  "Not a student",
 ];
 
 const HEADERS = [
@@ -35,8 +36,10 @@ const HEADERS = [
   "Date of Birth",
   "Team Role",
   "Photo To Redo (type Yes: the student must send a new passport photo)",
+  "Team Member (Yes gives a Team ID card)",
+  "Alumni Member (Yes gives an Alumni ID card)",
 ];
-const LAST_COL = "P";
+const LAST_COL = "R";
 const DOB_TAB = process.env.GOOGLE_DOB_TAB || "DOB Changes";
 const DOB_HEADERS = ["Reg Number", "Old Date of Birth", "New Date of Birth", "Changed At (Lagos)"];
 const SIG_HEADERS = ["Reg Number", "Signature (base64 PNG - do not edit)"];
@@ -238,6 +241,17 @@ async function init() {
                 type: "ONE_OF_LIST",
                 values: STATUSES.map((s) => ({ userEnteredValue: s })),
               },
+              showCustomUi: true,
+              strict: true,
+            },
+          },
+        },
+        {
+          // Dropdowns on Team Member (Q) and Alumni Member (R): Yes or empty.
+          setDataValidation: {
+            range: { sheetId: students.sheetId, startRowIndex: 1, startColumnIndex: 16, endColumnIndex: 18 },
+            rule: {
+              condition: { type: "ONE_OF_LIST", values: [{ userEnteredValue: "Yes" }] },
               showCustomUi: true,
               strict: true,
             },
