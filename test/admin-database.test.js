@@ -114,14 +114,26 @@ test("locked columns cannot be changed, and a change to them is refused rather t
   assert.equal(out.changed, true);
 });
 
-test("Team Member needs a role; the role is kept for them and cleared for anyone else", async () => {
+test("Team Member is a tick: it needs a role, and a student can hold it too", async () => {
   const { svc } = setup();
   const o = student(1);
-  await rejects(svc.update("students", 2, o, { 9: "Team Member" }), 400, 14);
-  const a = await svc.update("students", 2, o, { 9: "Team Member", 14: "  Head Mentor " });
+  await rejects(svc.update("students", 2, o, { 16: "Yes" }), 400, 14);
+  const a = await svc.update("students", 2, o, { 16: "yes", 14: "  Head Mentor " });
+  assert.equal(a.row[16], "Yes");
+  assert.equal(a.row[9], "Uncertified", "still a student");
   assert.equal(a.row[14], "Head Mentor");
-  const b = await svc.update("students", 2, a.row, { 9: "Alumni Member" });
-  assert.equal(b.row[14], "");
+  const b = await svc.update("students", 2, a.row, { 16: "" });
+  assert.equal(b.row[14], "", "the role is cleared once they are no longer team");
+});
+
+test("Not a student needs another card: Team Member or Alumni Member", async () => {
+  const { svc } = setup();
+  const o = student(1);
+  await rejects(svc.update("students", 2, o, { 9: "Not a student" }), 400, 9);
+  const a = await svc.update("students", 2, o, { 9: "Not a student", 17: "Yes" });
+  assert.equal(a.row[9], "Not a student");
+  assert.equal(a.row[17], "Yes");
+  await rejects(svc.update("students", 2, a.row, { 16: "maybe" }), 400, 16);
 });
 
 test("a stale screen is refused: the row changed or moved since it was loaded", async () => {
