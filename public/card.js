@@ -252,7 +252,8 @@
     }
 
     // ---- QR code: opens this student's live status
-    var url = (opts.origin || location.origin) + "/status?reg=" + d.regNumber;
+    var qrKind = status === "Team Member" ? "team" : status === "Alumni Member" ? "alumni" : "student";
+    var url = (opts.origin || location.origin) + "/status?kind=" + qrKind + "&reg=" + d.regNumber;
     var verify = el("div", "idc-verify");
     var qr = el("div", "idc-qr");
     try { qr.appendChild(window.QR.toSvg(url, { border: 1 })); } catch (e) { qr.textContent = ""; }

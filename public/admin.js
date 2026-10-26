@@ -318,7 +318,7 @@
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "Certified graduates = Certified and Alumni Member.";
+    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Team), so the Team and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
@@ -974,11 +974,14 @@
       box.appendChild(wrap);
     });
     if (d.key === "students") {
-      // The role box only shows while the status is Team Member.
-      var stSel = $("sh-f-9"), roleWrap = $("sh-wrap-14");
-      if (stSel && roleWrap) {
-        var syncRole = function () { roleWrap.hidden = stSel.value !== "Team Member"; };
-        stSel.addEventListener("change", syncRole);
+      // The role box only shows while Team Member is ticked (or an old row still says Team Member in Status).
+      var stSel = $("sh-f-9"), teamSel = $("sh-f-16"), roleWrap = $("sh-wrap-14");
+      if (roleWrap && (teamSel || stSel)) {
+        var syncRole = function () {
+          roleWrap.hidden = !((teamSel && teamSel.value === "Yes") || (stSel && stSel.value === "Team Member"));
+        };
+        if (teamSel) teamSel.addEventListener("change", syncRole);
+        if (stSel) stSel.addEventListener("change", syncRole);
         syncRole();
       }
       var dl = el("datalist");

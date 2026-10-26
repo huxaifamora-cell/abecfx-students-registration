@@ -7,21 +7,36 @@
   var mount = document.getElementById("cardMount");
   var liveLine = document.getElementById("liveLine");
   var currentReg = "";
+  var sel = document.getElementById("lookupKind");
+  var kindTitle = document.getElementById("kindTitle");
+  var NAMES = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+  // The card kind is "explicit" once the visitor picks one (or opens a link that names one). Until then a lookup
+  // shows the person's main card, so an old QR code (/status?reg=...) still opens something the person has.
+  var explicit = !!new URLSearchParams(location.search).get("kind");
+  function kindOfStatus(st) { return st === "Team Member" ? "team" : st === "Alumni Member" ? "alumni" : "student"; }
+  function kind() { return sel && sel.value !== "certificate" ? sel.value : "student"; }
+  function labelFor() {
+    var n = NAMES[kind()];
+    if (kindTitle) kindTitle.textContent = n;
+    btn.textContent = "Find " + n.replace(/ card$/, " card");
+  }
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
   function show(d) {
     currentReg = d.regNumber;
+    if (sel && !explicit) sel.value = kindOfStatus(d.status); // main card of a person found without choosing a kind
+    labelFor();
     mount.replaceChildren(window.renderStudentCard(d));
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     liveLine.textContent = note ? note.text : "Live record, checked at " + t;
     liveLine.className = "live" + (note ? " live-" + note.level : "");
     var certLink = document.getElementById("certLink");
-    certLink.hidden = d.status !== "Certified";
+    certLink.hidden = !d.certified; // only a Certified student has a certificate
     certLink.href = "/certificate?reg=" + encodeURIComponent(d.regNumber);
     result.hidden = false;
-    try { history.replaceState(null, "", "/status?reg=" + d.regNumber); } catch (e) {}
+    try { history.replaceState(null, "", "/status?kind=" + kindOfStatus(d.status) + "&reg=" + d.regNumber); } catch (e) {}
     if (window.matchMedia("(max-width: 900px)").matches) {
       result.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -38,13 +53,19 @@
     }
     btn.disabled = true;
     btn.textContent = "Searching...";
-    fetch("/api/lookup?reg=" + encodeURIComponent(reg))
+    fetch("/api/lookup?reg=" + encodeURIComponent(reg) + (explicit ? "&kind=" + kind() : ""))
       .then(function (r) {
         return r.json().then(function (b) { return { ok: r.ok, body: b }; });
       })
       .then(function (res) {
         if (!res.ok) {
-          err.textContent = res.body.error || "Something went wrong. Please try again.";
+          var msg = res.body.error || "Something went wrong. Please try again.";
+          if (res.body.cards && res.body.cards.length) {
+            msg += " Choose " + res.body.cards.map(function (k) { return NAMES[k]; }).join(" or ") + (res.body.certified ? " or Certificate" : "") + " from the list.";
+          } else if (res.body.certified) {
+            msg += " Choose Certificate from the list.";
+          }
+          err.textContent = msg;
           return;
         }
         show(res.body);
@@ -54,7 +75,7 @@
       })
       .then(function () {
         btn.disabled = false;
-        btn.textContent = "Find ID card";
+        labelFor();
       });
   }
 
@@ -65,7 +86,7 @@
 
   document.getElementById("linkBtn").addEventListener("click", function () {
     var b = this;
-    var link = location.origin + "/status?reg=" + currentReg;
+    var link = location.origin + "/status?kind=" + kind() + "&reg=" + currentReg;
     function done() {
       b.textContent = "Link copied";
       setTimeout(function () { b.textContent = "Copy link"; }, 1800);
@@ -73,6 +94,17 @@
     if (navigator.clipboard) navigator.clipboard.writeText(link).then(done, done);
     else done();
   });
+
+  // Picking another card (Student, Alumni or Team) looks the same person up again as that card.
+  if (sel) {
+    sel.addEventListener("change", function () {
+      if (sel.value === "certificate") return; // lookup-kind.js opens the certificate page
+      explicit = true;
+      labelFor();
+      if (input.value.trim()) search();
+    });
+  }
+  labelFor();
 
   // Opened from a QR code (or shared link): look the student up straight away.
   var pre = new URLSearchParams(location.search).get("reg");
