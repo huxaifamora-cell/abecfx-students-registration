@@ -796,7 +796,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .cert-verified::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #1f9d6b; box-shadow: 0 0 0 4px rgba(31, 157, 107, .18); }
 .cert-none { padding: 14px 16px; border-radius: 12px; background: var(--bone, #f6f1f7); color: var(--ink); }
 
-/* ---------- Find a student: ID card / Certificate dropdown ---------- */
+/* ---------- Check ID: ID card / Certificate dropdown ---------- */
 .kind-pick { margin: 0 0 22px; }
 .kind-pick label { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 600; color: var(--muted); }
 .kind-pick select { width: 100%; font: inherit; font-weight: 600; padding: 12px 14px; border-radius: 12px; border: 1px solid currentColor; border-color: rgba(120,90,140,.35); background: #fff; color: inherit; }

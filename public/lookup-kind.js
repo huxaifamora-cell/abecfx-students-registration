@@ -1,4 +1,4 @@
-// "Find a student" dropdown: Student ID card, Alumni ID card, Team ID card or Certificate.
+// "Check ID" dropdown: Student ID card, Alumni ID card, Team ID card or Certificate.
 // Choosing Certificate opens the certificate page; choosing an ID card on the certificate page opens the ID page.
 // Moving between the three ID cards stays on the same page (status.js listens to the same dropdown).
 (function () {

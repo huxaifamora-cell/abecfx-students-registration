@@ -239,7 +239,7 @@
     card.appendChild(row);
 
     // ---- the student's own signature, white ink straight under "Since ..." (only on their own card,
-    // never on the public find-a-student card)
+    // never on the public Check ID card)
     if (opts.signatureSrc) {
       var sigBox = el("div", "idc-sig");
       var sigImg = el("img");

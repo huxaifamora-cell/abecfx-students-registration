@@ -18,7 +18,7 @@
   function labelFor() {
     var n = NAMES[kind()];
     if (kindTitle) kindTitle.textContent = n;
-    btn.textContent = "Find " + n.replace(/ card$/, " card");
+    btn.textContent = "Check " + n;
   }
 
   document.getElementById("year").textContent = new Date().getFullYear();

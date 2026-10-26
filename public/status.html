@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Find a student | ABEC-FX</title>
-  <meta name="description" content="Find an ABEC-FX ID card and check a member's live status using their registration number." />
+  <title>Check ID | ABEC-FX</title>
+  <meta name="description" content="Check an ABEC-FX ID card or certificate and see a member's live status using their registration number." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -18,14 +18,14 @@
       </a>
 
       <div class="pitch">
-        <h1>Find an ID card.</h1>
-        <p>Enter a registration number, or scan the QR code on an ID card, to see a live status.</p>
+        <h1>Check an ID.</h1>
+        <p>Enter a registration number, or scan the QR code on an ID card, to check an ID card or certificate.</p>
       </div>
 
       <nav class="nav" aria-label="Main">
         <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 13h3"/></svg><span>My portal</span></a>
         <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
-        <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
+        <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Check ID</span></a>
       </nav>
 
       <div class="social" id="siteLinks" hidden></div>
@@ -51,7 +51,7 @@
               <label for="reg" class="sr-only">Registration number</label>
               <input id="reg" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" required />
             </div>
-            <button type="submit" id="lookupBtn" class="primary" style="width:auto">Find ID card</button>
+            <button type="submit" id="lookupBtn" class="primary" style="width:auto">Check ID card</button>
           </div>
           <p class="formErr" id="lookupErr" role="alert" style="margin-top:12px"></p>
         </form>
