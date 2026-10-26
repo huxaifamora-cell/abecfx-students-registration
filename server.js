@@ -401,7 +401,7 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
 
 // ---- Student portal sign-in ----
 // The portal is for registered students only. A student signs in with their registration number
-// and the email they registered with. Find-a-student (/status, /api/lookup, /api/photo) stays public.
+// and the email they registered with. Check ID (/status, /api/lookup, /api/photo) stays public.
 // The signing secret is SESSION_SECRET, or QUIZ_API_KEY when SESSION_SECRET is not set.
 function sessionSecret() {
   return process.env.SESSION_SECRET || process.env.QUIZ_API_KEY || "";
@@ -776,7 +776,7 @@ app.put("/api/portal/dob", dobLimiter, studentAuth, async (req, res) => {
 });
 
 // A student's own signature. It is only ever sent to that student (the reg number comes from the sign-in
-// token), so it does not appear on the public find-a-student card.
+// token), so it does not appear on the public Check ID card.
 app.get("/api/portal/signature", signatureLimiter, studentAuth, async (req, res) => {
   try {
     res.set("Cache-Control", "private, no-store");

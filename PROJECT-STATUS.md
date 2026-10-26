@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 26 Oct 2026, 10:40 (Lagos time), after change 13 (find a student now offers Student ID card, Alumni ID card, Team ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 26 Oct 2026, 10:55 (Lagos time), after change 13 (find a student now offers Student ID card, Alumni ID card, Team ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -96,6 +96,7 @@
 | 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
 | 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `team.js`, `public/portal.*`, `public/admin.*`. |
 | 2026-10-26 | **Change 12: the certificate uses the real design of the owner's approved certificate image.** (1) **Background:** the purple band and black block top left, the thin purple line and white stripe, the big purple panel, the bottom purple and black strips, the black bar under the title and the black CAC tag are drawn as vector shapes whose corners were **measured from the owner's image** (a pixel check against the image differs only on one-pixel edges). The canvas is now 1280 x 909, the size of that image (was 1280 x 905). (2) **Emblem:** the bull-horn logo is the real `logo-purple.png`, and the gold seal is the **real seal picture cut out of the owner's image** (laurels, stars, four ribbon tails), with its printed "2026" painted out so the page prints each certificate's own year on it. Both live in `public/certificate-art.js` as embedded pictures, so they also appear in the PNG and PDF downloads. (3) "Certificate", "OF COMPLETION", the organisation name under the logo, the stamp, the certificate number and the CAC tag moved to the places they have in the image. The wording of the certificate, the signature block and the dynamic fields are unchanged | Owner request ("use the actual designs of the background, and the emblem"). **Assumed:** "emblem" means both the bull-horn logo and the gold seal. The seal picture is only about 175 px wide in the owner's image, so it is a little soft when printed large; a separate high-resolution copy of the seal (PNG with transparent background) can replace the picture in `certificate-art.js` without any other change. The words "ADEBASS BASE / EDGE CONSULT" under the logo are drawn as text, not cut from the image (the image copy is too small to stay sharp). The PDF now keeps the picture's own proportions on the A4 page (centred, a thin white margin top and bottom). |
+| 2026-10-26 | **The "Find a student" page is renamed "Check ID"** (menu pill on portal, register and the page itself, page title and heading, the portal button, the check button, dashboard note and README). The address stays `/status`, so every printed QR code keeps working | Owner request, since the page now covers student, alumni and team ID cards and certificates. |
 | 2026-10-26 | **Change 13: one person, up to three ID cards.** The Students sheet keeps **column J "Status"** for the Student ID: **Uncertified**, **Certified** or the new **Not a student** (no Student ID). Two new tick columns: **Q "Team Member"** and **R "Alumni Member"** (dropdown: Yes or empty). Student ID card = Uncertified or Certified; Team ID card = Q is Yes; Alumni ID card = R is Yes; **Certificate = Certified only** (unchanged rule, now independent of the other ticks, so a Certified student who is also a team member keeps the certificate). Rules live in `idrules.js` (`idKinds`, `idCards`, `kindStatus`, `primaryStatus`) | Owner request ("a person can be a student whether certified or uncertified and still be a team member ... a person can be a team member without having a student ID ... this depends on the status ticked by admin"). **Assumed:** Alumni is also a tick that can sit beside a student standing (the owner described students and team; alumni was handled the same way). A Certified student who is Alumni keeps their certificate. |
 | 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Team Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old team member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
 | 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Team ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|team`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Team ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then team) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Team ID card's QR opens the Team ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
@@ -253,6 +254,7 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-10-26 | **Rename "Find a student" to "Check ID".** Text only in `public/status.html`, `public/status.js`, `public/certificate.html`, `public/register.html`, `public/portal.html`, `public/admin.html`, `public/card.js`, `public/lookup-kind.js`, `public/styles.css`, `server.js` (comments), `README.md` |
 | 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Team ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
 | 2026-10-26 | **Change 12: certificate design.** New `public/certificate-art.js` (the real bull-horn logo and the gold seal as embedded pictures); `public/certificate.js` rewritten around the measured background shapes of the owner's design, canvas 1280 x 909, new title, logo, seal, stamp, certificate number and CAC-tag positions, PDF keeps proportions; `portal.html`, `admin.html` and `certificate.html` load `certificate-art.js` before `certificate.js`; `status/build.js` now also embeds the certificate files in the latest-code section. |
 | 2026-10-18 | **Community page in the student portal.** New **Community** item in the portal's My portal menu (`#/community`) with a "Join on WhatsApp" and a "Join on Telegram" button that open the official group in a new tab. The addresses are two new fields on the dashboard's **Site links** tab (`communityWhatsapp`, `communityTelegram`, https only); when one is empty the page uses the official WhatsApp / Telegram already on Site links, and if nothing is set it says the link is coming soon. The community links are served only to signed-in students (`GET /api/community`) and are left out of the public `/api/links`. On startup the site adds the two missing rows to the Site Links tab. Files: `links.js`, `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `test/community.test.js`, `test/support/boot-server.js`, `test/support/fake-sheets.js`, `test/quiz-gate.test.js`. 3 new tests. |
@@ -283,7 +285,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 26 Oct 2026, 10:40 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 26 Oct 2026, 10:55 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -695,7 +697,7 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
 
 // ---- Student portal sign-in ----
 // The portal is for registered students only. A student signs in with their registration number
-// and the email they registered with. Find-a-student (/status, /api/lookup, /api/photo) stays public.
+// and the email they registered with. Check ID (/status, /api/lookup, /api/photo) stays public.
 // The signing secret is SESSION_SECRET, or QUIZ_API_KEY when SESSION_SECRET is not set.
 function sessionSecret() {
   return process.env.SESSION_SECRET || process.env.QUIZ_API_KEY || "";
@@ -1070,7 +1072,7 @@ app.put("/api/portal/dob", dobLimiter, studentAuth, async (req, res) => {
 });
 
 // A student's own signature. It is only ever sent to that student (the reg number comes from the sign-in
-// token), so it does not appear on the public find-a-student card.
+// token), so it does not appear on the public Check ID card.
 app.get("/api/portal/signature", signatureLimiter, studentAuth, async (req, res) => {
   try {
     res.set("Cache-Control", "private, no-store");
@@ -4828,7 +4830,7 @@ _missing_
       <nav class="nav" aria-label="Main">
         <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 13h3"/></svg><span>My portal</span></a>
         <a href="/register" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
-        <a href="/status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
+        <a href="/status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Check ID</span></a>
       </nav>
 
       <div class="social" id="siteLinks" hidden></div>
@@ -5316,7 +5318,7 @@ _missing_
       <nav class="nav" aria-label="Main">
         <a href="/" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 13h3"/></svg><span>My portal</span></a>
         <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
-        <a href="/status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
+        <a href="/status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Check ID</span></a>
       </nav>
 
       <div class="social" id="siteLinks" hidden></div>
@@ -5345,7 +5347,7 @@ _missing_
           <p class="or">New to ABEC-FX?</p>
           <a class="btn ghost wide" href="/register">Register as a new student</a>
           <p class="or">Just want to check a student's ID?</p>
-          <a class="btn ghost wide" href="/status">Find a student</a>
+          <a class="btn ghost wide" href="/status">Check ID</a>
         </section>
 
         <!-- Signed in -->
@@ -6641,8 +6643,8 @@ _missing_
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Find a student | ABEC-FX</title>
-  <meta name="description" content="Find an ABEC-FX ID card and check a member's live status using their registration number." />
+  <title>Check ID | ABEC-FX</title>
+  <meta name="description" content="Check an ABEC-FX ID card or certificate and see a member's live status using their registration number." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -6656,14 +6658,14 @@ _missing_
       </a>
 
       <div class="pitch">
-        <h1>Find an ID card.</h1>
-        <p>Enter a registration number, or scan the QR code on an ID card, to see a live status.</p>
+        <h1>Check an ID.</h1>
+        <p>Enter a registration number, or scan the QR code on an ID card, to check an ID card or certificate.</p>
       </div>
 
       <nav class="nav" aria-label="Main">
         <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 13h3"/></svg><span>My portal</span></a>
         <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
-        <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
+        <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Check ID</span></a>
       </nav>
 
       <div class="social" id="siteLinks" hidden></div>
@@ -6689,7 +6691,7 @@ _missing_
               <label for="reg" class="sr-only">Registration number</label>
               <input id="reg" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" required />
             </div>
-            <button type="submit" id="lookupBtn" class="primary" style="width:auto">Find ID card</button>
+            <button type="submit" id="lookupBtn" class="primary" style="width:auto">Check ID card</button>
           </div>
           <p class="formErr" id="lookupErr" role="alert" style="margin-top:12px"></p>
         </form>
@@ -6740,7 +6742,7 @@ _missing_
   function labelFor() {
     var n = NAMES[kind()];
     if (kindTitle) kindTitle.textContent = n;
-    btn.textContent = "Find " + n.replace(/ card$/, " card");
+    btn.textContent = "Check " + n;
   }
 
   document.getElementById("year").textContent = new Date().getFullYear();
@@ -6840,7 +6842,7 @@ _missing_
 #### `public/lookup-kind.js`
 
 ```js
-// "Find a student" dropdown: Student ID card, Alumni ID card, Team ID card or Certificate.
+// "Check ID" dropdown: Student ID card, Alumni ID card, Team ID card or Certificate.
 // Choosing Certificate opens the certificate page; choosing an ID card on the certificate page opens the ID page.
 // Moving between the three ID cards stays on the same page (status.js listens to the same dropdown).
 (function () {
@@ -7116,7 +7118,7 @@ _missing_
     card.appendChild(row);
 
     // ---- the student's own signature, white ink straight under "Since ..." (only on their own card,
-    // never on the public find-a-student card)
+    // never on the public Check ID card)
     if (opts.signatureSrc) {
       var sigBox = el("div", "idc-sig");
       var sigImg = el("img");
@@ -7652,7 +7654,7 @@ _missing_
       <div id="view-links" role="tabpanel" aria-labelledby="tab-links" hidden>
         <article class="adm-card wide">
           <h3>Site links</h3>
-          <p class="adm-note">These show as icons on the website (portal, register and find-a-student pages) and change as soon as you press Save. Leave a box empty to hide that icon. Web addresses must start with https://</p>
+          <p class="adm-note">These show as icons on the website (portal, register and Check ID pages) and change as soon as you press Save. Leave a box empty to hide that icon. Web addresses must start with https://</p>
           <form id="linksForm" class="lk-form" novalidate></form>
           <div class="lk-bar">
             <button type="button" class="primary" id="linksSave">Save</button>
@@ -10713,7 +10715,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .cert-verified::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #1f9d6b; box-shadow: 0 0 0 4px rgba(31, 157, 107, .18); }
 .cert-none { padding: 14px 16px; border-radius: 12px; background: var(--bone, #f6f1f7); color: var(--ink); }
 
-/* ---------- Find a student: ID card / Certificate dropdown ---------- */
+/* ---------- Check ID: ID card / Certificate dropdown ---------- */
 .kind-pick { margin: 0 0 22px; }
 .kind-pick label { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 600; color: var(--muted); }
 .kind-pick select { width: 100%; font: inherit; font-weight: 600; padding: 12px 14px; border-radius: 12px; border: 1px solid currentColor; border-color: rgba(120,90,140,.35); background: #fff; color: inherit; }
@@ -11452,7 +11454,7 @@ module.exports = { ELIGIBLE, SETTING_KEYS, parseDate, longDate, isEligible, forC
       <nav class="nav" aria-label="Main">
         <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 13h3"/></svg><span>My portal</span></a>
         <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
-        <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
+        <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Check ID</span></a>
       </nav>
 
       <div class="social" id="siteLinks" hidden></div>
