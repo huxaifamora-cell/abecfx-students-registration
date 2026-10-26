@@ -232,8 +232,8 @@ Old rows with a blank Status count as Uncertified.
 
 ## Certificates
 
-A **Certified** student has a certificate of completion. They see it under their ID card in the portal and can download it (PNG or PDF). Anyone can check one at `/certificate` (or by scanning the QR code on it) and sees a watermarked view-only copy.
+A **Certified** student has a certificate of completion. They see it under their ID card in the portal and can download it (PNG or PDF). Anyone can check one at `/certificate` and sees a watermarked view-only copy.
 
 - Certificate number = the student's registration number. Award date = the student's **Status Date**, printed as "1st June 2026".
-- On the dashboard, the **Certificates** tab (access "Certificates", held by Owner and Admin, or given to a custom role) sets who signs: name, title, signature, organisation name and CAC RC number. These print on every certificate. The same tab lists every certificate for viewing and download.
-- The signer's signature is kept on the `Signatures` tab under the name `CERTIFICATE-SIGNER`; the text settings are rows on the `Site Links` tab.
+- On the dashboard, the **Certificates** tab (access "Certificates", held by Owner and Admin, or given to a custom role) sets who signs by **registration number**. That person's name, their Team Role and the signature on their own ID card print on every certificate, so nothing is uploaded there: if they change their ID-card signature, the certificates follow (within a minute). The organisation name and CAC RC number are set there too, and the tab lists every certificate for viewing and download.
+- The signer settings are rows on the `Site Links` tab.
