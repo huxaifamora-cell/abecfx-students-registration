@@ -218,14 +218,19 @@
 
     // ---- status (+ stamp for certified graduates, alumni and the team)
     var row = el("div", "idc-statusrow");
-    var col = el("div", "idc-statuscol");
-    var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
-    chip.appendChild(el("span", null, statusLabel(status)));
-    col.appendChild(chip);
-    col.appendChild(el("span", "idc-since",
-      status === "Uncertified" ? "Awaiting certification"
-        : "Since " + (d.statusDate || "date not recorded")));
-    row.appendChild(col);
+    // A team member's card shows no status chip or "Since ..." line (the round team stamp says it); only students have a status to show.
+    if (status !== "Team Member") {
+      var col = el("div", "idc-statuscol");
+      var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
+      chip.appendChild(el("span", null, statusLabel(status)));
+      col.appendChild(chip);
+      col.appendChild(el("span", "idc-since",
+        status === "Uncertified" ? "Awaiting certification"
+          : "Since " + (d.statusDate || "date not recorded")));
+      row.appendChild(col);
+    } else {
+      row.classList.add("idc-statusrow-solo");
+    }
     if (status === "Certified" || status === "Alumni Member" || status === "Team Member") {
       var stampWrap = el("div", "idc-stamp");
       stampWrap.appendChild(buildStamp(status, d.statusDate));

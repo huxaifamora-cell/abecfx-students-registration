@@ -333,6 +333,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .idc-reg { margin: 0; font-weight: 700; letter-spacing: .1em; font-size: 1.15em; font-variant-numeric: tabular-nums; opacity: .92; }
 
 .idc-statusrow { display: flex; align-items: center; justify-content: space-between; gap: .6em; margin: 1em 0 0; min-height: 3.2em; }
+.idc-statusrow-solo { justify-content: flex-end; }
 .idc-statuscol { display: grid; gap: .5em; justify-items: start; }
 .idc-since { font-size: .95em; opacity: .7; }
 .idc-stamp { flex: none; width: 7.6em; height: 7.6em; margin: -1.4em .2em -1.6em 0; transform: rotate(-13deg); color: var(--accent); filter: drop-shadow(0 0 .02em currentColor); opacity: .95; pointer-events: none; }
