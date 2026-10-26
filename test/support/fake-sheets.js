@@ -4,9 +4,13 @@
 const path = require("path");
 const { createMemoryStore, student } = require("./memory-store");
 
-const mem = createMemoryStore({ students: [student(1), student(2), student(3)] });
+// With FAKE_CERTIFIED=1 a fourth student, ABECFX/26/0004 (ada4@example.com), is already Certified (status date "1 Jun 2026").
+const seeded = [student(1), student(2), student(3)];
+if (process.env.FAKE_CERTIFIED) seeded.push(student(4, { 4: "Alaba Emmanuel Akindejoye", 9: "Certified", 10: "1 Jun 2026" }));
+const mem = createMemoryStore({ students: seeded });
 const strings = (row) => row.map((c) => (c == null ? "" : String(c)));
 let linksNow = { ...require("../../links").DEFAULTS };
+const sigs = new Map();
 const fake = Object.assign(mem, {
   init: async () => {},
   readAll: async () => mem.data.students.map((r) => r.slice()),
@@ -18,6 +22,8 @@ const fake = Object.assign(mem, {
   readVideos: async () => ({}),
   getProgressCell: async () => "",
   getPhoto: async () => null,
+  getSignature: async (reg) => sigs.get(reg) || null,
+  setSignature: async (reg, b64) => { sigs.set(reg, b64); },
   invalidate: () => {},
 });
 
