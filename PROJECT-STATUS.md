@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 26 Oct 2026, 10:55 (Lagos time), after change 13 (find a student now offers Student ID card, Alumni ID card, Team ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 26 Oct 2026, 13:52 (Lagos time), after change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Team ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -34,6 +34,8 @@
 15. **Change 11 (owner, 18 Oct 2026): the quiz section is only accessible after entering a one-time quiz code made by an admin or other roles in charge. A code unlocks the quiz until it is completed; after that another code is needed** [DONE, awaiting live check].
 
 16. **Change 13 (owner, 26 Oct 2026): the "Find a student" dropdown offers Student ID card, Alumni ID card, Team ID card and Certificate.** A person can be a student (certified or uncertified) and also a team member; a person can be a team member with no Student ID; what each person has depends on what the admin ticked; the certificate is only for Certified students [DONE, awaiting live check].
+
+17. **Change 14 (owner, 26 Oct 2026): in the admin dashboard, if a person has more than one ID card, clicking their name under the ID cards tab shows all of them** [DONE, awaiting live check].
 
 ## 2. Decisions
 
@@ -254,6 +256,7 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-10-26 | **Change 14: admin ID cards tab shows every card a person holds.** `server.js` (`/api/admin/id-cards` adds `allCards`, one card per Student / Alumni / Team ID card the person holds); `public/admin.js` (clicking a name draws each card under the other with its own Download button; the list shows "2 ID cards" for people with several); `public/admin.html` (one mount box, old single Download button removed); `public/admin.css` (spacing between cards). Owner action: push those four files. |
 | 2026-10-26 | **Rename "Find a student" to "Check ID".** Text only in `public/status.html`, `public/status.js`, `public/certificate.html`, `public/register.html`, `public/portal.html`, `public/admin.html`, `public/card.js`, `public/lookup-kind.js`, `public/styles.css`, `server.js` (comments), `README.md` |
 | 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Team ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
 | 2026-10-26 | **Change 12: certificate design.** New `public/certificate-art.js` (the real bull-horn logo and the gold seal as embedded pictures); `public/certificate.js` rewritten around the measured background shapes of the owner's design, canvas 1280 x 909, new title, logo, seal, stamp, certificate number and CAC-tag positions, PDF keeps proportions; `portal.html`, `admin.html` and `certificate.html` load `certificate-art.js` before `certificate.js`; `status/build.js` now also embeds the certificate files in the latest-code section. |
@@ -285,7 +288,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 26 Oct 2026, 10:55 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 26 Oct 2026, 13:52 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -1457,7 +1460,12 @@ app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
     const hit = q ? rows.filter((r) => [r[0], r[4], r[2], r[9], r[12]].some((v) => String(v || "").toLowerCase().includes(q))) : rows;
     const limit = 40;
     // newest first (the sheet is in registration order)
-    const cards = hit.slice().reverse().slice(0, limit).map(cardFromRow);
+    // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Team), so the
+    // dashboard can show them all when the name is clicked.
+    const cards = hit.slice().reverse().slice(0, limit).map((r) => {
+      const kinds = idrules.idCards(r);
+      return { ...cardFromRow(r), allCards: kinds.length ? kinds.map((k) => cardFromRow(r, k)) : [cardFromRow(r)] };
+    });
     res.json({ total: hit.length, shown: cards.length, cards });
   } catch (err) {
     console.error("ID card list failed:", err.message);
@@ -5367,6 +5375,14 @@ _missing_
             <p class="lead">This is your ID card.</p>
             <div class="cardwrap" id="cardMount"></div>
             <p class="live" id="liveLine" role="status"></p>
+            <div class="sig-edit" id="sigEdit">
+              <button type="button" class="btn ghost wide" id="sigToggle">Add my signature</button>
+              <div id="sigPanel" hidden>
+                <div id="sigPortalMount"></div>
+                <button type="button" class="btn primary wide" id="sigSave">Save my signature</button>
+              </div>
+              <p class="formErr" id="sigMsg" role="status"></p>
+            </div>
             <div class="pass-actions">
               <button type="button" id="downloadBtn" class="btn ghost">Download ID card</button>
             </div>
@@ -5387,15 +5403,6 @@ _missing_
               <label for="newPhoto" class="btn ghost wide" id="newPhotoBtn">Change my photo (once only)</label>
               <p class="formErr" id="photoMsg" role="status"></p>
             </div>
-            <div class="sig-edit" id="sigEdit">
-              <button type="button" class="btn ghost wide" id="sigToggle">Add my signature</button>
-              <div id="sigPanel" hidden>
-                <div id="sigPortalMount"></div>
-                <button type="button" class="btn primary wide" id="sigSave">Save my signature</button>
-              </div>
-              <p class="formErr" id="sigMsg" role="status"></p>
-            </div>
-
             <a class="journey" id="journeyCard" href="#/handbook" aria-label="Open the Handbook">
               <span class="journey-top"><strong>Your learning journey</strong><span class="journey-pct" id="journeyPct">&ndash;</span></span>
               <span class="pbar" aria-hidden="true"><span class="pbar-fill" id="journeyFill"></span></span>
@@ -7713,7 +7720,7 @@ _missing_
       <div id="view-idcards" role="tabpanel" aria-labelledby="tab-idcards" hidden>
         <article class="adm-card wide">
           <h3>ID cards</h3>
-          <p class="adm-note">Find any student or team member and open their ID card. Search by name, registration number, country, state or status.</p>
+          <p class="adm-note">Find any student or team member and open their ID card. If a person holds more than one (Student, Alumni, Team), all of their ID cards show when you click their name. Search by name, registration number, country, state or status.</p>
           <div class="field" style="margin-top:12px;max-width:520px">
             <label for="idq">Search</label>
             <input id="idq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
@@ -7722,8 +7729,7 @@ _missing_
           <div class="idc-admin">
             <ul class="idc-list" id="idList"></ul>
             <div class="idc-view">
-              <div class="cardwrap" id="idMount"></div>
-              <p class="pass-actions" id="idActions" hidden><button type="button" class="btn ghost" id="idDownload">Download ID card</button></p>
+              <div id="idMount"></div>
             </div>
           </div>
         </article>
@@ -9449,17 +9455,49 @@ _missing_
 
   // ---------- ID cards (admin) ----------
   var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;
+  function idKindName(card) {
+    return card.status === "Team Member" ? "Team" : card.status === "Alumni Member" ? "Alumni" : "Student";
+  }
+  // Draws every ID card the person holds, one under the other, each with its own download button.
+  function drawIdCards(c, signatureSrc) {
+    var list = c.allCards && c.allCards.length ? c.allCards : [c];
+    var many = list.length > 1;
+    var mount = $("idMount");
+    mount.replaceChildren();
+    list.forEach(function (card) {
+      var one = el("section", "idc-one");
+      var name = idKindName(card);
+      if (many) one.appendChild(el("h4", "idc-one-title", name + " ID card"));
+      var wrap = el("div", "cardwrap");
+      wrap.appendChild(window.renderStudentCard(card, signatureSrc ? { signatureSrc: signatureSrc } : undefined));
+      one.appendChild(wrap);
+      var actions = el("p", "pass-actions");
+      var btn = el("button", "btn ghost", many ? "Download " + name + " ID card" : "Download ID card");
+      btn.type = "button";
+      btn.addEventListener("click", function () {
+        var node = wrap.querySelector(".idc"), label = btn.textContent;
+        if (!node || btn.disabled) return;
+        btn.disabled = true; btn.textContent = "Preparing...";
+        window.downloadIdCard(node, c.regNumber + (many ? " " + name : "")).then(function () { btn.textContent = label; }, function () {
+          btn.textContent = "Could not download. Try again";
+          setTimeout(function () { btn.textContent = label; }, 3500);
+        }).then(function () { btn.disabled = false; });
+      });
+      actions.appendChild(btn);
+      one.appendChild(actions);
+      mount.appendChild(one);
+    });
+  }
   function showIdCard(c, li) {
     idCurrent = c;
     Array.prototype.forEach.call($("idList").children, function (x) { x.classList.toggle("on", x === li); });
-    $("idMount").replaceChildren(window.renderStudentCard(c));
-    $("idActions").hidden = false;
-    // The signature is fetched separately, then the card is drawn again with it.
+    drawIdCards(c);
+    // The signature is fetched separately, then the cards are drawn again with it.
     var mine = ++sigSeq;
     api("/api/admin/id-cards/signature?reg=" + encodeURIComponent(c.regNumber)).then(function (res) {
       if (mine !== sigSeq || idCurrent !== c || !res.signature) return;
-      $("idMount").replaceChildren(window.renderStudentCard(c, { signatureSrc: "data:image/png;base64," + res.signature }));
-    }).catch(function () { /* the card just shows without a signature */ });
+      drawIdCards(c, "data:image/png;base64," + res.signature);
+    }).catch(function () { /* the cards just show without a signature */ });
   }
   function loadIdCards() {
     var seq = ++idSeq, q = $("idq").value.trim();
@@ -9473,7 +9511,7 @@ _missing_
         var b = el("button", "idc-item");
         b.type = "button";
         b.appendChild(el("b", null, c.fullName || "(no name)"));
-        b.appendChild(el("span", null, c.regNumber + " · " + c.status));
+        b.appendChild(el("span", null, c.regNumber + " · " + c.status + (c.allCards && c.allCards.length > 1 ? " · " + c.allCards.length + " ID cards" : "")));
         b.addEventListener("click", function () { showIdCard(c, li); });
         li.appendChild(b);
         list.appendChild(li);
@@ -9483,22 +9521,11 @@ _missing_
       if (idCurrent && !res.cards.some(function (c) { return c.regNumber === idCurrent.regNumber; })) {
         idCurrent = null;
         $("idMount").replaceChildren();
-        $("idActions").hidden = true;
       }
     }).catch(function (err) { if (err.auth) showLogin(err.message); else $("idMsg").textContent = err.message; });
   }
   function openIdCards() { loadIdCards(); }
   $("idq").addEventListener("input", function () { clearTimeout(idTimer); idTimer = setTimeout(loadIdCards, 250); });
-  $("idDownload").addEventListener("click", function () {
-    var card = document.querySelector("#idMount .idc"), b = this;
-    if (!card || b.disabled) return;
-    var label = b.textContent;
-    b.disabled = true; b.textContent = "Preparing...";
-    window.downloadIdCard(card, idCurrent && idCurrent.regNumber).then(function () { b.textContent = label; }, function () {
-      b.textContent = "Could not download. Try again";
-      setTimeout(function () { b.textContent = label; }, 3500);
-    }).then(function () { b.disabled = false; });
-  });
   // ---------- Certificates (admin) ----------
   var certTimer = null, certSeq = 0, certCurrent = null, certSig = "";
   var CERT_FIELDS = ["certSignerReg", "certOrg", "certRc"];
@@ -9904,6 +9931,8 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .idc-item span { font-size: .78rem; color: var(--muted); }
 .idc-item:hover { border-color: var(--violet); }
 .idc-list li.on .idc-item { border-color: var(--violet); background: var(--bone); }
+.idc-one + .idc-one { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line, rgba(0,0,0,.12)); }
+.idc-one-title { margin: 0 0 10px; text-align: center; font-size: 15px; }
 .idc-view .pass-actions { display: flex; justify-content: center; margin-top: 12px; }
 .cert-admin { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
 .cert-signer { margin: 2px 0 14px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; background: #fff; max-width: 420px; display: grid; gap: 4px; }

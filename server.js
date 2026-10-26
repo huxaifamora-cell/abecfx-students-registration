@@ -1161,7 +1161,12 @@ app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
     const hit = q ? rows.filter((r) => [r[0], r[4], r[2], r[9], r[12]].some((v) => String(v || "").toLowerCase().includes(q))) : rows;
     const limit = 40;
     // newest first (the sheet is in registration order)
-    const cards = hit.slice().reverse().slice(0, limit).map(cardFromRow);
+    // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Team), so the
+    // dashboard can show them all when the name is clicked.
+    const cards = hit.slice().reverse().slice(0, limit).map((r) => {
+      const kinds = idrules.idCards(r);
+      return { ...cardFromRow(r), allCards: kinds.length ? kinds.map((k) => cardFromRow(r, k)) : [cardFromRow(r)] };
+    });
     res.json({ total: hit.length, shown: cards.length, cards });
   } catch (err) {
     console.error("ID card list failed:", err.message);
