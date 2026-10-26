@@ -81,6 +81,27 @@
     return out + "</g>";
   }
 
+  // Round official stamp (the same design as the one on the ID card), in purple ink, slightly turned like a real one.
+  function stamp(org, year) {
+    var top = String(org || "ABEC-FX").toUpperCase();
+    var topSize = Math.min(13.5, Math.floor(200 / (top.length * 0.68) * 10) / 10);
+    var bottom = "CERTIFICATE OF COMPLETION";
+    var t = function (id, str, size) {
+      return '<text font-size="' + size + '" font-weight="800" letter-spacing=".6" fill="' + PURPLE + '" font-family="' + SANS + '">' +
+        '<textPath href="#' + id + '" startOffset="50%" text-anchor="middle">' + esc(str) + "</textPath></text>";
+    };
+    return '<g transform="translate(558 740) rotate(-11) scale(.72) translate(-100 -100)" opacity=".9">' +
+      '<defs><path id="stmpT" d="M 100,100 m -67,0 a 67,67 0 1,1 134,0"/><path id="stmpB" d="M 100,100 m -78,0 a 78,78 0 0,0 156,0"/></defs>' +
+      '<circle cx="100" cy="100" r="95" fill="none" stroke="' + PURPLE + '" stroke-width="5"/>' +
+      '<circle cx="100" cy="100" r="88" fill="none" stroke="' + PURPLE + '" stroke-width="1.6"/>' +
+      '<circle cx="100" cy="100" r="53" fill="none" stroke="' + PURPLE + '" stroke-width="1.6"/>' +
+      t("stmpT", top, topSize) + t("stmpB", bottom, 10.5) +
+      '<text x="100" y="82" text-anchor="middle" font-size="10" fill="' + PURPLE + '" font-family="' + SANS + '">\u2605 \u2605 \u2605</text>' +
+      '<text x="100" y="107" text-anchor="middle" font-size="21" font-weight="900" fill="' + PURPLE + '" font-family="' + SANS + '">ABEC-FX</text>' +
+      '<line x1="72" y1="115" x2="128" y2="115" stroke="' + PURPLE + '" stroke-width="1.6"/>' +
+      '<text x="100" y="130" text-anchor="middle" font-size="11" font-weight="800" letter-spacing="1" fill="' + PURPLE + '" font-family="' + SANS + '">' + esc(year || "OFFICIAL") + "</text></g>";
+  }
+
   function qrPath(url, x, y, size) {
     var q = window.QR.encode(url), n = q.size, unit = size / (n + 2), d = "";
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
@@ -149,6 +170,8 @@
     var who = (d.signerName || "") + (d.signerTitle ? " (" + d.signerTitle + ")" : "");
     s += '<text x="330" y="822" text-anchor="middle" font-size="' + fit(who, 600, 23, 440) + '" font-weight="600" fill="' + INK + '" font-family="' + SANS + '">' + esc(who) + "</text>";
     s += '<text x="330" y="852" text-anchor="middle" font-size="' + fit(org, 800, 21, 440) + '" font-weight="800" fill="' + PURPLE + '" font-family="' + SANS + '">' + esc(org) + "</text>";
+
+    s += stamp(org, d.year);
 
     // ----- verification: certificate number + QR code
     var url = (o.origin || location.origin) + "/certificate?reg=" + encodeURIComponent(d.certNo || d.regNumber || "");
