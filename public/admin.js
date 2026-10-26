@@ -1556,24 +1556,30 @@
     }).then(function () { b.disabled = false; });
   });
   // ---------- Certificates (admin) ----------
-  var certTimer = null, certSeq = 0, certCurrent = null, certSig = "", certSigWidget = null, certSigNew = "";
-  var CERT_FIELDS = ["certSigner", "certSignerTitle", "certOrg", "certRc"];
+  var certTimer = null, certSeq = 0, certCurrent = null, certSig = "";
+  var CERT_FIELDS = ["certSignerReg", "certOrg", "certRc"];
 
-  function showCertSignature() {
-    var box = $("certSigCur");
+  // Who signs: the name, role and ID-card signature of the registration number typed above.
+  function showSigner(signer) {
+    var box = $("certSigner");
     box.replaceChildren();
-    if (certSigNew || certSig) {
+    if (!signer || !signer.regNumber) { box.appendChild(el("span", null, "No signer chosen yet. Certificates print without a name or signature until you save one.")); return; }
+    if (!signer.found) { box.appendChild(el("span", "warn", "No student or team member has the registration number " + signer.regNumber + ".")); return; }
+    box.appendChild(el("b", null, signer.name));
+    box.appendChild(el("span", null, (signer.title ? signer.title + " · " : "") + signer.regNumber));
+    if (signer.signature) {
       var img = el("img");
-      img.alt = "Signature printed on every certificate";
-      img.src = "data:image/png;base64," + (certSigNew || certSig);
+      img.alt = "Signature on " + signer.name + "'s ID card";
+      img.src = "data:image/png;base64," + signer.signature;
       box.appendChild(img);
+      box.appendChild(el("span", null, "This is the signature on their ID card. It prints on every certificate."));
     } else {
-      box.appendChild(el("span", null, "No signature yet. Certificates print a blank line until you add one."));
+      box.appendChild(el("span", "warn", "They have no signature on their ID card yet. Ask them to add it in their portal; it then appears on every certificate."));
     }
-    $("certSigRemove").hidden = !certSig || !!certSigNew;
+    if (!signer.title) box.appendChild(el("span", null, "No role is set on their record, so only their name prints. Set their Team Role in the Database tab to print it in brackets."));
   }
   function showCertErrors(errs) {
-    CERT_FIELDS.concat(["signature"]).forEach(function (f) {
+    CERT_FIELDS.forEach(function (f) {
       var msg = errs && errs[f] ? errs[f] : "";
       $("cert-e-" + f).textContent = msg;
       $("cert-w-" + f).classList.toggle("invalid", !!msg);
@@ -1582,9 +1588,7 @@
   function loadCertSettings() {
     return api("/api/admin/certificate-settings").then(function (r) {
       CERT_FIELDS.forEach(function (f) { $("cert-" + f).value = r.values[f] || ""; });
-      certSig = r.signature || "";
-      certSigNew = "";
-      showCertSignature();
+      showSigner(r.signer);
     });
   }
   function showCertificate(c, li) {
@@ -1626,24 +1630,10 @@
     loadCertSettings().then(loadCertificates).catch(function (err) { if (err.auth) showLogin(err.message); else $("certMsg").textContent = err.message; });
   }
   $("certq").addEventListener("input", function () { clearTimeout(certTimer); certTimer = setTimeout(loadCertificates, 250); });
-  $("certSigChange").addEventListener("click", function () {
-    var panel = $("certSigPanel");
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden && !certSigWidget) certSigWidget = window.abecSignature.create($("certSigMount"), { high: true });
-  });
-  $("certSigRemove").addEventListener("click", function () {
-    if (!window.confirm("Remove the signature? Every certificate will show a blank line until you add a new one.")) return;
-    api("/api/admin/certificate-settings", "PUT", certSettingsBody({ removeSignature: true })).then(function (r) {
-      certSig = r.signature || "";
-      showCertSignature();
-      $("certSetMsg").textContent = "Signature removed.";
-      return loadCertificates();
-    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("certSetMsg").textContent = err.message; });
-  });
-  function certSettingsBody(extra) {
+  function certSettingsBody() {
     var b = {};
     CERT_FIELDS.forEach(function (f) { b[f] = $("cert-" + f).value; });
-    return Object.assign(b, extra || {});
+    return b;
   }
   $("certForm").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -1651,19 +1641,11 @@
     btn.disabled = true;
     showCertErrors(null);
     $("certSetMsg").textContent = "Saving...";
-    var pending = certSigWidget && $("certSigPanel").hidden === false && certSigWidget.has() ? certSigWidget.value() : Promise.resolve("");
-    pending.then(function (url) {
-      if (certSigWidget && certSigWidget.has() && !$("certSigPanel").hidden && !url) { $("certSetMsg").textContent = ""; return; }
-      var extra = url ? { signature: url.slice(url.indexOf(",") + 1) } : {};
-      return api("/api/admin/certificate-settings", "PUT", certSettingsBody(extra)).then(function (r) {
-        CERT_FIELDS.forEach(function (f) { $("cert-" + f).value = r.values[f] || ""; });
-        certSig = r.signature || "";
-        certSigNew = "";
-        if (url && certSigWidget) { certSigWidget.clear(); $("certSigPanel").hidden = true; }
-        showCertSignature();
-        $("certSetMsg").textContent = "Saved. Every certificate now shows these details.";
-        return loadCertificates();
-      });
+    api("/api/admin/certificate-settings", "PUT", certSettingsBody()).then(function (r) {
+      CERT_FIELDS.forEach(function (f) { $("cert-" + f).value = r.values[f] || ""; });
+      showSigner(r.signer);
+      $("certSetMsg").textContent = "Saved. Every certificate now shows these details.";
+      return loadCertificates();
     }).catch(function (err) {
       if (err.auth) return showLogin(err.message);
       showCertErrors(err.fields);

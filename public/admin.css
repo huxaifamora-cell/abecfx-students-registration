@@ -218,8 +218,9 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .idc-list li.on .idc-item { border-color: var(--violet); background: var(--bone); }
 .idc-view .pass-actions { display: flex; justify-content: center; margin-top: 12px; }
 .cert-admin { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
-.cert-sigcur { min-height: 64px; margin: 6px 0 10px; padding: 8px; border: 1px dashed var(--line); border-radius: 12px; background: #fff; display: grid; place-items: center; max-width: 360px; }
-.cert-sigcur img { max-width: 100%; max-height: 90px; }
-.cert-sigcur span { color: var(--muted); font-size: .85rem; }
-#certSigPanel { margin: 10px 0; max-width: 420px; }
+.cert-signer { margin: 2px 0 14px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; background: #fff; max-width: 420px; display: grid; gap: 4px; }
+.cert-signer b { font-size: .98rem; }
+.cert-signer span { font-size: .84rem; color: var(--muted); }
+.cert-signer img { max-width: 100%; max-height: 90px; justify-self: start; margin-top: 4px; }
+.cert-signer .warn { color: #8a5a00; font-weight: 600; }
 @media (max-width: 760px) { .idc-admin { grid-template-columns: 1fr; } .idc-list { max-height: 260px; } }

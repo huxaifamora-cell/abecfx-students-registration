@@ -245,22 +245,14 @@
       <div id="view-certificates" role="tabpanel" aria-labelledby="tab-certificates" hidden>
         <article class="adm-card wide">
           <h3>Who signs the certificates</h3>
-          <p class="adm-note">The name, title and signature below are printed on <b>every</b> certificate, together with the organisation name and the CAC RC number. Changing them updates every certificate straight away, including ones students already have open.</p>
+          <p class="adm-note">Enter the registration number of the person who signs (the CEO, for example). Their name, their role and <b>the signature on their own ID card</b> are printed on every certificate automatically, so there is nothing to upload here. If they change the signature on their ID card, the certificates follow. The organisation name and CAC RC number print on every certificate too.</p>
           <form id="certForm" class="lk-form" novalidate>
-            <div class="field" id="cert-w-certSigner"><label for="cert-certSigner">Name of the person who signs</label><input id="cert-certSigner" type="text" maxlength="60" autocomplete="off" /><p class="lk-err" id="cert-e-certSigner"></p></div>
-            <div class="field" id="cert-w-certSignerTitle"><label for="cert-certSignerTitle">Their title</label><input id="cert-certSignerTitle" type="text" maxlength="40" autocomplete="off" /><span class="hint">For example CEO. It prints in brackets after the name.</span><p class="lk-err" id="cert-e-certSignerTitle"></p></div>
+            <div class="field" id="cert-w-certSignerReg"><label for="cert-certSignerReg">Registration number of the person who signs</label><input id="cert-certSignerReg" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" /><p class="lk-err" id="cert-e-certSignerReg"></p></div>
+            <div class="cert-signer" id="certSigner" aria-live="polite"></div>
             <div class="field" id="cert-w-certOrg"><label for="cert-certOrg">Organisation name</label><input id="cert-certOrg" type="text" maxlength="60" autocomplete="off" /><p class="lk-err" id="cert-e-certOrg"></p></div>
             <div class="field" id="cert-w-certRc"><label for="cert-certRc">CAC RC number</label><input id="cert-certRc" type="text" maxlength="20" autocomplete="off" /><span class="hint">Printed as &ldquo;CAC RC: 9420199&rdquo;. Type the number only.</span><p class="lk-err" id="cert-e-certRc"></p></div>
-            <div class="field" id="cert-w-signature">
-              <span class="label">Signature</span>
-              <div class="cert-sigcur" id="certSigCur"></div>
-              <button type="button" class="btn ghost" id="certSigChange">Add or change the signature</button>
-              <div id="certSigPanel" hidden><div id="certSigMount"></div></div>
-              <p class="lk-err" id="cert-e-signature"></p>
-            </div>
             <div class="lk-bar">
               <button type="submit" class="primary" id="certSave">Save</button>
-              <button type="button" class="btn ghost sh-del" id="certSigRemove" hidden>Remove signature</button>
             </div>
             <p class="adm-note" id="certSetMsg" role="status"></p>
           </form>
@@ -451,7 +443,6 @@
   <script src="/card.js"></script>
   <script src="/download.js"></script>
   <script src="/certificate.js"></script>
-  <script src="/signature.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>
