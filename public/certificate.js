@@ -4,7 +4,7 @@
  *   window.downloadCertificate(el, "ABECFX/26/0001", "png" | "pdf")  -> Promise
  * data comes from /api/certificate (see certificate.js on the server): { certNo, fullName, awarded, year, org, rc,
  * signerName, signerTitle }. The public lookup page passes viewOnly, which adds a "view only" watermark; the
- * student's own copy and the dashboard's copy are clean. Needs qr.js loaded first.
+ * student's own copy and the dashboard's copy are clean.
  */
 (function () {
   "use strict";
@@ -90,7 +90,7 @@
       return '<text font-size="' + size + '" font-weight="800" letter-spacing=".6" fill="' + BLACK + '" font-family="' + SANS + '">' +
         '<textPath href="#' + id + '" startOffset="50%" text-anchor="middle">' + esc(str) + "</textPath></text>";
     };
-    return '<g transform="translate(558 740) rotate(-11) scale(.72) translate(-100 -100)" opacity=".9">' +
+    return '<g transform="translate(698 750) rotate(-11) scale(.68) translate(-100 -100)" opacity=".9">' +
       '<defs><path id="stmpT" d="M 100,100 m -67,0 a 67,67 0 1,1 134,0"/><path id="stmpB" d="M 100,100 m -78,0 a 78,78 0 0,0 156,0"/></defs>' +
       '<circle cx="100" cy="100" r="95" fill="none" stroke="' + BLACK + '" stroke-width="5"/>' +
       '<circle cx="100" cy="100" r="88" fill="none" stroke="' + BLACK + '" stroke-width="1.6"/>' +
@@ -100,15 +100,6 @@
       '<text x="100" y="107" text-anchor="middle" font-size="21" font-weight="900" fill="' + BLACK + '" font-family="' + SANS + '">ABEC-FX</text>' +
       '<line x1="72" y1="115" x2="128" y2="115" stroke="' + BLACK + '" stroke-width="1.6"/>' +
       '<text x="100" y="130" text-anchor="middle" font-size="11" font-weight="800" letter-spacing="1" fill="' + BLACK + '" font-family="' + SANS + '">' + esc(year || "OFFICIAL") + "</text></g>";
-  }
-
-  function qrPath(url, x, y, size) {
-    var q = window.QR.encode(url), n = q.size, unit = size / (n + 2), d = "";
-    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
-      if (q.modules[r][c]) d += "M" + (x + (c + 1) * unit).toFixed(2) + "," + (y + (r + 1) * unit).toFixed(2) + "h" + unit.toFixed(2) + "v" + unit.toFixed(2) + "h-" + unit.toFixed(2) + "z";
-    }
-    return '<rect x="' + x + '" y="' + y + '" width="' + size + '" height="' + size + '" fill="#fff" stroke="#e3d6e2" stroke-width="1.5"/>' +
-      '<path d="' + d + '" fill="' + BLACK + '" shape-rendering="crispEdges"/>';
   }
 
   function build(d, opts) {
@@ -173,13 +164,9 @@
 
     s += stamp(org, d.year);
 
-    // ----- verification: certificate number + QR code
-    var url = (o.origin || location.origin) + "/certificate?reg=" + encodeURIComponent(d.certNo || d.regNumber || "");
-    s += qrPath(url, 640, 692, 116);
+    // ----- certificate number (the stamp sits where the QR code used to be)
     s += '<text x="778" y="722" font-size="13" font-weight="700" fill="#6b5a69" font-family="' + SANS + '" letter-spacing="1.6">CERTIFICATE NO.</text>';
     s += '<text x="778" y="752" font-size="' + fit(String(d.certNo || ""), 800, 25, 200) + '" font-weight="800" fill="' + INK + '" font-family="' + SANS + '">' + esc(d.certNo || "") + "</text>";
-    s += '<text x="778" y="782" font-size="14.5" font-weight="500" fill="#4a3a48" font-family="' + SANS + '">Scan the QR code to</text>';
-    s += '<text x="778" y="802" font-size="14.5" font-weight="500" fill="#4a3a48" font-family="' + SANS + '">verify this certificate.</text>';
 
     // ----- CAC number, labelled so people know what it is
     if (d.rc) {

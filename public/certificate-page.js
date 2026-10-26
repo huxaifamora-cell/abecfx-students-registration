@@ -50,7 +50,7 @@
 
   form.addEventListener("submit", function (e) { e.preventDefault(); search(); });
 
-  // Opened from the QR code on a certificate: check it straight away.
+  // Opened from a shared link (/certificate?reg=...): check it straight away.
   var pre = new URLSearchParams(location.search).get("reg");
   if (pre) { input.value = pre; search(); }
 })();
