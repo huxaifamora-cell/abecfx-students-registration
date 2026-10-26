@@ -18,9 +18,10 @@ const SITE_FILES = [
   "public/card.js", "public/qr.js", "public/nav.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
   "public/styles.css", "public/links.js", "links.js", "videos.js",
+  "certificate.js", "public/certificate.js", "public/certificate.html", "public/certificate-page.js",
   "status/build.js",
 ];
-const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf"];
+const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf", "public/certificate-art.js"];
 const QUIZ_FILES = ["bot.js", "webapp/embed.js", "package.json", "env.example", "render.yaml"];
 
 const LANG = { js: "js", json: "json", html: "html", css: "css", yaml: "yaml", example: "bash", md: "md" };
