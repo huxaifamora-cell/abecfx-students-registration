@@ -1508,17 +1508,49 @@
 
   // ---------- ID cards (admin) ----------
   var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;
+  function idKindName(card) {
+    return card.status === "Team Member" ? "Team" : card.status === "Alumni Member" ? "Alumni" : "Student";
+  }
+  // Draws every ID card the person holds, one under the other, each with its own download button.
+  function drawIdCards(c, signatureSrc) {
+    var list = c.allCards && c.allCards.length ? c.allCards : [c];
+    var many = list.length > 1;
+    var mount = $("idMount");
+    mount.replaceChildren();
+    list.forEach(function (card) {
+      var one = el("section", "idc-one");
+      var name = idKindName(card);
+      if (many) one.appendChild(el("h4", "idc-one-title", name + " ID card"));
+      var wrap = el("div", "cardwrap");
+      wrap.appendChild(window.renderStudentCard(card, signatureSrc ? { signatureSrc: signatureSrc } : undefined));
+      one.appendChild(wrap);
+      var actions = el("p", "pass-actions");
+      var btn = el("button", "btn ghost", many ? "Download " + name + " ID card" : "Download ID card");
+      btn.type = "button";
+      btn.addEventListener("click", function () {
+        var node = wrap.querySelector(".idc"), label = btn.textContent;
+        if (!node || btn.disabled) return;
+        btn.disabled = true; btn.textContent = "Preparing...";
+        window.downloadIdCard(node, c.regNumber + (many ? " " + name : "")).then(function () { btn.textContent = label; }, function () {
+          btn.textContent = "Could not download. Try again";
+          setTimeout(function () { btn.textContent = label; }, 3500);
+        }).then(function () { btn.disabled = false; });
+      });
+      actions.appendChild(btn);
+      one.appendChild(actions);
+      mount.appendChild(one);
+    });
+  }
   function showIdCard(c, li) {
     idCurrent = c;
     Array.prototype.forEach.call($("idList").children, function (x) { x.classList.toggle("on", x === li); });
-    $("idMount").replaceChildren(window.renderStudentCard(c));
-    $("idActions").hidden = false;
-    // The signature is fetched separately, then the card is drawn again with it.
+    drawIdCards(c);
+    // The signature is fetched separately, then the cards are drawn again with it.
     var mine = ++sigSeq;
     api("/api/admin/id-cards/signature?reg=" + encodeURIComponent(c.regNumber)).then(function (res) {
       if (mine !== sigSeq || idCurrent !== c || !res.signature) return;
-      $("idMount").replaceChildren(window.renderStudentCard(c, { signatureSrc: "data:image/png;base64," + res.signature }));
-    }).catch(function () { /* the card just shows without a signature */ });
+      drawIdCards(c, "data:image/png;base64," + res.signature);
+    }).catch(function () { /* the cards just show without a signature */ });
   }
   function loadIdCards() {
     var seq = ++idSeq, q = $("idq").value.trim();
@@ -1532,7 +1564,7 @@
         var b = el("button", "idc-item");
         b.type = "button";
         b.appendChild(el("b", null, c.fullName || "(no name)"));
-        b.appendChild(el("span", null, c.regNumber + " · " + c.status));
+        b.appendChild(el("span", null, c.regNumber + " · " + c.status + (c.allCards && c.allCards.length > 1 ? " · " + c.allCards.length + " ID cards" : "")));
         b.addEventListener("click", function () { showIdCard(c, li); });
         li.appendChild(b);
         list.appendChild(li);
@@ -1542,22 +1574,11 @@
       if (idCurrent && !res.cards.some(function (c) { return c.regNumber === idCurrent.regNumber; })) {
         idCurrent = null;
         $("idMount").replaceChildren();
-        $("idActions").hidden = true;
       }
     }).catch(function (err) { if (err.auth) showLogin(err.message); else $("idMsg").textContent = err.message; });
   }
   function openIdCards() { loadIdCards(); }
   $("idq").addEventListener("input", function () { clearTimeout(idTimer); idTimer = setTimeout(loadIdCards, 250); });
-  $("idDownload").addEventListener("click", function () {
-    var card = document.querySelector("#idMount .idc"), b = this;
-    if (!card || b.disabled) return;
-    var label = b.textContent;
-    b.disabled = true; b.textContent = "Preparing...";
-    window.downloadIdCard(card, idCurrent && idCurrent.regNumber).then(function () { b.textContent = label; }, function () {
-      b.textContent = "Could not download. Try again";
-      setTimeout(function () { b.textContent = label; }, 3500);
-    }).then(function () { b.disabled = false; });
-  });
   // ---------- Certificates (admin) ----------
   var certTimer = null, certSeq = 0, certCurrent = null, certSig = "";
   var CERT_FIELDS = ["certSignerReg", "certOrg", "certRc"];

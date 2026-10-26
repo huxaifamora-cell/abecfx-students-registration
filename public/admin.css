@@ -216,6 +216,8 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .idc-item span { font-size: .78rem; color: var(--muted); }
 .idc-item:hover { border-color: var(--violet); }
 .idc-list li.on .idc-item { border-color: var(--violet); background: var(--bone); }
+.idc-one + .idc-one { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line, rgba(0,0,0,.12)); }
+.idc-one-title { margin: 0 0 10px; text-align: center; font-size: 15px; }
 .idc-view .pass-actions { display: flex; justify-content: center; margin-top: 12px; }
 .cert-admin { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
 .cert-signer { margin: 2px 0 14px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; background: #fff; max-width: 420px; display: grid; gap: 4px; }

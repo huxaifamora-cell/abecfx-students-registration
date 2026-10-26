@@ -226,7 +226,7 @@
       <div id="view-idcards" role="tabpanel" aria-labelledby="tab-idcards" hidden>
         <article class="adm-card wide">
           <h3>ID cards</h3>
-          <p class="adm-note">Find any student or team member and open their ID card. Search by name, registration number, country, state or status.</p>
+          <p class="adm-note">Find any student or team member and open their ID card. If a person holds more than one (Student, Alumni, Team), all of their ID cards show when you click their name. Search by name, registration number, country, state or status.</p>
           <div class="field" style="margin-top:12px;max-width:520px">
             <label for="idq">Search</label>
             <input id="idq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
@@ -235,8 +235,7 @@
           <div class="idc-admin">
             <ul class="idc-list" id="idList"></ul>
             <div class="idc-view">
-              <div class="cardwrap" id="idMount"></div>
-              <p class="pass-actions" id="idActions" hidden><button type="button" class="btn ghost" id="idDownload">Download ID card</button></p>
+              <div id="idMount"></div>
             </div>
           </div>
         </article>
