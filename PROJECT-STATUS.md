@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 18 Oct 2026, 09:55 (Lagos time), after change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge). Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 26 Oct 2026, 10:18 (Lagos time), after change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design). Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -93,6 +93,7 @@
 | 2026-10-18 | **Guard rails.** (1) Nobody can give access they do not have themselves: not when creating or editing a role, and not when giving a role to a person (the role list shows only roles you may hand out). (2) Nobody can change or delete the role they hold. (3) A role that is still held by someone cannot be deleted (the editor is told how many people hold it). (4) Someone cannot change, disable, re-role, reset the password of or remove a person whose access is bigger than their own. (5) Unknown access names in the sheet are ignored, `view` is forced on, and a row in the Roles tab can never override a built-in role | Stops a person with the Team switch from making themselves, or a friend, more powerful than they are. The owner has everything, so none of this limits the owner. |
 | 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
 | 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `team.js`, `public/portal.*`, `public/admin.*`. |
+| 2026-10-26 | **Change 12: the certificate uses the real design of the owner's approved certificate image.** (1) **Background:** the purple band and black block top left, the thin purple line and white stripe, the big purple panel, the bottom purple and black strips, the black bar under the title and the black CAC tag are drawn as vector shapes whose corners were **measured from the owner's image** (a pixel check against the image differs only on one-pixel edges). The canvas is now 1280 x 909, the size of that image (was 1280 x 905). (2) **Emblem:** the bull-horn logo is the real `logo-purple.png`, and the gold seal is the **real seal picture cut out of the owner's image** (laurels, stars, four ribbon tails), with its printed "2026" painted out so the page prints each certificate's own year on it. Both live in `public/certificate-art.js` as embedded pictures, so they also appear in the PNG and PDF downloads. (3) "Certificate", "OF COMPLETION", the organisation name under the logo, the stamp, the certificate number and the CAC tag moved to the places they have in the image. The wording of the certificate, the signature block and the dynamic fields are unchanged | Owner request ("use the actual designs of the background, and the emblem"). **Assumed:** "emblem" means both the bull-horn logo and the gold seal. The seal picture is only about 175 px wide in the owner's image, so it is a little soft when printed large; a separate high-resolution copy of the seal (PNG with transparent background) can replace the picture in `certificate-art.js` without any other change. The words "ADEBASS BASE / EDGE CONSULT" under the logo are drawn as text, not cut from the image (the image copy is too small to stay sharp). The PDF now keeps the picture's own proportions on the A4 page (centred, a thin white margin top and bottom). |
 
 ## 3. Current state
 
@@ -111,6 +112,7 @@
 - **New (change 4):** the dashboard hint line says "Tap or click any number, bar or chart column to see the students behind it". Every number, bar and chart column opens a pop-up with the list (students, or quiz results), a search box, "Download CSV" (the searched list) and Close (button, Escape, or a click outside). Works by keyboard (Tab, Enter, Space) and on phones. A second click replaces a slower first one.
 - **New (change 3):** My portal submenu (My ID card, Quiz, Mentorship Handbook). Handbook reader with 13 chapters, "Mark as read", previous/next, and a learning-progress bar (percent) that is saved in the sheet, shown on the handbook page, inside each chapter and as a summary on the ID card page. At 100% a "final word" and a link to the quiz appear. "Open the full handbook PDF" opens a private 10-minute link.
 - **New:** the quiz runs inside the student portal ("Take the quiz here"): the student is signed in automatically, cannot switch to another number, the result is graded and saved, and the portal's results card refreshes by itself. "Close quiz" and "Not you?" remove the running quiz. Telegram still works as before.
+- **New (change 12):** certificates (on the public check page, in the portal download and in the dashboard) are drawn on the owner's approved design: the same purple, black and white shapes, the bull-horn emblem and the gold seal with the certificate year on it. Checked by rendering the certificate in a headless browser, comparing the background pixel by pixel with the owner's image, and downloading the PNG and the PDF. **Not yet seen on live Render** with a real Certified student and signature.
 
 **Pages and endpoints (registration site):**
 
@@ -242,11 +244,9 @@
 
 | Date | Change |
 | --- | --- |
+| 2026-10-26 | **Change 12: certificate design.** New `public/certificate-art.js` (the real bull-horn logo and the gold seal as embedded pictures); `public/certificate.js` rewritten around the measured background shapes of the owner's design, canvas 1280 x 909, new title, logo, seal, stamp, certificate number and CAC-tag positions, PDF keeps proportions; `portal.html`, `admin.html` and `certificate.html` load `certificate-art.js` before `certificate.js`; `status/build.js` now also embeds the certificate files in the latest-code section. |
 | 2026-10-18 | **Community page in the student portal.** New **Community** item in the portal's My portal menu (`#/community`) with a "Join on WhatsApp" and a "Join on Telegram" button that open the official group in a new tab. The addresses are two new fields on the dashboard's **Site links** tab (`communityWhatsapp`, `communityTelegram`, https only); when one is empty the page uses the official WhatsApp / Telegram already on Site links, and if nothing is set it says the link is coming soon. The community links are served only to signed-in students (`GET /api/community`) and are left out of the public `/api/links`. On startup the site adds the two missing rows to the Site Links tab. Files: `links.js`, `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `test/community.test.js`, `test/support/boot-server.js`, `test/support/fake-sheets.js`, `test/quiz-gate.test.js`. 3 new tests. |
-| 2026-10-18 | **Community buttons renamed and set by a group link, with its own access.** Portal buttons are now **Open WhatsApp community** and **Open Telegram community**. They open the WhatsApp / Telegram group set on a new **Community** tab of `/admin`; no more fallback to the official channel (a button is hidden until its group is set; with none set the page says the link is coming soon). New access **Student community** (`community`) in `team.js`: owner, Admin and Editor have it, and any custom role can be given it. The two group fields moved off the Site links tab; each tab saves only its own fields (`GET/PUT /api/admin/community`; Site links can no longer read or overwrite the groups). Files: `team.js`, `links.js`, `server.js`, `public/portal.html`, `public/admin.html`, `public/admin.js`, `README.md`, `test/community.test.js`, `test/team.test.js`. **Assumed:** Editor gets the new access because editors could already set these links; Moderator does not. |
-| 2026-10-18 | **Hover effect on everything clickable.** A shared layer at the end of `public/styles.css` (used by every page, including `/admin`): pointer cursor and a smooth transition on links, buttons, tabs, dropdowns, date boxes, checkboxes, radios, file inputs and clickable labels; a hover change on the logo link, text links, the photo picker, buttons that had none, and form controls. Existing hand-made hovers are untouched and still win. Hover effects apply only on devices with a real mouse (`hover: hover`), so phones do not get a stuck highlight; reduced-motion users get no animation. File: `public/styles.css`. |
-| 2026-10-18 | **Social icons keep their official colours.** Facebook blue, WhatsApp green, Telegram blue, YouTube red, X black, TikTok black with its cyan and red edge; each glyph sits on a white disc so all of them read on the dark panel. They lift and get a soft shadow on hover. About and Contact keep the translucent white style. File: `public/styles.css`. **Assumed:** glyph in colour on white, rather than a coloured disc with a white glyph. |
-| 2026-10-18 | **"Graduate" removed as a status; Certified is the graduate status.** The status list is now Uncertified, Certified, Alumni Member, Mentor, Staff Member, CEO (dropdowns in the sheet and the dashboard Database tab). A Certified student's ID card (portal, find-a-student page and the card view) now shows the status **Certified Graduate** and keeps the graduate stamp; no expiry, as before. The dashboard tile is renamed **Certified graduates** (Certified + Alumni Member). A row that still says "Graduate" in the sheet is read as Certified everywhere (ID card, statistics, lists) via `normalizeStatus` in `idrules.js`, so no student drops back to Uncertified. Files: `sheets.js`, `idrules.js`, `server.js`, `stats.js`, `public/card.js`, `public/idcard.js`, `public/admin.js`, `public/styles.css`, `README.md`, `test/status.test.js` (new), `test/admin-database.test.js`, `test/support/memory-store.js`. **Owner action:** in the Students tab, change any remaining "Graduate" cells in column J to Certified (the sheet's dropdown no longer lists Graduate and will flag them). Stored value stays "Certified"; only the card wording changed. |
+| 2026-10-26 | **Find a student now has an ID card / Certificate dropdown.** "Check a certificate" is removed from the main menu (and the phone tab bar); "Find a student" is the one entry. Its page opens with a dropdown, **ID card** or **Certificate**, and choosing one opens that lookup (the certificate page keeps "Find a student" highlighted). New `public/lookup-kind.js`; changed `public/status.html`, `public/certificate.html`, `public/styles.css`. Owner action: push those four files. |
 | 2026-10-18 | **Menu tweak (after change 11): "Register" is hidden from the main menu once someone is registered or signed in on the device.** New `public/nav.js` (loaded by the portal, register and find-a-student pages) hides the link while the portal sign-in is saved; signing out brings it back, and it is never hidden on the register page itself. A signed-out visitor still sees it, and the portal sign-in screen still has "Register as a new student". On phones the bottom tab bar now splits its width between however many tabs show (`public/styles.css`), so "My portal" and "Find a student" fill the space Register leaves. Owner action: push `public/nav.js`, `public/portal.js`, `public/portal.html`, `public/register.html`, `public/status.html`, `public/styles.css`. |
 | 2026-10-18 | **Change 11: one-time quiz codes.** New `quizcodes.js` (code rules: make, enter, finish, cancel); `sheets.js` (new **Quiz Codes** tab with a Status dropdown); `team.js` (new **Quiz codes** access); `server.js` (`POST /api/quiz/unlock`, lock on `/api/quiz/session` and `/api/quiz/result`, `unlocked` in `/api/results`, `/api/admin/quiz-codes` routes, optional `QUIZ_CODE_FOR_TELEGRAM`); portal Quiz page (code box, locked and unlocked states); **Quiz codes** dashboard tab; 31 new tests (23 for the code rules, 7 that run the real server over HTTP on a fake sheet, one updated access test). |
 | 2026-10-18 | **Change 10: Editor role and roles with chosen access.** `team.js` (five accesses, built-in Owner/Admin/Editor/Moderator, custom roles with create/change/delete and guard rails); `sheets.js` (new **Roles** tab); `server.js` (per-access checks, `/api/admin/roles` routes, role list with member counts); **Roles and access** card and role dialog on the Team tab (`public/admin.html`, `admin.js`, `admin.css`); 19 new tests. Replaces the single `manage` access by `links`, `videos` and `database`. |
@@ -273,11 +273,11 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 18 Oct 2026, 09:55 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 26 Oct 2026, 10:18 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
-Not embedded (data): `countries.js` (2 KB), `countryCodes.js` (4 KB), `states.json` (49 KB), `private/handbook.pdf` (491 KB).
+Not embedded (data): `countries.js` (2 KB), `countryCodes.js` (4 KB), `states.json` (49 KB), `private/handbook.pdf` (773 KB), `public/certificate-art.js` (412 KB).
 
 #### `server.js`
 
@@ -304,6 +304,7 @@ const links = require("./links");
 const videos = require("./videos");
 const adminDatabase = require("./admin-database");
 const team = require("./team");
+const certificate = require("./certificate");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
 // address (https only); the security policy below lets the portal frame that one address and no other.
@@ -319,7 +320,9 @@ const QUIZ_APP_ORIGIN = httpsOrigin(process.env.QUIZ_APP_URL);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const PROGRAMMES = ["Forex Mentorship"];
+const PROGRAMMES = ["Forex Course"];
+// Students who registered before the rename have "Forex Mentorship" stored; they are shown as "Forex Course".
+const programmeName = (v) => (/^forex mentorship$/i.test(String(v || "").trim()) ? "Forex Course" : String(v || ""));
 const GENDERS = ["Male", "Female"];
 
 app.set("trust proxy", 1); // Render sits behind a proxy
@@ -330,13 +333,15 @@ app.use(
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         // national flags on the ID card come from flagcdn.com
         "img-src": ["'self'", "data:", "https://flagcdn.com"],
+        // the portal's Download ID card button reads the card's flag and fonts to draw the picture
+        "connect-src": ["'self'", "https://flagcdn.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
         // the quiz is shown inside the student portal
         "frame-src": ["'self'", "https://www.youtube-nocookie.com", ...(QUIZ_APP_ORIGIN ? [QUIZ_APP_ORIGIN] : [])],
       },
     },
   })
 );
-app.use(express.json({ limit: "100kb" })); // registration includes a small passport photo
+app.use(express.json({ limit: "200kb" })); // registration includes a small passport photo and signature
 app.use(express.static(path.join(__dirname, "public")));
 
 // Year of admission, based on Lagos time -> "26"
@@ -377,14 +382,36 @@ function checkPhoto(p) {
   return p;
 }
 
-// Date of birth as YYYY-MM-DD: a real calendar date, not in the future, not before 1920.
+// The browser draws or cleans up the signature into a small transparent PNG (a few KB). Accept only that kind of file.
+function checkSignature(p) {
+  if (typeof p !== "string" || p.length < 200 || p.length > 46000) return null;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(p)) return null;
+  const head = Buffer.from(p.slice(0, 12), "base64");
+  if (!(head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47)) return null; // PNG signature
+  return p;
+}
+
+// The latest date of birth that still meets the age requirement today (6 years ago, as YYYY-MM-DD).
+function dobCutoff(todayISO) {
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayISO);
+  return t ? String(+t[1] - 6).padStart(4, "0") + "-" + t[2] + "-" + t[3] : todayISO;
+}
+
+// Date of birth as YYYY-MM-DD: a real calendar date, not before 1920, and at least 6 years ago.
 function validDob(v, todayISO) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
   if (!m) return false;
   const y = +m[1], mo = +m[2], da = +m[3];
   const dt = new Date(Date.UTC(y, mo - 1, da));
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== da) return false;
-  return y >= 1920 && v <= todayISO;
+  // A failure gets the same generic message as any other bad date.
+  return y >= 1920 && v <= dobCutoff(todayISO);
+}
+
+// Someone already registered whose saved date of birth is too recent (younger than 6, or in the future).
+function dobTooRecent(dob) {
+  const v = String(dob || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) && v > dobCutoff(idrules.lagosToday());
 }
 
 function validate(body) {
@@ -399,6 +426,8 @@ function validate(body) {
     dob: clean(body.dob, 10),
     mentorshipCode: clean(body.mentorshipCode, 40).toUpperCase(),
     photo: checkPhoto(body.photo),
+    signature: checkSignature(body.signature),
+    terms: body.terms === true,
   };
   const errors = {};
   if (!countries.includes(d.country)) errors.country = "Please select your country.";
@@ -425,12 +454,15 @@ function validate(body) {
   else if (!/^[A-Z0-9_-]{4,40}$/.test(d.mentorshipCode))
     errors.mentorshipCode = "That mentorship code is not valid. Check it and try again.";
   if (!d.photo) errors.photo = "Add a passport photograph. Choose a clear photo of your face.";
+  if (!d.terms) errors.terms = "Please tick the box to agree to the Terms and Conditions.";
+  if (!d.signature) errors.signature = "Add your signature. Sign in the box, or upload a picture of it.";
   return { d, errors };
 }
 
 // What the public ID card is allowed to show. Email and WhatsApp number are never included.
 function cardFromRow(r) {
-  const status = store.STATUSES.includes(r[9]) ? r[9] : "Uncertified";
+  const raw = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
+  const status = store.STATUSES.includes(raw) ? raw : "Uncertified";
   const reg = r[0] || "";
   const yy = parseInt((reg.split("/")[1] || ""), 10);
   const issuedISO = idrules.parseIssued(r);
@@ -442,10 +474,11 @@ function cardFromRow(r) {
     country: r[2] || "",
     state: r[12] || "",
     countryCode: countryCodes[r[2]] || "",
-    programme: r[3] || "",
+    programme: programmeName(r[3]),
     admitted: Number.isNaN(yy) ? "" : 2000 + yy,
     issued: issuedISO ? idrules.formatISO(issuedISO) : (r[1] || "").split(",")[0],
     status,
+    teamRole: status === "Team Member" ? (r[14] || "").trim() : "",
     statusDate: status === "Uncertified" ? "" : r[10] || "",
     ...expiry, // expiryKind, expires, expired, daysLeft
   };
@@ -538,6 +571,16 @@ app.post("/api/register", limiter, async (req, res) => {
           console.error("Photo save failed for", reg, e2.message);
         }
       }
+      // The signature is saved the same way: it shows on the student's own ID card.
+      try {
+        await store.setSignature(reg, d.signature);
+      } catch (e1) {
+        try {
+          await store.setSignature(reg, d.signature);
+        } catch (e2) {
+          console.error("Signature save failed for", reg, e2.message);
+        }
+      }
       return cardFromRow(row);
     });
 
@@ -592,6 +635,7 @@ const page = (name) => (_req, res) => res.sendFile(path.join(__dirname, "public"
 app.get("/", page("portal.html"));
 app.get("/portal", (_req, res) => res.redirect(301, "/"));
 app.get("/register", page("register.html"));
+app.get("/certificate", (_req, res) => res.sendFile(path.join(__dirname, "public", "certificate.html")));
 app.get("/status", (_req, res) =>
   res.sendFile(path.join(__dirname, "public", "status.html"))
 );
@@ -647,6 +691,31 @@ function studentAuth(req, res, next) {
   next();
 }
 
+// Never let a photo-tab hiccup stop a student signing in: if it cannot be read, the button just shows.
+async function photoUsed(reg) {
+  try { return !!(await store.photoChanged(reg)); } catch (e) { return false; }
+}
+
+// A student whose date of birth on file is under the age requirement gets a notice in the portal. They may
+// correct it ONCE themselves (every correction is kept on the "DOB Changes" tab), after that only a mentor can.
+async function dobNotice(row, reg) {
+  const dob = String((row && row[13]) || "").trim();
+  if (!dobTooRecent(dob)) return null;
+  let used = false;
+  try { used = (await store.tabRows("dobchanges")).some((x) => String(x.cells[0] || "").trim().toUpperCase() === reg); } catch (e) { /* assume not used */ }
+  return { dob, canUpdate: !used };
+}
+
+// A mentor typed "Yes" in the student's "Photo To Redo" cell: they must send a new passport photo.
+function photoRedo(row) {
+  return String((row && row[15]) || "").trim().toLowerCase() === "yes";
+}
+
+// True when the student has no signature on file yet (a read problem never nags them).
+async function signatureMissing(reg) {
+  try { return !(await store.getSignature(reg)); } catch (e) { return false; }
+}
+
 app.post("/api/portal/login", loginLimiter, async (req, res) => {
   res.set("Cache-Control", "no-store");
   const secret = sessionSecret();
@@ -663,7 +732,7 @@ app.post("/api/portal/login", loginLimiter, async (req, res) => {
     if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
       return res.status(401).json({ error: "That registration number and email do not match our records." });
     }
-    res.json({ token: session.sign(reg, secret), card: cardFromRow(r) });
+    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg), signatureMissing: await signatureMissing(reg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal sign-in failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -676,14 +745,123 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached();
     const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
     if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
-    res.json(cardFromRow(r));
+    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
   }
 });
 
-// ---- Mentorship Handbook (signed-in students only) ----
+// ---- Certificates (see certificate.js) ----
+// Anyone can look a certificate up by registration number and SEE it (that is how it is verified). Downloading is for the signed-in student and the dashboard.
+// The person who signs is chosen by registration number on the dashboard. Their name, their role (the "Team Role"
+// on their record) and the signature on their own ID card are what every certificate shows, so changing the signature
+// on that card changes it on the certificates too.
+let signerSigCache = new Map(); // reg -> { at, value }
+async function signatureOf(reg) {
+  const hit = signerSigCache.get(reg);
+  if (hit && Date.now() - hit.at < 60000) return hit.value;
+  let value = "";
+  try { value = (await store.getSignature(reg)) || ""; } catch (e) { console.error("Certificate signature read failed:", e.message); return hit ? hit.value : ""; }
+  signerSigCache.set(reg, { at: Date.now(), value });
+  return value;
+}
+async function certSettings() {
+  let v = {};
+  try { v = await store.readLinks(); } catch (e) { v = links.DEFAULTS; }
+  return links.pick(v, links.CERT_KEYS);
+}
+// { found, regNumber, name, title, signature } for the signer's registration number.
+async function signerOf(reg, rows) {
+  const r = normaliseReg(reg);
+  if (!r) return { found: false, regNumber: "", name: "", title: "", signature: "" };
+  const row = (rows || (await store.readCached())).find((x) => (x[0] || "").toUpperCase() === r);
+  if (!row) return { found: false, regNumber: r, name: "", title: "", signature: "" };
+  const card = cardFromRow(row);
+  return { found: true, regNumber: r, name: card.fullName, title: card.teamRole || "", signature: await signatureOf(r) };
+}
+// The settings certificate.forCard prints, with the signer filled in from their record.
+async function certContext(rows) {
+  const settings = await certSettings();
+  const signer = await signerOf(settings.certSignerReg, rows);
+  return { settings: { ...settings, certSigner: signer.name, certSignerTitle: signer.title }, signature: signer.signature, signer };
+}
+// What the page needs to draw one certificate (never an email or WhatsApp number).
+async function certificateFor(row) {
+  const card = cardFromRow(row);
+  const ctx = await certContext();
+  const cert = certificate.forCard(card, ctx.settings);
+  if (!cert) return { eligible: false, regNumber: card.regNumber, fullName: card.fullName, status: card.status };
+  return { eligible: true, certificate: cert, signature: ctx.signature };
+}
+
+app.get("/api/certificate", lookupLimiter, async (req, res) => {
+  const reg = normaliseReg(req.query.reg);
+  if (!reg) return res.status(400).json({ error: "Enter a valid registration number, e.g. ABECFX/26/0001." });
+  try {
+    const r = (await store.readCached()).find((row) => (row[0] || "").toUpperCase() === reg);
+    if (!r) return res.status(404).json({ error: "No student found with that registration number." });
+    res.set("Cache-Control", "no-cache");
+    res.json(await certificateFor(r));
+  } catch (err) {
+    console.error("Certificate lookup failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+app.get("/api/portal/certificate", lookupLimiter, studentAuth, async (req, res) => {
+  try {
+    const r = (await store.readCached()).find((row) => (row[0] || "").toUpperCase() === req.studentReg);
+    if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
+    res.json(await certificateFor(r));
+  } catch (err) {
+    console.error("Portal certificate failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// A signed-in student replaces their own passport photo. The reg number comes from the sign-in token,
+// never from the request, so a student can only ever change their own photo.
+const photoEditLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many tries. Please try again in an hour." },
+});
+const ALREADY_CHANGED = "You have already changed your photo once. A photo can only be changed one time.";
+const photoEditing = new Set(); // regs being saved right now, so two quick taps cannot both pass the check
+app.put("/api/portal/photo", photoEditLimiter, studentAuth, async (req, res) => {
+  const photo = checkPhoto((req.body || {}).photo);
+  if (!photo) return res.status(400).json({ error: "That photo could not be used. Choose a clear photo of your face (JPG or PNG)." });
+  const reg = req.studentReg;
+  if (photoEditing.has(reg)) return res.status(429).json({ error: "Your photo is already being saved." });
+  photoEditing.add(reg);
+  try {
+    // A student a mentor asked for a new photo may send one even if they already used their one change;
+    // that upload uses it up again and clears the request.
+    const row = (await store.readAll()).find((x) => String(x[0] || "").trim().toUpperCase() === reg);
+    const redo = photoRedo(row);
+    const result = await store.setPhoto(reg, photo, redo);
+    if (result === "already") return res.status(403).json({ error: ALREADY_CHANGED, photoChanged: true });
+    if (redo) {
+      try {
+        await exclusive(async () => {
+          const hit = (await store.tabRows("students")).find((x) => String(x.cells[0] || "").trim().toUpperCase() === reg);
+          if (hit) await store.writeTabCells("students", hit.n, { 15: "" });
+        });
+      } catch (e) { console.error("Could not clear the photo request for", reg, e.message); }
+    }
+    res.json({ ok: true, photoChanged: true });
+  } catch (err) {
+    console.error("Photo update failed for", reg, err.message);
+    res.status(500).json({ error: "We could not save your photo. Please try again shortly." });
+  } finally {
+    photoEditing.delete(reg);
+  }
+});
+
+// ---- Handbook (signed-in students only) ----
 // The handbook text is served from the website and each student's progress is kept in the sheet tab
 // "Handbook Progress". Progress = chapters marked as read / total chapters.
 const handbookLimiter = rateLimit({
@@ -766,13 +944,123 @@ app.get("/handbook.pdf", handbookLimiter, (req, res) => {
   const secret = sessionSecret();
   const reg = secret ? pdfLink.verify(String(req.query.t || ""), secret) : null;
   if (!reg) {
-    return res.status(401).type("text/plain").send("This link has expired. Open the Mentorship Handbook in your student portal and try again.");
+    return res.status(401).type("text/plain").send("This link has expired. Open the Handbook in your student portal and try again.");
   }
   res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
   res.type("application/pdf");
   res.sendFile(path.join(__dirname, "private", "handbook.pdf"), {
     headers: { "Content-Disposition": 'inline; filename="ABEC-FX-Edge-Handbook.pdf"' },
   });
+});
+
+// Chapter workbooks (Word files, one per chapter). Like the PDF they live in private/, and a signed-in
+// student downloads them with a short-lived signed link.
+const WORKBOOK_DIR = path.join(__dirname, "private", "workbooks");
+function workbookFile(id) {
+  if (!/^\d{2}$/.test(id)) return null;
+  try {
+    const f = require("fs").readdirSync(WORKBOOK_DIR).find((n) => n.startsWith("Workbook_" + id + "_") && n.endsWith(".docx"));
+    return f || null;
+  } catch (e) { return null; }
+}
+
+app.get("/api/workbooks", handbookLimiter, studentAuth, (_req, res) => {
+  const items = handbook.CHAPTERS.map((c) => ({ id: c.id, title: c.title, available: !!workbookFile(c.id) }));
+  res.json({ workbooks: items });
+});
+
+app.get("/api/workbooks/link", handbookLimiter, studentAuth, (req, res) => {
+  const id = String(req.query.id || "");
+  if (!workbookFile(id)) return res.status(404).json({ error: "That workbook is not available yet." });
+  res.json({ url: "/workbook/" + id + "?t=" + encodeURIComponent(pdfLink.sign(req.studentReg, sessionSecret())) });
+});
+
+app.get("/workbook/:id", handbookLimiter, (req, res) => {
+  const secret = sessionSecret();
+  const reg = secret ? pdfLink.verify(String(req.query.t || ""), secret) : null;
+  if (!reg) {
+    return res.status(401).type("text/plain").send("This link has expired. Open the Workbook page in your student portal and try again.");
+  }
+  const file = workbookFile(String(req.params.id));
+  if (!file) return res.status(404).type("text/plain").send("That workbook is not available yet.");
+  res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
+  res.sendFile(path.join(WORKBOOK_DIR, file), {
+    headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "Content-Disposition": 'attachment; filename="ABEC-FX-' + file.replace(/^Workbook_/, "Workbook-").replace(/_/g, "-") + '"',
+    },
+  });
+});
+
+const signatureLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 120, // the portal reads it each time the card opens; saving is a handful of tries
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many tries. Please try again in a while." },
+});
+
+const dobLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many tries. Please try again in a while." },
+});
+
+// A flagged student corrects their own date of birth, once. The reg number comes from the sign-in token.
+app.put("/api/portal/dob", dobLimiter, studentAuth, async (req, res) => {
+  const dob = clean((req.body || {}).dob, 10);
+  const reg = req.studentReg;
+  try {
+    const out = await exclusive(async () => {
+      const hit = (await store.tabRows("students")).find((x) => String(x.cells[0] || "").trim().toUpperCase() === reg);
+      if (!hit) return { status: 401, body: { error: "Please sign in to your student portal." } };
+      const old = String(hit.cells[13] || "").trim();
+      if (!dobTooRecent(old)) return { status: 403, body: { error: "Your date of birth does not need updating." } };
+      const used = (await store.tabRows("dobchanges")).some((x) => String(x.cells[0] || "").trim().toUpperCase() === reg);
+      if (used) return { status: 403, body: { error: "You have already updated your date of birth once. Please contact your mentor.", canUpdate: false } };
+      if (!validDob(dob, idrules.lagosToday())) {
+        return { status: 400, body: { error: "That date of birth does not meet our age requirements. Check your documents and enter the date on them." } };
+      }
+      await store.writeTabCells("students", hit.n, { 13: dob });
+      const record = [reg, old, dob, lagosTimestamp()];
+      try {
+        await store.appendTabRows("dobchanges", [record]);
+      } catch (e1) {
+        try { await store.appendTabRows("dobchanges", [record]); } catch (e2) { console.error("DOB change record failed for", reg, e2.message); }
+      }
+      return { status: 200, body: { ok: true } };
+    });
+    res.status(out.status).json(out.body);
+  } catch (err) {
+    console.error("DOB update failed for", reg, err.message);
+    res.status(500).json({ error: "We could not save your date of birth just now. Please try again." });
+  }
+});
+
+// A student's own signature. It is only ever sent to that student (the reg number comes from the sign-in
+// token), so it does not appear on the public find-a-student card.
+app.get("/api/portal/signature", signatureLimiter, studentAuth, async (req, res) => {
+  try {
+    res.set("Cache-Control", "private, no-store");
+    res.json({ signature: (await store.getSignature(req.studentReg)) || "" });
+  } catch (err) {
+    console.error("Signature read failed for", req.studentReg, err.message);
+    res.status(500).json({ error: "We could not load your signature just now." });
+  }
+});
+
+app.put("/api/portal/signature", signatureLimiter, studentAuth, async (req, res) => {
+  const sig = checkSignature((req.body || {}).signature);
+  if (!sig) return res.status(400).json({ error: "That signature could not be used. Sign again, or upload a clearer picture." });
+  try {
+    await store.setSignature(req.studentReg, sig);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Signature save failed for", req.studentReg, err.message);
+    res.status(500).json({ error: "We could not save your signature just now. Please try again." });
+  }
 });
 
 app.get("/api/photo", photoLimiter, async (req, res) => {
@@ -849,8 +1137,10 @@ function requirePerm(perm) {
 }
 const adminAuth = requirePerm("view"); // statistics, student lists and quiz results
 const linksAuth = requirePerm("links"); // site links
+const communityAuth = requirePerm("community"); // the student WhatsApp / Telegram groups
 const videosAuth = requirePerm("videos"); // chapter videos
 const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
+const certAuth = requirePerm("certificates"); // certificate signer settings, and every certificate
 const databaseAuth = requirePerm("database"); // the Database tab
 const teamAuth = requirePerm("team"); // team accounts and roles
 
@@ -873,14 +1163,15 @@ app.get("/api/links", linksLimiter, async (_req, res) => {
   }
 });
 
-// Student portal: the official community (WhatsApp / Telegram). Only for signed-in students, so the invite
-// links are not public. Uses the community links an admin set, or the official WhatsApp / Telegram when none is set.
+// Student portal: the community WhatsApp and Telegram groups. Only for signed-in students, so the invite
+// links are not public. Only the groups set on the dashboard's Community tab are offered (no fallback).
 app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
+  res.set("Cache-Control", "no-store");
   try {
     res.json(links.communityFor(await store.readLinks()));
   } catch (err) {
     console.error("Community links read failed:", err.message);
-    res.json(links.communityFor(links.DEFAULTS));
+    res.json(links.communityFor({}));
   }
 });
 
@@ -1074,7 +1365,7 @@ const teamLoginLimiter = rateLimit({
 });
 async function meOf(who) {
   const info = who.role === "owner" ? { label: team.ROLES.owner.label, perms: team.ROLES.owner.perms } : await teamService.roleInfo(who.role);
-  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.role !== "owner" };
+  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.username !== team.OWNER };
 }
 
 function teamRoute(handler) {
@@ -1092,21 +1383,131 @@ function teamRoute(handler) {
   };
 }
 
+// The sign-in page's "Sign in as" drop-down: role names only (no usernames).
+app.get("/api/admin/login-users", adminLimiter, teamRoute(async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json(await teamService.loginChoices());
+}));
+
 app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
   const pw = process.env.ADMIN_PASSWORD;
   if (!pw) throw new team.TeamError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
   const b = req.body || {};
-  const who = await teamService.login(clean(b.username, 40), typeof b.password === "string" ? b.password.slice(0, 200) : "", pw, safeEqual);
+  const given = typeof b.password === "string" ? b.password.slice(0, 200) : "";
+  let who = null;
+  if (b.role) {
+    // Signing in as a role: the role name is the username. Try the accounts with that role.
+    let lastErr = null;
+    for (const name of await teamService.loginNames(clean(b.role, 40))) {
+      try { who = await teamService.login(name, given, pw, safeEqual); break; } catch (e) { lastErr = e; if (!(e instanceof team.TeamError) || e.status !== 401) throw e; }
+    }
+    if (!who) throw lastErr || new team.TeamError(401, "Wrong username or password.");
+  } else {
+    who = await teamService.login(clean(b.username, 40), given, pw, safeEqual);
+  }
   res.json({ token: team.signToken(who.username, pw), me: await meOf(who) });
 }));
 
 app.get("/api/admin/me", adminLimiter, adminAuth, teamRoute(async (req, res) => res.json(await meOf(req.admin))));
 
 app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req, res) => {
-  if (req.admin.role === "owner") throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
+  if (req.admin.username === team.OWNER) throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
   const b = req.body || {};
   res.json(await teamService.changeOwnPassword(req.admin.username, b.current, b.next));
 }));
+
+// ID cards: an admin (anyone with the "team" access) can find any student or team member and see their card.
+// The cards carry the same details as the public ID card (never email or WhatsApp number).
+app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
+  try {
+    const q = clean(req.query.q, 80).toLowerCase();
+    const rows = (await store.readCached()).filter((r) => r && r[0]);
+    const hit = q ? rows.filter((r) => [r[0], r[4], r[2], r[9], r[12]].some((v) => String(v || "").toLowerCase().includes(q))) : rows;
+    const limit = 40;
+    // newest first (the sheet is in registration order)
+    const cards = hit.slice().reverse().slice(0, limit).map(cardFromRow);
+    res.json({ total: hit.length, shown: cards.length, cards });
+  } catch (err) {
+    console.error("ID card list failed:", err.message);
+    res.status(500).json({ error: "Could not read the student list. Please try again shortly." });
+  }
+});
+
+// The signature shown on a student's card in the admin ID cards view (same access as the cards themselves).
+app.get("/api/admin/id-cards/signature", adminLimiter, teamAuth, async (req, res) => {
+  const reg = normaliseReg(req.query.reg);
+  if (!reg) return res.status(400).json({ error: "Not a valid registration number." });
+  try {
+    res.set("Cache-Control", "private, no-store");
+    res.json({ signature: (await store.getSignature(reg)) || "" });
+  } catch (err) {
+    console.error("Admin signature read failed for", reg, err.message);
+    res.status(500).json({ error: "Could not load the signature." });
+  }
+});
+
+// ---- Certificates (dashboard) ----
+// Everyone Certified, newest first, with the signer's details. Anyone with the "certificates" access can open and
+// download them, and choose who signs them.
+app.get("/api/admin/certificates", adminLimiter, certAuth, async (req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    const q = clean(req.query.q, 80).toLowerCase();
+    const rows = (await store.readCached()).filter((r) => r && r[0]);
+    const ctx = await certContext(rows);
+    const all = rows.map(cardFromRow).filter((c) => certificate.isEligible(c.status));
+    const hit = q ? all.filter((c) => [c.regNumber, c.fullName, c.country, c.state].some((v) => String(v || "").toLowerCase().includes(q))) : all;
+    const certificates = hit.slice().reverse().slice(0, 40).map((c) => certificate.forCard(c, ctx.settings));
+    res.json({ total: hit.length, shown: certificates.length, certificates, signature: ctx.signature });
+  } catch (err) {
+    console.error("Admin certificates failed:", err.message);
+    res.status(500).json({ error: "Could not read the student list. Please try again shortly." });
+  }
+});
+
+app.get("/api/admin/certificate-settings", adminLimiter, certAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    signerSigCache = new Map();
+    const settings = await certSettings();
+    res.json({ fields: links.certFields(), values: settings, signer: await signerOf(settings.certSignerReg) });
+  } catch (err) {
+    console.error("Certificate settings read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+// Body: certSignerReg (who signs), certOrg, certRc. The signer's name, role and signature are never typed here:
+// they come from that person's own record and ID card.
+app.put("/api/admin/certificate-settings", adminLimiter, certAuth, async (req, res) => {
+  const src = req.body && typeof req.body === "object" ? req.body : {};
+  const body = {};
+  links.CERT_KEYS.forEach((k) => { body[k] = src[k]; });
+  body.certSignerReg = String(body.certSignerReg == null ? "" : body.certSignerReg).trim().toUpperCase();
+  const { values, errors } = links.sanitize(body);
+  const mine = Object.fromEntries(Object.entries(errors).filter(([k]) => links.CERT_KEYS.includes(k)));
+  for (const f of links.certFields()) if (!values[f.key]) mine[f.key] = "This cannot be empty: it is printed on every certificate.";
+  let signer = null;
+  if (!mine.certSignerReg) {
+    if (!normaliseReg(values.certSignerReg)) mine.certSignerReg = "Enter a registration number, e.g. ABECFX/26/0001.";
+    else {
+      signer = await signerOf(values.certSignerReg).catch(() => null);
+      if (!signer) return res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+      if (!signer.found) mine.certSignerReg = "No student or team member has that registration number.";
+    }
+  }
+  if (Object.keys(mine).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors: mine });
+  try {
+    const current = await store.readLinks(0);
+    const merged = { ...current, ...links.pick({ ...values, certSignerReg: signer.regNumber }, links.CERT_KEYS) };
+    await store.saveLinks(merged);
+    signerSigCache = new Map();
+    res.json({ ok: true, values: links.pick(merged, links.CERT_KEYS), signer: await signerOf(signer.regNumber) });
+  } catch (err) {
+    console.error("Certificate settings save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
+  }
+});
 
 app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
   res.json({ members: await teamService.members(), roles: await teamService.roles(req.admin), permissions: team.PERMS });
@@ -1167,21 +1568,56 @@ app.get("/api/admin/drill", adminLimiter, adminAuth, async (req, res) => {
 app.get("/api/admin/links", adminLimiter, linksAuth, async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    res.json({ fields: links.FIELDS, values: await store.readLinks(0) });
+    res.json({ fields: links.siteFields(), values: links.pick(await store.readLinks(0), links.siteKeys()) });
   } catch (err) {
     console.error("Admin links read failed:", err.message);
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
   }
 });
 
+// Site links never touch the student community groups: those belong to the Community tab and its own access.
 app.put("/api/admin/links", adminLimiter, linksAuth, async (req, res) => {
-  const { values, errors } = links.sanitize(req.body);
+  const body = { ...(req.body && typeof req.body === "object" ? req.body : {}) };
+  links.COMMUNITY_KEYS.concat(links.CERT_KEYS).forEach((k) => delete body[k]);
+  const { values, errors } = links.sanitize(body);
   if (Object.keys(errors).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors });
   try {
-    await store.saveLinks(values);
-    res.json({ ok: true, values });
+    const current = await store.readLinks(0);
+    const merged = { ...values, ...links.pick(current, links.COMMUNITY_KEYS.concat(links.CERT_KEYS)) };
+    await store.saveLinks(merged);
+    res.json({ ok: true, values: links.pick(merged, links.siteKeys()) });
   } catch (err) {
     console.error("Admin links save failed:", err.message);
+    res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
+  }
+});
+
+// The student community: the WhatsApp and Telegram groups the portal's Community page opens.
+// Anyone whose role has the "community" access can set them; it does not give access to the other site links.
+app.get("/api/admin/community", adminLimiter, communityAuth, async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ fields: links.communityFields(), values: links.pick(await store.readLinks(0), links.COMMUNITY_KEYS) });
+  } catch (err) {
+    console.error("Admin community read failed:", err.message);
+    res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+  }
+});
+
+app.put("/api/admin/community", adminLimiter, communityAuth, async (req, res) => {
+  const src = req.body && typeof req.body === "object" ? req.body : {};
+  const body = {};
+  links.COMMUNITY_KEYS.forEach((k) => { body[k] = src[k]; });
+  const { values, errors } = links.sanitize(body);
+  const mine = Object.fromEntries(Object.entries(errors).filter(([k]) => links.COMMUNITY_KEYS.includes(k)));
+  if (Object.keys(mine).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors: mine });
+  try {
+    const current = await store.readLinks(0);
+    const merged = { ...current, ...links.pick(values, links.COMMUNITY_KEYS) };
+    await store.saveLinks(merged);
+    res.json({ ok: true, values: links.pick(merged, links.COMMUNITY_KEYS) });
+  } catch (err) {
+    console.error("Admin community save failed:", err.message);
     res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });
   }
 });
@@ -1334,16 +1770,14 @@ const quizcodes = require("./quizcodes");
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
 const PHOTO_TAB = process.env.GOOGLE_PHOTO_TAB || "Photos";
+const SIG_TAB = process.env.GOOGLE_SIGNATURE_TAB || "Signatures";
 const API = "https://sheets.googleapis.com/v4/spreadsheets";
 
 const STATUSES = [
   "Uncertified",
   "Certified",
-  "Graduate",
+  "Team Member",
   "Alumni Member",
-  "Mentor",
-  "Staff Member",
-  "CEO",
 ];
 
 const HEADERS = [
@@ -1361,9 +1795,14 @@ const HEADERS = [
   "ID Issue Date",
   "State / Region",
   "Date of Birth",
+  "Team Role",
+  "Photo To Redo (type Yes: the student must send a new passport photo)",
 ];
-const LAST_COL = "N";
-const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)"];
+const LAST_COL = "P";
+const DOB_TAB = process.env.GOOGLE_DOB_TAB || "DOB Changes";
+const DOB_HEADERS = ["Reg Number", "Old Date of Birth", "New Date of Birth", "Changed At (Lagos)"];
+const SIG_HEADERS = ["Reg Number", "Signature (base64 PNG - do not edit)"];
+const PHOTO_HEADERS = ["Reg Number", "Photo (base64 JPEG - do not edit)", "Changed by student (date; clear this cell to allow one more change)"];
 const QUIZ_TAB = process.env.GOOGLE_QUIZ_TAB || "Quiz Results";
 const QUIZ_HEADERS = [
   "Submitted At (Lagos)",
@@ -1490,6 +1929,12 @@ async function init() {
 
   const photos = await ensureTab(PHOTO_TAB);
   await ensureHeaders(PHOTO_TAB, PHOTO_HEADERS, "B");
+
+  await ensureTab(SIG_TAB);
+  await ensureHeaders(SIG_TAB, SIG_HEADERS, "B");
+
+  await ensureTab(DOB_TAB);
+  await ensureHeaders(DOB_TAB, DOB_HEADERS, "D");
 
   await ensureTab(QUIZ_TAB);
   await ensureHeaders(QUIZ_TAB, QUIZ_HEADERS, QUIZ_LAST_COL);
@@ -1696,11 +2141,30 @@ async function readLinks(ttlMs = 30000) {
 }
 
 async function saveLinks(values) {
-  await call(`/values/${range(`A2:${LINKS_LAST_COL}${links.FIELDS.length + 1}`, LINKS_TAB)}?valueInputOption=RAW`, {
+  const last = links.FIELDS.length + 1;
+  await call(`/values/${range(`A2:${LINKS_LAST_COL}${last}`, LINKS_TAB)}?valueInputOption=RAW`, {
     method: "PUT",
     data: { values: links.toRows(values) },
   });
-  linksCache = { at: Date.now(), values };
+  // Best effort: clear any leftover rows below the settings (old duplicates), because a stale copy of a key
+  // further down the tab would win on read and bring the previous link back. A failure here must not fail the save.
+  try {
+    await call(`/values/${range(`A${last + 1}:${LINKS_LAST_COL}`, LINKS_TAB)}:clear`, { method: "POST", data: {} });
+  } catch (e) {
+    console.error("Site links: could not clear leftover rows:", e.message);
+  }
+  // The values are now in the sheet. Refresh from it so the site shows exactly what is stored.
+  linksCache = { at: 0, values: null };
+  try {
+    const saved = await readLinks(0);
+    for (const f of links.FIELDS) {
+      const want = links.sanitize({ [f.key]: values[f.key] || "" }).values[f.key] || "";
+      if ((saved[f.key] || "") !== want) console.error(`Site links: "${f.key}" read back differently from what was saved`);
+    }
+  } catch (e) {
+    console.error("Site links: read-back failed:", e.message);
+    linksCache = { at: Date.now(), values };
+  }
 }
 
 // ---- Chapter videos ----
@@ -1722,13 +2186,24 @@ async function saveVideos(values) {
 }
 
 // ---- Passport photos (kept on their own tab so student reads stay small and fast) ----
-let photoIndex = { at: 0, regs: [] };
+// Column C is filled in when the student changes their own photo: each student gets ONE change.
+let photoIndex = { at: 0, regs: [], changed: [] };
 async function photoRegs(ttlMs) {
   if (Date.now() - photoIndex.at > ttlMs) {
-    const data = await call(`/values/${range("A2:A", PHOTO_TAB)}`);
-    photoIndex = { at: Date.now(), regs: (data.values || []).map((r) => r[0] || "") };
+    const data = await call(`/values:batchGet?ranges=${range("A2:A", PHOTO_TAB)}&ranges=${range("C2:C", PHOTO_TAB)}`);
+    const [a, c] = data.valueRanges || [];
+    const regs = ((a && a.values) || []).map((r) => r[0] || "");
+    const cv = (c && c.values) || [];
+    photoIndex = { at: Date.now(), regs, changed: regs.map((_, i) => !!(cv[i] && cv[i][0])) };
   }
   return photoIndex.regs;
+}
+
+// Has this student already used their one photo change?
+async function photoChanged(reg) {
+  const regs = await photoRegs(30000);
+  const i = regs.lastIndexOf(reg);
+  return i >= 0 && photoIndex.changed[i];
 }
 
 const photoCache = new Map();
@@ -1740,6 +2215,31 @@ async function appendPhoto(reg, base64) {
   );
   photoIndex.at = 0;
   photoCache.delete(reg);
+}
+
+// Replace a student's photo (or add one if they never had one). The row is overwritten in place, and any
+// extra rows for the same reg are left alone: getPhoto reads the LAST match, so replacing that one is enough.
+// Returns "ok", or "already" when the student has used their one change. A student with no photo row yet
+// gets one added, and that does not use up the change.
+async function setPhoto(reg, base64, force = false) {
+  const regs = await photoRegs(0); // always fresh: a stale index could overwrite the wrong row
+  const i = regs.lastIndexOf(reg);
+  if (i < 0) { await appendPhoto(reg, base64); return "ok"; }
+  if (photoIndex.changed[i] && !force) return "already"; // force: a mentor asked this student to send a new photo
+  const today = new Date().toISOString().slice(0, 10);
+  await call("/values:batchUpdate", {
+    method: "POST",
+    data: {
+      valueInputOption: "RAW",
+      data: [
+        { range: `${quoteTab(PHOTO_TAB)}!B${i + 2}`, values: [[base64]] },
+        { range: `${quoteTab(PHOTO_TAB)}!C${i + 2}`, values: [[today]] },
+      ],
+    },
+  });
+  photoIndex.changed[i] = true;
+  photoCache.delete(reg);
+  return "ok";
 }
 
 async function getPhoto(reg) {
@@ -1763,6 +2263,63 @@ async function getPhoto(reg) {
   return b64;
 }
 
+// ---- Signatures (their own tab, like photos): one row per student, the newest save replaces the old one ----
+// The tab is made at start-up, but it is checked again here (once per run) so a start-up hiccup, or a tab
+// someone deleted, can never stop a student saving their signature.
+let sigReady = null;
+function ensureSigTab() {
+  if (!sigReady) {
+    sigReady = (async () => {
+      await ensureTab(SIG_TAB);
+      await ensureHeaders(SIG_TAB, SIG_HEADERS, "B");
+    })().catch((e) => { sigReady = null; throw e; });
+  }
+  return sigReady;
+}
+
+// Run a signature step; if Google refuses it, make sure the tab is there and try once more.
+async function withSigTab(fn) {
+  await ensureSigTab();
+  try {
+    return await fn();
+  } catch (e) {
+    console.error("Signature step failed, retrying once:", e && e.message);
+    sigReady = null;
+    await ensureSigTab();
+    return fn();
+  }
+}
+
+async function sigRow(reg) {
+  const data = await call(`/values/${range("A2:A", SIG_TAB)}`);
+  const regs = ((data && data.values) || []).map((r) => (r && r[0]) || "");
+  const i = regs.lastIndexOf(reg);
+  return i < 0 ? 0 : i + 2; // sheet row number, or 0 when there is none
+}
+
+function getSignature(reg) {
+  return withSigTab(async () => {
+    const row = await sigRow(reg);
+    if (!row) return null;
+    const data = await call(`/values/${range(`B${row}`, SIG_TAB)}`);
+    return (data.values && data.values[0] && data.values[0][0]) || null;
+  });
+}
+
+function setSignature(reg, base64) {
+  return withSigTab(async () => {
+    const row = await sigRow(reg);
+    if (!row) {
+      await call(
+        `/values/${range("A:B", SIG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+        { method: "POST", data: { values: [[reg, base64]] } }
+      );
+      return;
+    }
+    await call(`/values/${range(`B${row}`, SIG_TAB)}?valueInputOption=RAW`, { method: "PUT", data: { values: [[base64]] } });
+  });
+}
+
 // ---- Generic tab access for the editor dashboard's "Sheets" view (the rules live in admin-sheets.js) ----
 // The Photos tab is deliberately left out: it holds long image text that nobody should edit by hand.
 const EDITOR_TABS = {
@@ -1774,6 +2331,10 @@ const EDITOR_TABS = {
   videos: { title: VIDEO_TAB, headers: VIDEO_HEADERS, lastCol: VIDEO_LAST_COL },
   // Internal only: never listed in the dashboard. Used to remove a deleted student's photo.
   photos: { title: PHOTO_TAB, headers: PHOTO_HEADERS, lastCol: "B" },
+  // Internal only, like photos: signature pictures. Used to remove a deleted student's signature.
+  signatures: { title: SIG_TAB, headers: SIG_HEADERS, lastCol: "B" },
+  // Internal only: the one-time date of birth corrections students make themselves (old and new value, and when).
+  dobchanges: { title: DOB_TAB, headers: DOB_HEADERS, lastCol: "D" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
   // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
@@ -1837,6 +2398,25 @@ async function writeTabCells(key, n, changes) {
   invalidate(key);
 }
 
+// Change a registration number inside one column of a tab, in every row that holds it (a photo, a signature,
+// quiz results, progress...). All the changes go in one request. Returns how many rows were changed.
+async function renameRegCells(key, col, oldReg, newReg) {
+  const t = editorTab(key);
+  const tab = await findTab(t.title);
+  if (!tab) return 0;
+  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  const writes = [];
+  (data.values || []).forEach((r, i) => {
+    if (String((r && r[col]) || "").trim().toUpperCase() === oldReg) {
+      writes.push({ range: `${quoteTab(t.title)}!${colLetter(col)}${i + 2}`, values: [[newReg]] });
+    }
+  });
+  if (!writes.length) return 0;
+  await call("/values:batchUpdate", { method: "POST", data: { valueInputOption: "RAW", data: writes } });
+  invalidate(key);
+  return writes.length;
+}
+
 async function appendTabRows(key, rows) {
   const t = editorTab(key);
   if (!rows.length) return;
@@ -1883,9 +2463,9 @@ async function deleteTabRowsByReg(key, reg, col = 0) {
 }
 
 module.exports = {
-  init, readAll, readCached, appendRow, appendPhoto, getPhoto, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
+  init, readAll, readCached, appendRow, appendPhoto, setPhoto, photoChanged, getPhoto, getSignature, setSignature, readQuiz, appendQuiz, findFreeCode, markCodeUsed,
   getProgressCell, saveProgress, readLinks, saveLinks, readVideos, saveVideos, HEADERS, STATUSES,
-  EDITOR_TABS, tabRows, tabRow, writeTabCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
+  EDITOR_TABS, tabRows, tabRow, writeTabCells, renameRegCells, appendTabRows, deleteTabRow, deleteTabRowsByReg, invalidate, sheetUrl,
 };
 ```
 
@@ -1897,16 +2477,21 @@ module.exports = {
 // Access (what a role can open) is a list of permissions:
 //   view      Statistics, student lists and quiz results. Every role has it: it is what signing in needs.
 //   links     Site links (social icons, Deriv link, About, Contact).
+//   community Student community: the WhatsApp and Telegram groups the portal's Community page opens.
 //   videos    Chapter videos.
 //   quizcodes Quiz codes: make and cancel the one-time codes students need to unlock the quiz.
+//   certificates Certificates: choose who signs them (name, title, signature), and open and download any certificate.
 //   database  The Database tab: add, edit and delete records.
 //   team      Team accounts and roles.
 //
 // Built-in roles (fixed, cannot be changed or deleted)
-//   owner      The person who holds ADMIN_PASSWORD on Render. Always works, is not stored in the sheet and
-//              cannot be removed or locked out by anyone. Signs in with the username "owner".
+//   owner      Everything. The person who holds ADMIN_PASSWORD on Render is the main owner: always works, is not
+//              stored in the sheet and cannot be removed or locked out by anyone. Signs in with the username "owner".
+//              An owner can also give the Owner role to a team account (a co-owner). Only an owner can do that, and
+//              only an owner can change, disable or remove a co-owner. A co-owner has a normal account on the "Team"
+//              tab with their own username and password.
 //   admin      Everything, including the team and roles.
-//   editor     Statistics, site links, chapter videos and the Database. (Not the team, and not quiz codes: give
+//   editor     Statistics, site links, the student community links, chapter videos and the Database. (Not the team, and not quiz codes: give
 //              someone "quizcodes" through a custom role, e.g. a "Quiz supervisor" role with only that access.)
 //   moderator  Read only: statistics, student lists and quiz results.
 // Custom roles are created by anyone with the "team" permission, who picks the access for each one. They live
@@ -1924,8 +2509,10 @@ const OWNER = "owner";
 const PERMS = [
   { key: "view", label: "Statistics and quiz results", help: "See statistics, student lists and quiz results. Every role has this; it is needed to sign in." },
   { key: "links", label: "Site links", help: "Change the social icons, Deriv link, About and Contact." },
+  { key: "community", label: "Student community", help: "Set the WhatsApp and Telegram groups students open from the Community page of their portal." },
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
+  { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "team", label: "Team and roles", help: "Add team members, create roles and choose their access." },
 ];
@@ -1935,11 +2522,11 @@ const ALL = PERM_KEYS.slice();
 const ROLES = {
   owner: { label: "Owner", perms: ALL },
   admin: { label: "Admin", perms: ALL },
-  editor: { label: "Editor", perms: ["view", "links", "videos", "database"] },
+  editor: { label: "Editor", perms: ["view", "links", "community", "videos", "database"] },
   moderator: { label: "Moderator", perms: ["view"] },
 };
-// Built-in roles a person may be given (the owner is never assigned).
-const ASSIGNABLE = ["admin", "editor", "moderator"];
+// Built-in roles a person may be given. "owner" is in the list but only an owner may hand it out.
+const ASSIGNABLE = ["owner", "admin", "editor", "moderator"];
 const RESERVED_ROLE_KEYS = Object.keys(ROLES);
 
 // Sheet columns (also listed in sheets.js, and a test checks they match).
@@ -2136,14 +2723,14 @@ function create(store, opts = {}) {
     const count = (key) => users.filter((u) => u.role === key).length;
     const out = ASSIGNABLE.map((k) => ({ key: k, label: ROLES[k].label, perms: ROLES[k].perms.slice(), builtin: true }));
     custom.forEach((r) => out.push({ key: r.key, label: r.label, perms: r.perms.slice(), builtin: false, createdAt: r.createdAt, createdBy: r.createdBy }));
-    return out.map((r) => ({ ...r, members: count(r.key), canGrant: subsetOf(r.perms, have) }));
+    return out.map((r) => ({ ...r, members: count(r.key), canGrant: subsetOf(r.perms, have) && (r.key !== "owner" || !actor || actor.role === "owner") }));
   }
 
   // Who is this username right now? { username, name, role } or null (unknown, disabled or an unknown role).
   async function lookup(username) {
     if (username === OWNER) return { username: OWNER, name: "Owner", role: "owner" };
     const u = (await list()).find((x) => x.username === username);
-    if (!u || !u.active || u.role === "owner" || !(await roleInfo(u.role))) return null;
+    if (!u || !u.active || !(await roleInfo(u.role))) return null;
     return { username: u.username, name: u.name, role: u.role };
   }
 
@@ -2158,8 +2745,36 @@ function create(store, opts = {}) {
     const ok = await verifyPassword(String(password || ""), u ? u.hash : await DUMMY_HASH_PROMISE);
     if (!u || !ok) throw new TeamError(401, "Wrong username or password.");
     if (!u.active) throw new TeamError(403, "This account has been disabled. Ask an admin.");
-    if (u.role === "owner" || !(await roleInfo(u.role))) throw new TeamError(403, "This account has no valid role. Ask an admin.");
+    if (!(await roleInfo(u.role))) throw new TeamError(403, "This account has no valid role. Ask an admin.");
     return { username: u.username, name: u.name, role: u.role };
+  }
+
+  // For the sign-in drop-down: the roles somebody can sign in as, and how many accounts each has.
+  // Usernames are never listed.
+  async function loginChoices() {
+    // The main owner (ADMIN_PASSWORD) always counts as one, plus any co-owners on the team.
+    const out = [{ key: "owner", label: ROLES.owner.label, count: 1 }];
+    const byRole = new Map();
+    for (const u of await list()) {
+      if (!u.active) continue;
+      byRole.set(u.role, (byRole.get(u.role) || 0) + 1);
+    }
+    for (const [key, count] of byRole) {
+      if (key === "owner") { out[0].count += count; continue; }
+      const info = await roleInfo(key);
+      if (info) out.push({ key, label: info.label, count });
+    }
+    const order = ["owner", "admin", "editor", "moderator"];
+    out.sort((a, b) => (order.indexOf(a.key) + 1 || 99) - (order.indexOf(b.key) + 1 || 99) || a.label.localeCompare(b.label));
+    return out;
+  }
+
+  // The sign-in page picks a role, and the role name is the username. Return the accounts that hold that role;
+  // the password then decides which of them is signing in.
+  async function loginNames(roleKey) {
+    const role = String(roleKey || "").toLowerCase();
+    const names = (await list()).filter((u) => u.active && u.role === role).map((u) => u.username);
+    return role === "owner" ? [OWNER, ...names] : names;
   }
 
   async function members() {
@@ -2168,9 +2783,13 @@ function create(store, opts = {}) {
 
   // A role the actor may give to someone: it must exist, must not be the owner, and may not allow more than the actor has.
   async function checkAssignable(role, actor, errors) {
-    if (!role || role === "owner") { errors.role = "Choose a role."; return false; }
+    if (!role) { errors.role = "Choose a role."; return false; }
     const info = await roleInfo(role);
     if (!info) { errors.role = "That role does not exist."; return false; }
+    if (role === "owner" && !(actor && actor.role === "owner")) {
+      errors.role = "Only an owner can make someone an owner.";
+      return false;
+    }
     if (actor && !subsetOf(info.perms, await permsOfActor(actor))) {
       errors.role = "You cannot give a role that allows more than you can do yourself.";
       return false;
@@ -2223,6 +2842,11 @@ function create(store, opts = {}) {
         if (self) throw new TeamError(400, "You cannot change your own role.");
         if (await checkAssignable(c.role, actor, errors)) write[COL.role] = c.role;
       }
+      // A co-owner is out of reach of everyone who is not an owner (an admin has the same access, so the access
+      // comparison below would not stop them).
+      if (!self && u.role === "owner" && actor.role !== "owner") {
+        throw new TeamError(403, "Only an owner can change an owner's account.");
+      }
       // Someone whose current role allows more than the actor can do is out of the actor's reach.
       if (!self && (write[COL.role] !== undefined || c.active !== undefined || (c.password !== undefined && c.password !== ""))) {
         const theirs = await permsOf(u.role);
@@ -2253,6 +2877,7 @@ function create(store, opts = {}) {
       if (target === actor.username) throw new TeamError(400, "You cannot remove your own account.");
       const u = (await listFresh()).find((x) => x.username === target);
       if (!u) throw new TeamError(404, "That account no longer exists.");
+      if (u.role === "owner" && actor.role !== "owner") throw new TeamError(403, "Only an owner can remove an owner.");
       if (!subsetOf(await permsOf(u.role), await permsOfActor(actor))) {
         throw new TeamError(403, "This person can do more than you can, so you cannot remove them.");
       }
@@ -2357,7 +2982,7 @@ function create(store, opts = {}) {
   }
 
   return {
-    lookup, login, members, add, update, remove, changeOwnPassword,
+    lookup, login, loginChoices, loginNames, members, add, update, remove, changeOwnPassword,
     roles, roleInfo, permsOf, allow, addRole, updateRole, removeRole,
   };
 }
@@ -2701,22 +3326,27 @@ function create(store) {
   const TABS = {
     students: {
       label: "Students",
-      help: "One row per student. The registration number, sign-up time and mentorship code are locked. A student's photo can only be added when the student registers.",
-      editable: [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13],
-      selects: { 2: countries, 7: GENDERS, 9: store.STATUSES },
-      placeholders: { 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      help: "One row per student. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
+      editable: [0, 2, 3, 4, 5, 6, 7, 9, 14, 10, 11, 12, 13, 15],
+      selects: { 2: countries, 7: GENDERS, 9: store.STATUSES, 15: ["", "Yes"] },
+      placeholders: { 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
       create: {
         label: "Add student",
         help: "The registration number, sign-up time and ID issue date are filled in for you. A student added here has no photo, so the ID card shows their initials.",
-        fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 10],
-        defaults: { 3: "Forex Mentorship", 9: "Uncertified" },
+        fields: [2, 12, 3, 4, 5, 6, 7, 13, 9, 14, 10],
+        defaults: { 3: "Forex Course", 9: "Uncertified" },
       },
       deleteWarning: "This also deletes the student's photo, quiz results and handbook progress, and cannot be undone. Their registration number will never be given to anyone else.",
       check(p, cur, rows) {
         const errors = {};
         const changed = (i) => p[i] !== cur[i];
+        if (changed(0) && cur[0] != null) {
+          p[0] = normReg(p[0]);
+          if (!REG_RE.test(p[0])) errors[0] = "Use the format ABECFX/26/0001 (ABECFX, a slash, the 2-digit year, a slash, a 4-digit number).";
+          else if (rows.some((r) => (r[0] || "").trim().toUpperCase() === p[0])) errors[0] = "Another student already has this registration number.";
+        }
         if (changed(2)) {
           p[2] = clean(p[2]);
           if (!countries.includes(p[2])) errors[2] = "Choose a country from the list.";
@@ -2760,6 +3390,20 @@ function create(store) {
           p[9] = clean(p[9]);
           if (!store.STATUSES.includes(p[9])) errors[9] = "Choose a status from the list.";
         }
+        // The role only exists for a Team Member: it is required for them and cleared for everyone else.
+        if (!errors[9]) {
+          if (p[9] === "Team Member") {
+            p[14] = clean(p[14], 40);
+            if (p[14].length < 2) errors[14] = "Type this team member's role, e.g. Mentor, CEO or Support Staff.";
+          } else {
+            p[14] = "";
+          }
+        }
+        if (changed(15)) {
+          p[15] = clean(p[15], 10);
+          if (p[15] && p[15].toLowerCase() !== "yes") errors[15] = "Choose Yes, or leave it empty.";
+          else if (p[15]) p[15] = "Yes";
+        }
         if (changed(10)) p[10] = clean(p[10], 40);
         if (changed(11)) {
           p[11] = clean(p[11], 10);
@@ -2796,6 +3440,8 @@ function create(store) {
         const reg = (row[0] || "").trim().toUpperCase();
         if (!reg) return;
         await store.deleteTabRowsByReg("photos", reg, 0);
+        await store.deleteTabRowsByReg("signatures", reg, 0);
+        await store.deleteTabRowsByReg("dobchanges", reg, 0);
         await store.deleteTabRowsByReg("quiz", reg, 1);
         await store.deleteTabRowsByReg("progress", reg, 0);
       },
@@ -2922,8 +3568,9 @@ function create(store) {
       multiline: [2],
       newestFirst: false,
       check(p, cur) {
-        const key = (cur[0] || "").trim().toLowerCase();
-        if (!links.FIELDS.some((f) => f.key === key)) return { 2: "This row is not one of the website's links, so it cannot be changed here." };
+        const field = links.fieldFor(cur[0]);
+        const key = field ? field.key : "";
+        if (!field) return { 2: "This row is not one of the website's links, so it cannot be changed here." };
         const out = links.sanitize({ [key]: p[2] });
         if (out.errors[key]) return { 2: out.errors[key] };
         p[2] = out.values[key];
@@ -2993,6 +3640,36 @@ function create(store) {
     return (await store.tabRows(key)).filter((r) => r.n !== skipN).map((r) => r.cells);
   }
 
+  // Every place a registration number is stored besides the Students tab: [tab, column index].
+  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5]];
+
+  // A new number must not already appear anywhere as someone else's (including a deleted student's records).
+  async function regConflict(newReg) {
+    for (const [key, col] of REG_REFS) {
+      const rows = await rowsOf(key);
+      if (rows.some((r) => String((r && r[col]) || "").trim().toUpperCase() === newReg)) return store.EDITOR_TABS[key].title || key;
+    }
+    return "";
+  }
+
+  // Move everything that belongs to a registration number over to the new one. If a step fails, the steps
+  // already done are put back, so a student is never left half-renamed.
+  async function renameReg(oldReg, newReg) {
+    const done = [];
+    try {
+      for (const [key, col] of REG_REFS) {
+        await store.renameRegCells(key, col, oldReg, newReg);
+        done.push([key, col]);
+      }
+    } catch (e) {
+      console.error("Registration number change failed, undoing:", e.message);
+      for (const [key, col] of done.reverse()) {
+        try { await store.renameRegCells(key, col, newReg, oldReg); } catch (e2) { console.error("Could not undo", key, e2.message); }
+      }
+      throw new AdminError(500, "The registration number could not be changed everywhere, so nothing was changed. Please try again.");
+    }
+  }
+
   return {
     TABS,
     ORDER,
@@ -3032,7 +3709,19 @@ function create(store) {
       const changes = {};
       p.forEach((v, i) => { if (v !== current[i]) changes[i] = v; });
       if (!Object.keys(changes).length) return { row: current, changed: false };
-      await store.writeTabCells(key, n, changes);
+      const oldReg = String(current[0] || "").trim().toUpperCase();
+      const renaming = key === "students" && changes[0] !== undefined && oldReg;
+      if (renaming) {
+        const where = await regConflict(p[0]);
+        if (where) throw new AdminError(400, "Please fix the highlighted fields.", { 0: "This number is already recorded for someone else (in " + where + "), so it cannot be used." });
+        await renameReg(oldReg, p[0]);
+      }
+      try {
+        await store.writeTabCells(key, n, changes);
+      } catch (e) {
+        if (renaming) await renameReg(p[0], oldReg).catch(() => {});
+        throw e;
+      }
       return { row: p, changed: true };
     },
 
@@ -3090,9 +3779,16 @@ module.exports = { create, AdminError };
 
 ```js
 // ID card rules: who gets an expiry date, and the date maths behind it.
-// Certified students are graduates. Only Uncertified students (not yet graduates) have IDs that are
-// valid for 2 months from the issue date. Certified, Graduate, Alumni Member, Mentor, Staff Member
-// and CEO have no expiry.
+// An ID card is one of four kinds: Uncertified, Certified, Team Member or Alumni Member.
+// Certified students are graduates (their ID card says "Certified"). Only Uncertified students have IDs
+// that are valid for 2 months from the issue date. Certified, Team Member and Alumni Member have no expiry.
+// "Graduate" is no longer a status of its own. Rows that still hold it in the sheet are read as Certified.
+// Old Mentor, Staff Member and CEO rows are read as Team Member.
+const LEGACY_STATUS = { graduate: "Certified", mentor: "Team Member", "staff member": "Team Member", ceo: "Team Member" };
+function normalizeStatus(v) {
+  const s = String(v == null ? "" : v).trim();
+  return LEGACY_STATUS[s.toLowerCase()] || s;
+}
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const EXPIRING_STATUSES = ["Uncertified"];
@@ -3156,7 +3852,8 @@ function expiryInfo(status, issuedISO, todayISO) {
   return { expiryKind: "date", expires: formatISO(exp), expired: daysLeft < 0, daysLeft };
 }
 
-module.exports = { lagosToday, parseIssued, parseRegistered, addMonthsISO, formatISO, daysBetween, expiryInfo, EXPIRING_STATUSES };
+module.exports = {
+  normalizeStatus, lagosToday, parseIssued, parseRegistered, addMonthsISO, formatISO, daysBetween, expiryInfo, EXPIRING_STATUSES };
 ```
 
 #### `grading.js`
@@ -3190,14 +3887,16 @@ module.exports = { SCALE, gradeFor, percent };
 
 ```js
 // Statistics for the editor dashboard. Pure functions: rows in, numbers out.
+// Students who registered before the rename have "Forex Mentorship" stored; they are shown as "Forex Course".
+const programmeName = (v) => (/^forex mentorship$/i.test(String(v || "").trim()) ? "Forex Course" : String(v || ""));
 // Student row columns: 0 reg, 1 registered at, 2 country, 3 programme, 4 name, 7 gender, 9 status, 12 state.
 // Quiz row columns: 0 submitted at, 1 reg, 2 name, 3 score, 4 total, 5 percent, 6 grade, 7 attempt.
 const idrules = require("./idrules");
 const grading = require("./grading");
 
-const GRADUATE_STATUSES = ["Certified", "Graduate", "Alumni Member"];
-const TEAM_STATUSES = ["Mentor", "Staff Member", "CEO"];
-const STATUS_ORDER = ["Uncertified", "Certified", "Graduate", "Alumni Member", "Mentor", "Staff Member", "CEO"];
+const GRADUATE_STATUSES = ["Certified", "Alumni Member"]; // Certified students are the graduates
+const TEAM_STATUSES = ["Team Member"];
+const STATUS_ORDER = ["Uncertified", "Certified", "Team Member", "Alumni Member"];
 
 // The label each student is counted under, for every breakdown. Used by the counts AND by the lists
 // behind them, so a number on the dashboard and the list it opens can never disagree.
@@ -3205,7 +3904,7 @@ const BLANK = "Not recorded";
 const KEYS = {
   gender: (r) => r[7],
   country: (r) => r[2],
-  programme: (r) => r[3],
+  programme: (r) => programmeName(r[3]),
   state: (r) => (r[12] ? `${r[12]}${r[2] ? ", " + r[2] : ""}` : ""),
   year: (r) => {
     // year joined = the registration number's year, which is the admission year
@@ -3238,7 +3937,8 @@ function nextYm(ym) {
 }
 
 function statusOf(r) {
-  return STATUS_ORDER.includes(r[9]) ? r[9] : "Uncertified";
+  const v = idrules.normalizeStatus(r[9]); // an old "Graduate" row counts as Certified
+  return STATUS_ORDER.includes(v) ? v : "Uncertified";
 }
 
 function buildStats(rows, quizRows, todayISO) {
@@ -3306,9 +4006,9 @@ function buildStats(rows, quizRows, todayISO) {
     state: tally(rows.map(KEYS.state)),
     programme: tally(rows.map(KEYS.programme)),
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
-    graduates: sum(GRADUATE_STATUSES), // Certified + Graduate + Alumni Member
+    graduates: sum(GRADUATE_STATUSES), // Certified + Alumni Member
     uncertified: statusCounts.Uncertified,
-    team: sum(TEAM_STATUSES), // Mentor + Staff Member + CEO
+    team: sum(TEAM_STATUSES), // Team Member
     byYear,
     months,
     monthsByYear,
@@ -3354,7 +4054,7 @@ function studentOut(r) {
     gender: r[7] || "",
     country: r[2] || "",
     state: r[12] || "",
-    programme: r[3] || "",
+    programme: programmeName(r[3]),
     status: statusOf(r),
     joined: iso ? idrules.formatISO(iso) : "",
   };
@@ -3377,9 +4077,9 @@ function drill(rows, quizRows, kind, value) {
 
   switch (kind) {
     case "all": title = "All students"; pick = () => true; break;
-    case "graduates": title = "Certified / graduates (Certified, Graduate and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
+    case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = (r) => GRADUATE_STATUSES.includes(statusOf(r)); break;
     case "uncertified": title = "Uncertified students"; pick = (r) => statusOf(r) === "Uncertified"; break;
-    case "team": title = "Mentors, staff and CEO"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
+    case "team": title = "Team members"; pick = (r) => TEAM_STATUSES.includes(statusOf(r)); break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
       title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;
@@ -3534,7 +4234,7 @@ module.exports = { sign, verify, TTL_MS };
 #### `handbook-content.js`
 
 ```js
-// The Edge Handbook as shown in the student portal (Mentorship Handbook).
+// The Edge Handbook as shown in the student portal (Handbook).
 // Source: "ABEC FX - The Edge Handbook & Complete Workbook" PDF (served at /handbook.pdf).
 // Text and tables are copied from the PDF; charts, fill-in exercises and signature pages stay in
 // the PDF (each chapter links to it). Each section below is one "step" of a student's progress:
@@ -4003,7 +4703,7 @@ _missing_
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Register | ABEC-FX</title>
-  <meta name="description" content="Register for the ABEC-FX Forex Mentorship by Adebass Base Edge Consult and get your student registration number." />
+  <meta name="description" content="Register for the ABEC-FX Forex Course by Adebass Base Edge Consult and get your student registration number." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -4017,7 +4717,7 @@ _missing_
       </a>
 
       <div class="pitch">
-        <h1>Your seat in the forex mentorship starts here.</h1>
+        <h1>Your seat in the forex course starts here.</h1>
         <p>Register once and get a student number that identifies you across ABEC-FX.</p>
       </div>
 
@@ -4088,9 +4788,9 @@ _missing_
             </div>
 
             <div class="field" id="stateField" hidden>
-              <label for="state" id="stateLabel">State / Region</label>
+              <label for="state" id="stateLabel">State of residence</label>
               <select id="state" hidden></select>
-              <input id="stateText" type="text" autocomplete="address-level1" placeholder="State, province or region" maxlength="60" hidden />
+              <input id="stateText" type="text" autocomplete="address-level1" placeholder="State of residence" maxlength="60" hidden />
               <span class="err" data-for="state"></span>
             </div>
 
@@ -4115,9 +4815,9 @@ _missing_
                 <span class="dot" aria-hidden="true">
                   <svg viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5l3 3 6-7"/></svg>
                 </span>
-                <div><strong>Forex Mentorship</strong><span>Selected programme</span></div>
+                <div><strong>Forex Course</strong><span>Selected programme</span></div>
               </div>
-              <input type="hidden" name="programme" value="Forex Mentorship" />
+              <input type="hidden" name="programme" value="Forex Course" />
               <span class="err" data-for="programme"></span>
             </div>
 
@@ -4125,6 +4825,32 @@ _missing_
               <label for="mentorshipCode">Mentorship code <em>(required)</em></label>
               <input id="mentorshipCode" name="mentorshipCode" type="text" required autocomplete="off" autocapitalize="characters" placeholder="Code given to you by your mentor" />
               <span class="err" data-for="mentorshipCode"></span>
+            </div>
+
+            <div class="field">
+              <span class="label" id="sigLabel">Your signature</span>
+              <p class="sig-intro">It appears on your student ID card. Draw it, or upload a picture of it.</p>
+              <div id="sigMount" aria-labelledby="sigLabel"></div>
+              <span class="err" data-for="signature"></span>
+            </div>
+
+            <div class="field terms">
+              <label class="terms-check">
+                <input id="terms" name="terms" type="checkbox" required />
+                <span>I have read and agree to the <a href="#termsText" id="termsLink">Terms and Conditions</a>.</span>
+              </label>
+              <details class="terms-text" id="termsText">
+                <summary>Read the Terms and Conditions</summary>
+                <ol>
+                  <li><strong>Your details.</strong> The information I give (name, country, state, gender, date of birth, email, WhatsApp number, passport photograph and signature) is true and is mine. I will keep it up to date.</li>
+                  <li><strong>How ABEC-FX uses my details.</strong> My details are used to run my student record, ID card, handbook progress and quiz. My email address, WhatsApp number and date of birth are never shown on the public ID card. My signature is shown only on my own ID card, after I sign in.</li>
+                  <li><strong>My ID card.</strong> My student ID card stays valid only for the period shown on it, and I will not lend it, copy it or use it to pretend to be someone else.</li>
+                  <li><strong>Mentorship code and course material.</strong> My mentorship code is for me alone. The handbook, workbooks and videos are for my own learning, and I will not copy, sell or share them.</li>
+                  <li><strong>Trading risk.</strong> Forex and synthetic-index trading carries a high risk of loss. The teaching is education, not financial advice, and no profit is promised. I am responsible for my own trading decisions and for only risking money I can afford to lose.</li>
+                  <li><strong>Behaviour.</strong> I will respect the mentors and other students. ABEC-FX may suspend or remove a student record that breaks these terms.</li>
+                </ol>
+              </details>
+              <span class="err" data-for="terms"></span>
             </div>
 
             <div class="hp" aria-hidden="true">
@@ -4149,7 +4875,6 @@ _missing_
 
           <div class="pass-actions">
             <button type="button" id="copyBtn" class="btn ghost">Copy number</button>
-            <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
           </div>
           <p class="note" style="text-align:center;margin-top:14px"><a id="statusLink" href="/" class="btn primary" style="text-decoration:none;max-width:360px;margin:0 auto">Go to my student portal</a></p>
         </section>
@@ -4162,6 +4887,7 @@ _missing_
   <script src="/links.js"></script>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
+  <script src="/signature.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
@@ -4229,8 +4955,8 @@ _missing_
     stateText.value = "";
     if (!country) { stateField.hidden = true; return; }
     var word = STATE_WORD[country] || "State / Region";
-    stateLabel.textContent = word;
-    stateText.placeholder = word === "State / Region" ? "State, province or region" : word;
+    stateLabel.textContent = "State of residence";
+    stateText.placeholder = "State of residence";
     stateField.hidden = false;
     useStateControl(false); // text box until the list arrives
     fetch("/api/states?country=" + encodeURIComponent(country))
@@ -4238,7 +4964,7 @@ _missing_
       .then(function (list) {
         if (mine !== stateReq || !list.length) return;
         var first = document.createElement("option");
-        first.value = ""; first.textContent = "Select your " + word.toLowerCase();
+        first.value = ""; first.textContent = "Select your state of residence";
         stateSel.appendChild(first);
         list.forEach(function (s) {
           var o = document.createElement("option");
@@ -4257,6 +4983,15 @@ _missing_
   var photoIcon = document.getElementById("photoIcon");
   var photoBtn = document.getElementById("photoBtn");
   var regNumberText = "";
+  var termsLink = document.getElementById("termsLink");
+  if (termsLink) termsLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    var det = document.getElementById("termsText");
+    det.open = true;
+    det.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  var sig = window.abecSignature.create(document.getElementById("sigMount"));
+  var sigDataUrl = "";
   var photoB64 = "";
   var photoDataUrl = "";
 
@@ -4382,15 +5117,23 @@ _missing_
     var data = {};
     new FormData(form).forEach(function (v, k) { if (k !== "photo") data[k] = v; });
     data.state = stateField.hidden ? "" : (stateSel.hidden ? stateText.value : stateSel.value);
+    data.terms = !!document.getElementById("terms").checked;
     data.photo = photoB64; // the server reports a missing photo together with any other errors
 
     btn.disabled = true;
     btn.textContent = "Registering...";
+    var sigReady = sig.value();
 
-    fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+    // The signature is made first. If it is missing the server reports it together with any other errors.
+    sigReady.then(function (sigUrl) {
+      sigDataUrl = sigUrl;
+      sig.setError(""); // the form shows one message for a missing signature, not two
+      data.signature = sigUrl ? sigUrl.slice(sigUrl.indexOf(",") + 1) : "";
+      return fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
     })
       .then(function (r) {
         return r.json().then(function (body) { return { ok: r.ok, body: body }; });
@@ -4402,7 +5145,7 @@ _missing_
             ? "You're registered, " + first
             : "You're registered";
           document.getElementById("cardMount").replaceChildren(
-            window.renderStudentCard(res.body.card, { photoSrc: photoDataUrl })
+            window.renderStudentCard(res.body.card, { photoSrc: photoDataUrl, signatureSrc: sigDataUrl })
           );
           regNumberText = res.body.regNumber;
           try { localStorage.setItem(KEY, res.body.regNumber); if (res.body.token) localStorage.setItem("abecfx_token", res.body.token); } catch (e) {}
@@ -4425,7 +5168,6 @@ _missing_
       });
   });
 
-  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
 
   document.getElementById("copyBtn").addEventListener("click", function () {
     var text = regNumberText;
@@ -4464,7 +5206,7 @@ _missing_
 
       <div class="pitch">
         <h1>Your student portal.</h1>
-        <p>Your ID card, quiz and Mentorship Handbook in one place.</p>
+        <p>Your ID card, quiz and Handbook in one place.</p>
       </div>
 
       <nav class="nav" aria-label="Main">
@@ -4506,24 +5248,49 @@ _missing_
         <section id="home" hidden>
           <!-- My portal submenu -->
           <nav class="subnav" id="subnav" aria-label="My portal">
-            <a href="#/card" data-view="card" aria-current="page">My ID card</a>
-            <a href="#/quiz" data-view="quiz">Quiz</a>
-            <a href="#/handbook" data-view="handbook">Mentorship Handbook</a>
+            <a href="#/card" data-view="card" aria-current="page">ID card</a>
             <a href="#/community" data-view="community">Community</a>
+            <a href="#/handbook" data-view="handbook">Handbook</a>
+            <a href="#/workbook" data-view="workbook">Workbook</a>
+            <a href="#/quiz" data-view="quiz">Quiz</a>
           </nav>
 
           <!-- View: ID card -->
           <div id="viewCard" class="view">
             <h2 id="welcome">Welcome back</h2>
-            <p class="lead">This is your student ID card.</p>
+            <p class="lead">This is your ID card.</p>
             <div class="cardwrap" id="cardMount"></div>
             <p class="live" id="liveLine" role="status"></p>
             <div class="pass-actions">
-              <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
-              <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
+              <button type="button" id="downloadBtn" class="btn ghost">Download ID card</button>
             </div>
 
-            <a class="journey" id="journeyCard" href="#/handbook" aria-label="Open the Mentorship Handbook">
+            <!-- Certificate: only for Certified students, shown straight under the ID card -->
+            <section class="cert-block" id="certBlock" aria-labelledby="certHead" hidden>
+              <h3 id="certHead">Your certificate</h3>
+              <p class="cert-note">Congratulations on completing the course. This is your certificate of completion.</p>
+              <div id="certMount"></div>
+              <div class="cert-actions">
+                <button type="button" class="btn ghost" id="certPng">Download certificate (PNG)</button>
+                <button type="button" class="btn ghost" id="certPdf">Download certificate (PDF)</button>
+              </div>
+              <p class="formErr" id="certMsg" role="status"></p>
+            </section>
+            <div class="photo-edit" id="photoEdit">
+              <input id="newPhoto" type="file" accept="image/*" class="sr-only" aria-label="Choose a new passport photo" />
+              <label for="newPhoto" class="btn ghost wide" id="newPhotoBtn">Change my photo (once only)</label>
+              <p class="formErr" id="photoMsg" role="status"></p>
+            </div>
+            <div class="sig-edit" id="sigEdit">
+              <button type="button" class="btn ghost wide" id="sigToggle">Add my signature</button>
+              <div id="sigPanel" hidden>
+                <div id="sigPortalMount"></div>
+                <button type="button" class="btn primary wide" id="sigSave">Save my signature</button>
+              </div>
+              <p class="formErr" id="sigMsg" role="status"></p>
+            </div>
+
+            <a class="journey" id="journeyCard" href="#/handbook" aria-label="Open the Handbook">
               <span class="journey-top"><strong>Your learning journey</strong><span class="journey-pct" id="journeyPct">&ndash;</span></span>
               <span class="pbar" aria-hidden="true"><span class="pbar-fill" id="journeyFill"></span></span>
               <span class="journey-sub" id="journeySub">Loading your progress...</span>
@@ -4533,7 +5300,7 @@ _missing_
           <!-- View: Quiz -->
           <div id="viewQuiz" class="view" hidden>
             <h2>Quiz</h2>
-            <p class="lead">Test what you have learned in the Mentorship Handbook.</p>
+            <p class="lead">Test what you have learned in the Handbook.</p>
             <!-- The quiz is locked until the student enters a one-time quiz code -->
             <section class="quizcard quizgate" id="quizGate" aria-labelledby="quizGateTitle" hidden>
               <h3 id="quizGateTitle">Unlock the quiz</h3>
@@ -4569,22 +5336,83 @@ _missing_
             </section>
           </div>
 
-          <!-- View: Community (the official WhatsApp / Telegram, set by an admin on Site links) -->
+          <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
           <div id="viewCommunity" class="view" hidden>
             <h2>Community</h2>
-            <p class="lead">Join the official ABEC-FX community to learn alongside other students and get updates from your mentors.</p>
+            <p class="lead">Open the ABEC-FX community to learn alongside other students and get updates from your mentors.</p>
             <section class="quizcard communitycard" aria-label="Community links">
               <p class="live" id="communityMsg" role="status">Loading...</p>
-              <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Join on WhatsApp</a>
-              <a id="communityTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Join on Telegram</a>
+              <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp community</a>
+              <a id="communityTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram community</a>
             </section>
           </div>
 
-          <!-- View: Mentorship Handbook -->
+          <!-- View: Handbook -->
           <div id="viewHandbook" class="view" hidden>
             <div id="hbMount"><p class="live" role="status">Opening the handbook...</p></div>
           </div>
+
+          <!-- View: Workbook -->
+          <div id="viewWorkbook" class="view" hidden>
+            <div id="wbMount"><p class="live" role="status">Opening the workbooks...</p></div>
+          </div>
+
+          <div class="signout-row">
+            <button type="button" id="switchBtn" class="btn ghost">Sign out</button>
+          </div>
         </section>
+
+        <!-- Age requirement notice: shown to a signed-in student whose saved date of birth is too recent -->
+        <dialog id="dobDlg" class="dobdlg" aria-labelledby="dobTitle">
+          <h2 id="dobTitle">Please update your date of birth</h2>
+          <p id="dobText"></p>
+          <div id="dobStart">
+            <button type="button" class="btn primary wide" id="dobOpenForm">Update my date of birth</button>
+            <button type="button" class="btn ghost wide" id="dobSignOut">Sign out</button>
+          </div>
+          <form id="dobForm" hidden novalidate>
+            <p class="dob-warn" role="note"><strong>You can only update your date of birth once.</strong> Make sure it matches your documents before you save.</p>
+            <label for="dobInput">New date of birth</label>
+            <input id="dobInput" type="date" min="1920-01-01" autocomplete="bday" required />
+            <p class="formErr" id="dobMsg" role="alert"></p>
+            <button type="submit" class="btn primary wide" id="dobSave">Save my date of birth</button>
+            <button type="button" class="btn ghost wide" id="dobBack">Back</button>
+          </form>
+        </dialog>
+
+        <!-- Photo notice: shown to a signed-in student a mentor has asked to send a new passport photo -->
+        <dialog id="photoDlg" class="dobdlg" aria-labelledby="photoDlgTitle">
+          <h2 id="photoDlgTitle">Please send a passport photograph</h2>
+          <p>The system has noticed that your photograph does not meet our requirements. Please upload a clear passport-size photograph of your face (facing the camera, plain background, no hat or sunglasses, no full-body or group pictures) to continue enjoying our services.</p>
+          <div id="photoDlgStart">
+            <input id="photoDlgFile" type="file" accept="image/*" class="sr-only" aria-label="Choose a passport photograph" />
+            <label for="photoDlgFile" class="btn primary wide" id="photoDlgPick">Choose passport photo</label>
+            <button type="button" class="btn ghost wide" id="photoDlgSignOut">Sign out</button>
+          </div>
+          <div id="photoDlgForm" hidden>
+            <p class="dob-warn" role="note"><strong>You can only do this once.</strong> Check that the photo below is a clear passport photo before you save.</p>
+            <img id="photoDlgPreview" class="photo-dlg-preview" alt="Preview of your new passport photograph" />
+            <p class="formErr" id="photoDlgMsg" role="alert"></p>
+            <button type="button" class="btn primary wide" id="photoDlgSave">Save this photo</button>
+            <label for="photoDlgFile" class="btn ghost wide">Choose a different photo</label>
+          </div>
+        </dialog>
+
+        <!-- Signature notice: shown to a signed-in student who has no signature on file -->
+        <dialog id="sigDlg" class="dobdlg" aria-labelledby="sigDlgTitle">
+          <h2 id="sigDlgTitle">Please add your signature</h2>
+          <p id="sigDlgText">The system has noticed that you have not added your signature. Your signature appears on your ID card. Please add it now to continue enjoying our services.</p>
+          <div id="sigDlgStart">
+            <button type="button" class="btn primary wide" id="sigDlgOpen">Add my signature</button>
+            <button type="button" class="btn ghost wide" id="sigDlgSignOut">Sign out</button>
+          </div>
+          <div id="sigDlgForm" hidden>
+            <div id="sigDlgMount"></div>
+            <p class="formErr" id="sigDlgMsg" role="alert"></p>
+            <button type="button" class="btn primary wide" id="sigDlgSave">Save my signature</button>
+            <button type="button" class="btn ghost wide" id="sigDlgBack">Back</button>
+          </div>
+        </dialog>
 
         <p class="sheet-foot">&copy; <span id="year"></span> Adebass Base Edge Consult</p>
       </div>
@@ -4594,7 +5422,13 @@ _missing_
   <script src="/links.js"></script>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
+  <script src="/download.js"></script>
+  <script src="/certificate-art.js"></script>
+  <script src="/certificate.js"></script>
   <script src="/handbook.js"></script>
+  <script src="/workbook.js"></script>
+  <script src="/photo.js"></script>
+  <script src="/signature.js"></script>
   <script src="/portal.js"></script>
 </body>
 </html>
@@ -4643,6 +5477,13 @@ _missing_
     window.abecNav.refresh(); // signed in: the menu no longer offers "Register"
   }
   function forget() { try { localStorage.removeItem(KEY); localStorage.removeItem(TKEY); } catch (e) {} window.abecNav.refresh(); }
+  // After a photo change the browser may still hold the old /api/photo for a few minutes, so the card asks
+  // for the photo with a version that changes whenever the student saves a new one.
+  function photoUrl(reg) {
+    var v = "";
+    try { v = localStorage.getItem("abecfx_photo_v") || ""; } catch (e) {}
+    return v ? "/api/photo?reg=" + encodeURIComponent(reg) + "&v=" + v : undefined;
+  }
   function saved() { try { return localStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
   function token() { try { return localStorage.getItem(TKEY) || ""; } catch (e) { return ""; } }
 
@@ -4656,7 +5497,7 @@ _missing_
   // The sign-in has expired or is not valid: back to the sign-in form.
   function signedOut(message) {
     closeQuiz(true);
-    window.abecHandbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -4680,6 +5521,9 @@ _missing_
   }
 
   function showSignin(message) {
+    var dd = document.getElementById("dobDlg"); if (dd && dd.open) dd.close();
+    var sd = document.getElementById("sigDlg"); if (sd && sd.open) sd.close();
+    var pd = document.getElementById("photoDlg"); if (pd && pd.open) pd.close();
     loading.hidden = true;
     home.hidden = true;
     signin.hidden = false;
@@ -4691,26 +5535,36 @@ _missing_
     signin.hidden = true;
     var first = (d.fullName || "").split(" ")[0];
     document.getElementById("welcome").textContent = first ? "Welcome back, " + first : "Welcome back";
-    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d));
+    mySig = "";
+    sigNote("");
+    pendingSigNotice = !!d.signatureMissing;
+    pendingPhotoNotice = !!d.photoRedo;
+    showDobNotice(d.dobNotice);
+    if (!d.dobNotice) nextNotice();
+    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
+    loadSignature(d);
+    loadCertificate();
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     var live = document.getElementById("liveLine");
     live.textContent = note ? note.text : "Live record, checked at " + t;
     live.className = "live" + (note ? " live-" + note.level : "");
+    setPhotoEditable(!d.photoChanged);
+    photoNote("");
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentView = "";
     route();
   }
 
-  // ---- My portal submenu: ID card, Quiz, Mentorship Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "community"];
+  // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community"];
   var currentView = "";
 
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|community)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -4725,18 +5579,20 @@ _missing_
       if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
       else links[i].removeAttribute("aria-current");
     }
-    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook");
+    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
+    if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
     if (r.view !== "handbook" || !r.chapter) window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
-  // ---- Community: the official WhatsApp / Telegram, opened in a new tab ----
+  // ---- Community: the WhatsApp and Telegram groups set on the dashboard, opened in a new tab ----
   function safeHttps(u) {
     try { var x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
   }
@@ -4958,17 +5814,369 @@ _missing_
         if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
         remember(res.body.card.regNumber, res.body.token);
         emailInput.value = "";
-        showHome(res.body.card);
+        showHome(Object.assign({}, res.body.card, { photoChanged: res.body.photoChanged, dobNotice: res.body.dobNotice, signatureMissing: res.body.signatureMissing, photoRedo: res.body.photoRedo }));
       })
       .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
       .then(function () { btn.disabled = false; btn.textContent = "Sign in"; });
   });
 
-  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
+  var dlBtn = document.getElementById("downloadBtn");
+  dlBtn.addEventListener("click", function () {
+    var card = document.querySelector("#cardMount .idc");
+    if (!card || dlBtn.disabled) return;
+    var label = dlBtn.textContent;
+    dlBtn.disabled = true;
+    dlBtn.textContent = "Preparing...";
+    window.downloadIdCard(card, currentReg).then(function () {
+      dlBtn.textContent = label;
+    }, function () {
+      dlBtn.textContent = "Could not download. Try again";
+      setTimeout(function () { dlBtn.textContent = label; }, 3500);
+    }).then(function () { dlBtn.disabled = false; });
+  });
+  // ---- Certificate: shown under the ID card once the student is Certified, with PNG and PDF downloads ----
+  var certBlock = document.getElementById("certBlock");
+  var certMsg = document.getElementById("certMsg");
+  var certNo = "";
+  function loadCertificate() {
+    certBlock.hidden = true;
+    certMsg.textContent = "";
+    authFetch("/api/portal/certificate").then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, body: b }; });
+    }).then(function (res) {
+      if (!res.ok || !res.body.eligible) return;
+      certNo = res.body.certificate.certNo;
+      document.getElementById("certMount").replaceChildren(
+        window.renderCertificate(res.body.certificate, { signature: res.body.signature, origin: location.origin })
+      );
+      certBlock.hidden = false;
+    }).catch(function () { /* no certificate shown; the ID card is unaffected */ });
+  }
+  [["certPng", "png"], ["certPdf", "pdf"]].forEach(function (x) {
+    var b = document.getElementById(x[0]);
+    b.addEventListener("click", function () {
+      var frame = document.querySelector("#certMount .cert-frame");
+      if (!frame || b.disabled) return;
+      var label = b.textContent;
+      b.disabled = true;
+      b.textContent = "Preparing...";
+      window.downloadCertificate(frame, certNo, x[1]).then(function () {
+        b.textContent = label;
+      }, function () {
+        b.textContent = "Could not download. Try again";
+        setTimeout(function () { b.textContent = label; }, 3500);
+      }).then(function () { b.disabled = false; });
+    });
+  });
+
+  var pendingSigNotice = false;
+  var pendingPhotoNotice = false;
+  // ---- Age requirement notice: a pop-up for a student whose date of birth on file is too recent ----
+  var dobDlg = document.getElementById("dobDlg");
+  var dobForm = document.getElementById("dobForm");
+  var dobStart = document.getElementById("dobStart");
+  var dobMsg = document.getElementById("dobMsg");
+  var dobInput = document.getElementById("dobInput");
+  function niceDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+    if (!m) return iso || "";
+    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return Number(m[3]) + " " + months[Number(m[2]) - 1] + " " + m[1];
+  }
+  var lastDob = "";
+  function showDobNotice(n) {
+    if (n && n.dob) lastDob = n.dob; else if (n) n.dob = lastDob;
+    if (!n) { if (dobDlg.open) dobDlg.close(); return; }
+    if (sigNoticeDlg.open) sigNoticeDlg.close();
+    if (photoNoticeDlg.open) photoNoticeDlg.close();
+    var text = "The system has noticed that you do not meet our age requirements for registration. Your current date of birth is set as: " + niceDate(n.dob) + ".";
+    document.getElementById("dobText").textContent = n.canUpdate
+      ? text + " Please update it now to continue enjoying our services."
+      : text + " You have already used your one update, so please contact your mentor to correct it.";
+    document.getElementById("dobOpenForm").hidden = !n.canUpdate;
+    dobStart.hidden = false;
+    dobForm.hidden = true;
+    dobMsg.textContent = "";
+    dobInput.value = "";
+    if (!dobDlg.open) { if (dobDlg.showModal) dobDlg.showModal(); else dobDlg.setAttribute("open", ""); }
+  }
+  // The notice cannot be dismissed with Escape: the student updates their date of birth (or signs out).
+  dobDlg.addEventListener("cancel", function (e) { e.preventDefault(); });
+  document.getElementById("dobOpenForm").addEventListener("click", function () {
+    dobStart.hidden = true; dobForm.hidden = false; dobMsg.textContent = "";
+    dobInput.focus();
+  });
+  document.getElementById("dobBack").addEventListener("click", function () {
+    dobForm.hidden = true; dobStart.hidden = false; dobMsg.textContent = "";
+  });
+  document.getElementById("dobSignOut").addEventListener("click", function () {
+    if (dobDlg.open) dobDlg.close();
+    document.getElementById("switchBtn").click();
+  });
+  dobForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!dobInput.value) { dobMsg.textContent = "Please enter your date of birth."; return; }
+    var save = document.getElementById("dobSave");
+    save.disabled = true; dobMsg.textContent = "Saving...";
+    authFetch("/api/portal/dob", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dob: dobInput.value }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { if (dobDlg.open) dobDlg.close(); signedOut(b.error); return; }
+        if (!r.ok) {
+          dobMsg.textContent = b.error || "We could not save your date of birth. Please try again.";
+          if (b.canUpdate === false) showDobNotice({ dob: "", canUpdate: false });
+          return;
+        }
+        dobMsg.textContent = "";
+        dobDlg.close();
+        liveNote("Your date of birth has been updated.");
+        nextNotice();
+      });
+    }).catch(function () { dobMsg.textContent = "Network problem. Check your connection and try again."; })
+      .then(function () { save.disabled = false; });
+  });
+  function liveNote(t) { var l = document.getElementById("liveLine"); if (l) { l.textContent = t; l.className = "live"; } }
+
+  // ---- Photo notice: a pop-up for a student a mentor has asked to send a new passport photograph ----
+  var photoNoticeDlg = document.getElementById("photoDlg");
+  var photoNoticeData = "";
+  // The notices come one after another: date of birth, then photograph, then signature.
+  function nextNotice() {
+    if (dobDlg.open || photoNoticeDlg.open) return;
+    if (pendingPhotoNotice) { showPhotoNotice(); return; }
+    showSigNotice();
+  }
+  function showPhotoNotice() {
+    document.getElementById("photoDlgStart").hidden = false;
+    document.getElementById("photoDlgForm").hidden = true;
+    document.getElementById("photoDlgMsg").textContent = "";
+    photoNoticeData = "";
+    if (!photoNoticeDlg.open) { if (photoNoticeDlg.showModal) photoNoticeDlg.showModal(); else photoNoticeDlg.setAttribute("open", ""); }
+  }
+  photoNoticeDlg.addEventListener("cancel", function (e) { e.preventDefault(); });
+  document.getElementById("photoDlgSignOut").addEventListener("click", function () {
+    if (photoNoticeDlg.open) photoNoticeDlg.close();
+    document.getElementById("switchBtn").click();
+  });
+  var photoDlgFile = document.getElementById("photoDlgFile");
+  photoDlgFile.addEventListener("change", function () {
+    var f = photoDlgFile.files && photoDlgFile.files[0];
+    if (!f) return;
+    var msg = document.getElementById("photoDlgMsg");
+    msg.textContent = "";
+    window.abecPhoto.process(f).then(function (dataUrl) {
+      photoNoticeData = dataUrl;
+      document.getElementById("photoDlgPreview").src = dataUrl;
+      document.getElementById("photoDlgStart").hidden = true;
+      document.getElementById("photoDlgForm").hidden = false;
+    }, function (e) {
+      document.getElementById("photoDlgStart").hidden = true;
+      document.getElementById("photoDlgForm").hidden = false;
+      document.getElementById("photoDlgPreview").removeAttribute("src");
+      photoNoticeData = "";
+      msg.textContent = e && e.message ? e.message : "We could not use that photo. Try a different one.";
+    }).then(function () { photoDlgFile.value = ""; });
+  });
+  document.getElementById("photoDlgSave").addEventListener("click", function () {
+    var btn = document.getElementById("photoDlgSave"), msg = document.getElementById("photoDlgMsg");
+    if (!photoNoticeData || !currentReg) { msg.textContent = "Choose a photo first."; return; }
+    btn.disabled = true; msg.textContent = "Saving...";
+    var dataUrl = photoNoticeData;
+    authFetch("/api/portal/photo", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo: dataUrl.slice(dataUrl.indexOf(",") + 1) }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { if (photoNoticeDlg.open) photoNoticeDlg.close(); signedOut(b.error); return; }
+        if (!r.ok) { msg.textContent = b.error || "We could not save your photo. Please try again."; return; }
+        try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
+        pendingPhotoNotice = false;
+        return myCard().then(function (res) {
+          if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
+          setPhotoEditable(false);
+          msg.textContent = "";
+          photoNoticeDlg.close();
+          liveNote("Your new passport photograph has been saved.");
+          nextNotice();
+        });
+      });
+    }).catch(function () { msg.textContent = "Network problem. Check your connection and try again."; })
+      .then(function () { btn.disabled = false; });
+  });
+
+  // ---- Signature notice: a pop-up for a student who has no signature on file yet ----
+  var sigNoticeDlg = document.getElementById("sigDlg");
+  var sigNoticeWidget = null;
+  function showSigNotice() {
+    if (!pendingSigNotice || dobDlg.open || photoNoticeDlg.open) return;
+    document.getElementById("sigDlgStart").hidden = false;
+    document.getElementById("sigDlgForm").hidden = true;
+    document.getElementById("sigDlgMsg").textContent = "";
+    if (!sigNoticeDlg.open) { if (sigNoticeDlg.showModal) sigNoticeDlg.showModal(); else sigNoticeDlg.setAttribute("open", ""); }
+  }
+  sigNoticeDlg.addEventListener("cancel", function (e) { e.preventDefault(); });
+  document.getElementById("sigDlgOpen").addEventListener("click", function () {
+    if (!sigNoticeWidget) sigNoticeWidget = window.abecSignature.create(document.getElementById("sigDlgMount"));
+    document.getElementById("sigDlgStart").hidden = true;
+    document.getElementById("sigDlgForm").hidden = false;
+  });
+  document.getElementById("sigDlgBack").addEventListener("click", function () {
+    document.getElementById("sigDlgForm").hidden = true;
+    document.getElementById("sigDlgStart").hidden = false;
+    document.getElementById("sigDlgMsg").textContent = "";
+  });
+  document.getElementById("sigDlgSignOut").addEventListener("click", function () {
+    if (sigNoticeDlg.open) sigNoticeDlg.close();
+    document.getElementById("switchBtn").click();
+  });
+  document.getElementById("sigDlgSave").addEventListener("click", function () {
+    var btn = document.getElementById("sigDlgSave"), msg = document.getElementById("sigDlgMsg");
+    if (!sigNoticeWidget || !currentReg) return;
+    btn.disabled = true; msg.textContent = "Saving...";
+    sigNoticeWidget.value().then(function (url) {
+      if (!url) { msg.textContent = ""; return; }
+      return authFetch("/api/portal/signature", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signature: url.slice(url.indexOf(",") + 1) }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (b) {
+          if (r.status === 401) { if (sigNoticeDlg.open) sigNoticeDlg.close(); signedOut(b.error); return; }
+          if (!r.ok) throw new Error(b.error || "We could not save your signature. Please try again.");
+          mySig = url;
+          pendingSigNotice = false;
+          sigToggle.textContent = "Change my signature";
+          return myCard().then(function (res) {
+            if (res.ok) redrawCard(res.body);
+            msg.textContent = "";
+            sigNoticeDlg.close();
+            sigNoticeWidget.clear();
+            sigNote("Your signature is saved and now shows on your ID card.", true);
+          });
+        });
+      });
+    }).catch(function (e) { msg.textContent = e && e.message ? e.message : "Network problem. Check your connection and try again."; })
+      .then(function () { btn.disabled = false; });
+  });
+
+  // ---- My signature: shown on the student's own card, drawn or uploaded, saved on the website ----
+  var mySig = "";
+  var sigToggle = document.getElementById("sigToggle");
+  var sigPanel = document.getElementById("sigPanel");
+  var sigSave = document.getElementById("sigSave");
+  var sigMsg = document.getElementById("sigMsg");
+  var sigWidget = null;
+  function sigNote(text, ok) {
+    sigMsg.textContent = text || "";
+    sigMsg.style.color = ok ? "var(--violet, #5a1060)" : "";
+  }
+  function redrawCard(d) {
+    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber), signatureSrc: mySig }));
+  }
+  function loadSignature(d) {
+    sigPanel.hidden = true;
+    sigToggle.textContent = "Add my signature";
+    authFetch("/api/portal/signature").then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, body: b }; });
+    }).then(function (res) {
+      if (!res.ok || !res.body.signature || currentReg !== d.regNumber) return;
+      mySig = "data:image/png;base64," + res.body.signature;
+      sigToggle.textContent = "Change my signature";
+      redrawCard(d);
+    }).catch(function () { /* the card simply shows without a signature */ });
+  }
+  sigToggle.addEventListener("click", function () {
+    if (sigPanel.hidden) {
+      if (!sigWidget) sigWidget = window.abecSignature.create(document.getElementById("sigPortalMount"));
+      sigPanel.hidden = false;
+      sigToggle.textContent = "Cancel";
+    } else {
+      sigPanel.hidden = true;
+      sigToggle.textContent = mySig ? "Change my signature" : "Add my signature";
+      if (sigWidget) sigWidget.clear();
+    }
+    sigNote("");
+  });
+  sigSave.addEventListener("click", function () {
+    if (!sigWidget || !currentReg) return;
+    sigSave.disabled = true;
+    sigNote("Saving...");
+    sigWidget.value().then(function (url) {
+      if (!url) { sigNote(""); return; }
+      return authFetch("/api/portal/signature", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signature: url.slice(url.indexOf(",") + 1) }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (b) {
+          if (r.status === 401) { signedOut(b.error); return; }
+          if (!r.ok) throw new Error(b.error || "We could not save your signature. Please try again.");
+          mySig = url;
+          return myCard().then(function (res) {
+            if (res.ok) redrawCard(res.body);
+            sigPanel.hidden = true;
+            sigToggle.textContent = "Change my signature";
+            sigWidget.clear();
+            sigNote("Your signature is saved and now shows on your ID card.", true);
+          });
+        });
+      });
+    }).catch(function (e) { sigNote(e && e.message ? e.message : "Network problem. Check your connection and try again."); })
+      .then(function () { sigSave.disabled = false; });
+  });
+
+  // ---- Change my photo: shrink it in the browser, save it, then redraw the card with the new photo ----
+  var newPhoto = document.getElementById("newPhoto");
+  var newPhotoBtn = document.getElementById("newPhotoBtn");
+  var photoMsg = document.getElementById("photoMsg");
+  var photoBusy = false;
+  // Each student can change their photo once. After that the button goes away.
+  function setPhotoEditable(can) { newPhotoBtn.hidden = !can; newPhoto.disabled = !can; }
+  function photoNote(text, ok) {
+    photoMsg.textContent = text || "";
+    photoMsg.style.color = ok ? "var(--violet, #5a1060)" : "";
+  }
+  newPhoto.addEventListener("change", function () {
+    var file = newPhoto.files && newPhoto.files[0];
+    if (!file || photoBusy || !currentReg) return;
+    photoBusy = true;
+    var label = newPhotoBtn.textContent;
+    newPhotoBtn.textContent = "Saving...";
+    photoNote("");
+    window.abecPhoto.process(file)
+      .then(function (dataUrl) {
+        return authFetch("/api/portal/photo", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photo: dataUrl.slice(dataUrl.indexOf(",") + 1) }),
+        }).then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (b) {
+            if (r.status === 401) { signedOut(b.error); return; }
+            if (r.status === 403 && b.photoChanged) { setPhotoEditable(false); throw new Error(b.error); }
+            if (!r.ok) throw new Error(b.error || "We could not save your photo. Please try again.");
+            try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
+            // Show the photo just chosen (the saved copy can be cached by the browser for a few minutes)
+            return myCard().then(function (res) {
+              if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
+              setPhotoEditable(false);
+              photoNote("Your photo has been updated. A photo can only be changed once, so this is final.", true);
+            });
+          });
+        });
+      })
+      .catch(function (e) { photoNote(e && e.message ? e.message : "Network problem. Check your connection and try again."); })
+      .then(function () { photoBusy = false; newPhotoBtn.textContent = label; newPhoto.value = ""; });
+  });
+
   document.getElementById("switchBtn").addEventListener("click", function () {
     closeQuiz(true);
-    window.abecHandbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
+    mySig = "";
     currentView = "";
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     forget();
@@ -5002,7 +6210,7 @@ _missing_
 #### `public/handbook.js`
 
 ```js
-// Mentorship Handbook inside the student portal: chapter list, reader and learning-progress bar.
+// Handbook inside the student portal: chapter list, reader and learning-progress bar.
 // Progress = chapters marked as read / total chapters, saved on the website (Google Sheet) for the
 // signed-in student. portal.js calls setup() once with its sign-in helpers.
 (function () {
@@ -5060,7 +6268,7 @@ _missing_
       if (e.message === "signed out") return;
       document.getElementById("journeyPct").textContent = "";
       document.getElementById("journeyFill").style.width = "0%";
-      document.getElementById("journeySub").textContent = "Open the Mentorship Handbook to see your progress.";
+      document.getElementById("journeySub").textContent = "Open the Handbook to see your progress.";
     });
   }
 
@@ -5169,7 +6377,7 @@ _missing_
   function renderList() {
     var p = data.progress;
     mount.replaceChildren();
-    mount.appendChild(el("h2", null, "Mentorship Handbook"));
+    mount.appendChild(el("h2", null, "Handbook"));
     mount.appendChild(el("p", "lead", "The Edge Handbook your quiz comes from. Read each chapter, then mark it as read to move your progress bar."));
     mount.appendChild(header(p));
 
@@ -5329,8 +6537,8 @@ _missing_
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Student ID | ABEC-FX</title>
-  <meta name="description" content="Find an ABEC-FX student ID card and check a student's live status using their registration number." />
+  <title>ID Card | ABEC-FX</title>
+  <meta name="description" content="Find an ABEC-FX ID card and check a member's live status using their registration number." />
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -5344,8 +6552,8 @@ _missing_
       </a>
 
       <div class="pitch">
-        <h1>Find a student ID card.</h1>
-        <p>Enter a registration number, or scan the QR code on an ID card, to see a student's live status.</p>
+        <h1>Find an ID card.</h1>
+        <p>Enter a registration number, or scan the QR code on an ID card, to see a live status.</p>
       </div>
 
       <nav class="nav" aria-label="Main">
@@ -5359,7 +6567,14 @@ _missing_
 
     <main class="sheet">
       <div class="sheet-inner">
-        <h2>Student ID card</h2>
+        <div class="field kind-pick">
+          <label for="lookupKind">What do you want to check?</label>
+          <select id="lookupKind">
+            <option value="/status" selected>ID card</option>
+            <option value="/certificate">Certificate</option>
+          </select>
+        </div>
+        <h2>ID card</h2>
         <p class="lead">Enter the registration number, for example ABECFX/26/0001.</p>
 
         <form id="lookupForm" novalidate>
@@ -5377,8 +6592,8 @@ _missing_
           <div class="cardwrap" id="cardMount"></div>
           <p class="live" id="liveLine" role="status"></p>
           <div class="pass-actions">
-            <button type="button" id="printBtn" class="btn ghost">Print ID card</button>
             <button type="button" id="linkBtn" class="btn ghost">Copy link</button>
+            <a id="certLink" class="btn ghost" href="/certificate" hidden>View certificate</a>
           </div>
         </div>
 
@@ -5387,6 +6602,7 @@ _missing_
     </main>
   </div>
   <script src="/nav.js"></script>
+  <script src="/lookup-kind.js"></script>
   <script src="/links.js"></script>
   <script src="/qr.js"></script>
   <script src="/card.js"></script>
@@ -5417,6 +6633,9 @@ _missing_
     var note = window.expiryNotice(d);
     liveLine.textContent = note ? note.text : "Live record, checked at " + t;
     liveLine.className = "live" + (note ? " live-" + note.level : "");
+    var certLink = document.getElementById("certLink");
+    certLink.hidden = d.status !== "Certified";
+    certLink.href = "/certificate?reg=" + encodeURIComponent(d.regNumber);
     result.hidden = false;
     try { history.replaceState(null, "", "/status?reg=" + d.regNumber); } catch (e) {}
     if (window.matchMedia("(max-width: 900px)").matches) {
@@ -5460,7 +6679,6 @@ _missing_
     search();
   });
 
-  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
   document.getElementById("linkBtn").addEventListener("click", function () {
     var b = this;
     var link = location.origin + "/status?reg=" + currentReg;
@@ -5481,6 +6699,19 @@ _missing_
 })();
 ```
 
+#### `public/lookup-kind.js`
+
+```js
+// "Find a student" dropdown: choose ID card or certificate; the matching page opens.
+(function () {
+  var sel = document.getElementById("lookupKind");
+  if (!sel) return;
+  sel.addEventListener("change", function () {
+    if (sel.value && sel.value !== location.pathname) location.href = sel.value;
+  });
+})();
+```
+
 #### `public/card.js`
 
 ```js
@@ -5497,11 +6728,8 @@ _missing_
   var STATUS_CLASS = {
     "Uncertified": "s-uncertified",
     "Certified": "s-certified",
-    "Graduate": "s-graduate",
-    "Alumni Member": "s-alumni",
-    "Mentor": "s-mentor",
-    "Staff Member": "s-staff",
-    "CEO": "s-ceo"
+    "Team Member": "s-team",
+    "Alumni Member": "s-alumni"
   };
 
   function el(tag, cls, text) {
@@ -5528,14 +6756,23 @@ _missing_
     }));
   }
 
-  // Round stamp: "Certified graduate of ABEC-FX" (Certified and Graduate students) or "Alumni member" (alumni).
+  // The kind of card: only Uncertified and Certified people are students. Team members and alumni are not called students.
+  function cardKind(status) {
+    return status === "Team Member" ? "Team ID card" : status === "Alumni Member" ? "Alumni ID card" : "Student ID card";
+  }
+
+  // What the card calls a status. A Certified student shows as "Certified".
+  function statusLabel(status) { return status; }
+
+  // Round stamp: "Certified", "Team member" or "Alumni member".
+  var STAMP_TOP = { "Certified": "CERTIFIED", "Team Member": "TEAM MEMBER", "Alumni Member": "ALUMNI MEMBER" };
+  var STAMP_LABEL = { "Certified": "Certified student of ABEC-FX", "Team Member": "Team member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
   function buildStamp(status, dateText) {
-    var isGrad = status !== "Alumni Member";
-    var top = isGrad ? "CERTIFIED GRADUATE" : "ALUMNI MEMBER";
+    var top = STAMP_TOP[status] || "CERTIFIED";
+    var label = STAMP_LABEL[status] || STAMP_LABEL.Certified;
     var id = "stamp" + ++stampCounter;
 
-    var svg = svgEl("svg", { viewBox: "0 0 200 200", "class": "idc-stamp-svg", role: "img",
-      "aria-label": isGrad ? "Certified graduate of ABEC-FX" : "Alumni member of ABEC-FX" });
+    var svg = svgEl("svg", { viewBox: "0 0 200 200", "class": "idc-stamp-svg", role: "img", "aria-label": label });
 
     var defs = svgEl("defs");
     defs.appendChild(svgEl("path", { id: id + "t", d: "M 100,100 m -67,0 a 67,67 0 1,1 134,0" }));
@@ -5554,7 +6791,7 @@ _missing_
       t.appendChild(tp);
       return t;
     }
-    svg.appendChild(arcText(id + "t", top, 13.5));
+    svg.appendChild(arcText(id + "t", top, top.length > 20 ? 10.5 : top.length > 14 ? 12.5 : 13.5)); // long titles get a smaller size so they fit the ring
     svg.appendChild(arcText(id + "b", "ADEBASS BASE EDGE CONSULT", 10.5));
 
     var stars = svgEl("text", { x: 100, y: 83, "text-anchor": "middle", "class": "st-stars", "font-size": 10 });
@@ -5573,15 +6810,16 @@ _missing_
     return svg;
   }
 
-  // Text for the "expires" line on the card.
+  // Text for the "expires" line on the card. Only an Uncertified ID has one: any other status shows no line at all.
   function expiryLine(d) {
+    if (d.expiryKind === "none") return null;
     if (d.expiryKind === "date") {
       if (d.expired) return { text: "Expired " + d.expires, cls: "is-expired" };
       if (d.daysLeft === 0) return { text: "Expires today", cls: "is-soon" };
       return { text: "Expires " + d.expires, cls: d.daysLeft <= 14 ? "is-soon" : "" };
     }
     if (d.expiryKind === "unknown") return { text: "Expiry date not set", cls: "" };
-    return { text: "No expiry", cls: "" };
+    return null;
   }
 
   // Message shown under the card when an ID has expired or is about to.
@@ -5595,16 +6833,36 @@ _missing_
     return null;
   };
 
+  // The signature is stored as dark ink on see-through. On the card it is drawn in white, so recolour it here.
+  function whiteInk(src, done) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        var ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        ctx.globalCompositeOperation = "source-in";
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, c.width, c.height);
+        done(c.toDataURL("image/png"));
+      } catch (e) { done(src); }
+    };
+    img.onerror = function () { done(src); };
+    img.src = src;
+  }
+
   /**
    * d: card data from /api/lookup or /api/register
    * opts.photoSrc: use this image instead of /api/photo (e.g. the just-taken photo)
+   * opts.signatureSrc: the holder's signature picture (shown only on their own card)
    */
   window.renderStudentCard = function (d, opts) {
     opts = opts || {};
     var status = d.status || "Uncertified";
     var card = el("article", "idc");
     card.setAttribute("data-status", status.toLowerCase().replace(/\s+/g, "-"));
-    card.setAttribute("aria-label", "Student ID card for " + d.fullName);
+    card.setAttribute("aria-label", cardKind(status) + " for " + d.fullName);
 
     // ---- header
     var top = el("div", "idc-top");
@@ -5614,8 +6872,8 @@ _missing_
     brand.appendChild(logo);
     brand.appendChild(el("span", null, "ABEC-FX"));
     top.appendChild(brand);
-    top.appendChild(el("span", "idc-kind", "Student ID card"));
     card.appendChild(top);
+    card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Team / Alumni ID card
 
     // ---- passport photo + national flag + facts
     var hero = el("div", "idc-hero");
@@ -5653,10 +6911,14 @@ _missing_
       facts.appendChild(row);
     }
     fact("Country", d.country);
-    if (d.state) fact("State", d.state);
+    if (d.state) fact("State", /^abuja federal capital territory$/i.test(d.state.trim()) ? "FCT Abuja" : d.state);
     fact("Gender", d.gender);
-    fact("Programme", d.programme);
-    fact("Admitted", d.admitted ? String(d.admitted) : "");
+    if (status !== "Team Member") { // programme and admission year are student details
+      fact("Programme", d.programme);
+      fact("Admitted", d.admitted ? String(d.admitted) : "");
+    } else {
+      fact("Joined", d.admitted ? String(d.admitted) : "");
+    }
     hero.appendChild(facts);
     card.appendChild(hero);
 
@@ -5667,25 +6929,44 @@ _missing_
       mark.setAttribute("aria-hidden", "true");
       card.appendChild(mark);
     }
-    card.appendChild(el("h3", "idc-name", d.fullName));
+    card.appendChild(el("h3", "idc-name", String(d.fullName || "").toUpperCase()));
+    if (status === "Team Member" && d.teamRole) card.appendChild(el("p", "idc-roleline", d.teamRole));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 
-    // ---- status (+ stamp for graduates and alumni)
+    // ---- status (+ stamp for certified graduates, alumni and the team)
     var row = el("div", "idc-statusrow");
-    var col = el("div", "idc-statuscol");
-    var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
-    chip.appendChild(el("span", null, status));
-    col.appendChild(chip);
-    col.appendChild(el("span", "idc-since",
-      status === "Uncertified" ? "Awaiting certification"
-        : "Since " + (d.statusDate || "date not recorded")));
-    row.appendChild(col);
-    if (status === "Graduate" || status === "Certified" || status === "Alumni Member") {
+    // A team member's card shows no status chip or "Since ..." line (the round team stamp says it); only students have a status to show.
+    if (status !== "Team Member") {
+      var col = el("div", "idc-statuscol");
+      var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
+      chip.appendChild(el("span", null, statusLabel(status)));
+      col.appendChild(chip);
+      col.appendChild(el("span", "idc-since",
+        status === "Uncertified" ? "Awaiting certification"
+          : "Since " + (d.statusDate || "date not recorded")));
+      row.appendChild(col);
+    } else {
+      row.classList.add("idc-statusrow-solo");
+    }
+    if (status === "Certified" || status === "Alumni Member" || status === "Team Member") {
       var stampWrap = el("div", "idc-stamp");
       stampWrap.appendChild(buildStamp(status, d.statusDate));
       row.appendChild(stampWrap);
     }
     card.appendChild(row);
+
+    // ---- the student's own signature, white ink straight under "Since ..." (only on their own card,
+    // never on the public find-a-student card)
+    if (opts.signatureSrc) {
+      var sigBox = el("div", "idc-sig");
+      var sigImg = el("img");
+      sigImg.alt = "Signature of " + d.fullName;
+      sigImg.hidden = true;
+      whiteInk(opts.signatureSrc, function (url) { sigImg.src = url; sigImg.hidden = false; });
+      sigBox.appendChild(sigImg);
+      sigBox.appendChild(el("span", null, "Holder's signature"));
+      card.appendChild(sigBox);
+    }
 
     // ---- QR code: opens this student's live status
     var url = (opts.origin || location.origin) + "/status?reg=" + d.regNumber;
@@ -5695,10 +6976,10 @@ _missing_
     verify.appendChild(qr);
     var vt = el("div", "idc-vtext");
     vt.appendChild(el("strong", null, "Scan to check status"));
-    vt.appendChild(el("span", null, "Opens this student's live record."));
+    vt.appendChild(el("span", null, "Opens this ID card's live record."));
     if (d.issued) vt.appendChild(el("span", "idc-issued", "Issued " + d.issued));
     var exp = expiryLine(d);
-    vt.appendChild(el("span", "idc-expiry " + exp.cls, exp.text));
+    if (exp) vt.appendChild(el("span", "idc-expiry " + exp.cls, exp.text));
     verify.appendChild(vt);
     card.appendChild(verify);
 
@@ -6047,7 +7328,7 @@ _missing_
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Editor dashboard | ABEC-FX</title>
+  <title>Dashboard | ABEC-FX</title>
   <meta name="theme-color" content="#5a1060" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css" />
@@ -6057,7 +7338,7 @@ _missing_
   <header class="adm-top">
     <a class="adm-brand" href="/" aria-label="ABEC-FX home">
       <img src="/logo-white.png" alt="" width="34" height="26" />
-      <span><b>ABEC-FX</b><i>Editor dashboard</i></span>
+      <span><b>ABEC-FX</b><i>Dashboard</i></span>
     </a>
     <div class="adm-actions" id="topActions" hidden>
       <span class="adm-stamp" id="stamp"></span>
@@ -6070,12 +7351,13 @@ _missing_
 
   <main class="adm-main">
     <section id="login" class="adm-login">
-      <h1>Editor sign in</h1>
-      <p class="lead">Sign in with your dashboard username and password. The owner signs in as <b>owner</b>.</p>
+      <h1>Dashboard sign in</h1>
+      <p class="lead">Choose your username (Owner, Admin, Moderator...), then enter your password.</p>
       <form id="loginForm" novalidate>
         <div class="field">
-          <label for="un">Username</label>
-          <input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+          <label for="unSel">Username</label>
+          <select id="unSel" aria-label="Choose your role" hidden></select>
+          <input id="un" type="text" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false" hidden />
         </div>
         <div class="field">
           <label for="pw">Password</label>
@@ -6092,9 +7374,12 @@ _missing_
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
         <button type="button" role="tab" id="tab-quizcodes" aria-selected="false" aria-controls="view-quizcodes" hidden>Quiz codes</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
+        <button type="button" role="tab" id="tab-community" aria-selected="false" aria-controls="view-community" hidden>Community</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
-        <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
         <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
+        <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
+        <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
+        <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
       </nav>
 
       <p class="adm-hint" id="statsHint">Tap or click any number, bar or chart column to see the students behind it.</p>
@@ -6215,10 +7500,22 @@ _missing_
         </article>
       </div>
 
+      <div id="view-community" role="tabpanel" aria-labelledby="tab-community" hidden>
+        <article class="adm-card wide">
+          <h3>Student community</h3>
+          <p class="adm-note">Students see these on the Community page of their portal, as "Open WhatsApp community" and "Open Telegram community". Paste the invite link of your group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
+          <form id="communityForm" class="lk-form" novalidate></form>
+          <div class="lk-bar">
+            <button type="button" class="primary" id="communitySave">Save</button>
+            <span class="lk-msg" id="communityMsg" role="status"></span>
+          </div>
+        </article>
+      </div>
+
       <div id="view-videos" role="tabpanel" aria-labelledby="tab-videos" hidden>
         <article class="adm-card wide">
           <h3>Chapter video tutorials</h3>
-          <p class="adm-note">Paste the YouTube address of the video for each chapter. Students see it inside that chapter of the Mentorship Handbook. A chapter with no address shows "coming soon". Unlisted videos work too, but they must allow embedding.</p>
+          <p class="adm-note">Paste the YouTube address of the video for each chapter. Students see it inside that chapter of the Handbook. A chapter with no address shows "coming soon". Unlisted videos work too, but they must allow embedding.</p>
           <form id="videosForm" class="lk-form" novalidate></form>
           <div class="lk-bar">
             <button type="button" class="primary" id="videosSave">Save</button>
@@ -6250,13 +7547,69 @@ _missing_
         </article>
       </div>
 
+      <div id="view-idcards" role="tabpanel" aria-labelledby="tab-idcards" hidden>
+        <article class="adm-card wide">
+          <h3>ID cards</h3>
+          <p class="adm-note">Find any student or team member and open their ID card. Search by name, registration number, country, state or status.</p>
+          <div class="field" style="margin-top:12px;max-width:520px">
+            <label for="idq">Search</label>
+            <input id="idq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
+          </div>
+          <p class="adm-note" id="idMsg" role="status"></p>
+          <div class="idc-admin">
+            <ul class="idc-list" id="idList"></ul>
+            <div class="idc-view">
+              <div class="cardwrap" id="idMount"></div>
+              <p class="pass-actions" id="idActions" hidden><button type="button" class="btn ghost" id="idDownload">Download ID card</button></p>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div id="view-certificates" role="tabpanel" aria-labelledby="tab-certificates" hidden>
+        <article class="adm-card wide">
+          <h3>Who signs the certificates</h3>
+          <p class="adm-note">Enter the registration number of the person who signs (the CEO, for example). Their name, their role and <b>the signature on their own ID card</b> are printed on every certificate automatically, so there is nothing to upload here. If they change the signature on their ID card, the certificates follow. The organisation name and CAC RC number print on every certificate too.</p>
+          <form id="certForm" class="lk-form" novalidate>
+            <div class="field" id="cert-w-certSignerReg"><label for="cert-certSignerReg">Registration number of the person who signs</label><input id="cert-certSignerReg" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" /><p class="lk-err" id="cert-e-certSignerReg"></p></div>
+            <div class="cert-signer" id="certSigner" aria-live="polite"></div>
+            <div class="field" id="cert-w-certOrg"><label for="cert-certOrg">Organisation name</label><input id="cert-certOrg" type="text" maxlength="60" autocomplete="off" /><p class="lk-err" id="cert-e-certOrg"></p></div>
+            <div class="field" id="cert-w-certRc"><label for="cert-certRc">CAC RC number</label><input id="cert-certRc" type="text" maxlength="20" autocomplete="off" /><span class="hint">Printed as &ldquo;CAC RC: 9420199&rdquo;. Type the number only.</span><p class="lk-err" id="cert-e-certRc"></p></div>
+            <div class="lk-bar">
+              <button type="submit" class="primary" id="certSave">Save</button>
+            </div>
+            <p class="adm-note" id="certSetMsg" role="status"></p>
+          </form>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Certificates</h3>
+          <p class="adm-note">Every Certified student has one. Search by name or registration number, then download it as a picture (PNG) or a PDF.</p>
+          <div class="field" style="margin-top:12px;max-width:520px">
+            <label for="certq">Search</label>
+            <input id="certq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
+          </div>
+          <p class="adm-note" id="certMsg" role="status"></p>
+          <div class="idc-admin cert-admin">
+            <ul class="idc-list" id="certList"></ul>
+            <div class="idc-view">
+              <div id="certMount"></div>
+              <p class="cert-actions" id="certActions" hidden>
+                <button type="button" class="btn ghost" id="certPng">Download PNG</button>
+                <button type="button" class="btn ghost" id="certPdf">Download PDF</button>
+              </p>
+            </div>
+          </div>
+        </article>
+      </div>
+
       <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
         <article class="adm-card wide">
           <div class="adm-card-head">
             <h3>Team</h3>
             <button type="button" class="btn ghost" id="tmAdd">Add team member</button>
           </div>
-          <p class="adm-note">Each person has a <b>role</b>, and each role decides what they can open. The owner (the ADMIN_PASSWORD holder) always has full access and is not listed here.</p>
+          <p class="adm-note">Each person has a <b>role</b>, and each role decides what they can open. The main owner (the ADMIN_PASSWORD holder) always has full access and is not listed here. An owner can make someone else an owner by giving them the Owner role; admins cannot.</p>
           <div class="tablewrap"><table class="adm-table" id="tmTable"></table></div>
           <p class="adm-note" id="tmNote" role="status"></p>
         </article>
@@ -6410,6 +7763,11 @@ _missing_
     </div>
   </dialog>
 
+  <script src="/qr.js"></script>
+  <script src="/card.js"></script>
+  <script src="/download.js"></script>
+  <script src="/certificate-art.js"></script>
+  <script src="/certificate.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>
@@ -6473,10 +7831,12 @@ _missing_
     $("shTable").replaceChildren();
     $("shSearch").value = "";
     me = null;
+    setDashTitle();
     teamData = null;
     if ($("tmDlg").open) $("tmDlg").close();
     if ($("pwDlg").open) $("pwDlg").close();
     $("tmTable").replaceChildren();
+    $("certMount").replaceChildren(); $("certList").replaceChildren(); $("certActions").hidden = true; certCurrent = null;
     if ($("rlDlg").open) $("rlDlg").close();
     $("rlTable").replaceChildren();
     $("qcTable").replaceChildren();
@@ -6507,9 +7867,17 @@ _missing_
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", videos: "videos", database: "database", team: "team" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team", idcards: "team", certificates: "certificates" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
+  // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
+  function setDashTitle() {
+    var name = me && me.roleLabel ? me.roleLabel + " dashboard" : "Dashboard";
+    var tag = document.querySelector(".adm-brand i");
+    if (tag) tag.textContent = name;
+    document.title = name + " | ABEC-FX";
+  }
   function applyRole() {
+    setDashTitle();
     Object.keys(TAB_NEEDS).forEach(function (n) { $("tab-" + n).hidden = !allowed(TAB_NEEDS[n]); });
     $("who").textContent = me.name + " · " + me.roleLabel;
     $("acctBtn").hidden = !me.canChangePassword;
@@ -6720,15 +8088,15 @@ _missing_
     var k = $("kpis");
     k.replaceChildren(
       kpi("Total students", s.total, { kind: "all" }),
-      kpi("Certified / graduates", s.graduates, { kind: "graduates" }),
+      kpi("Certified graduates", s.graduates, { kind: "graduates" }),
       kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
-      kpi("Mentors, staff and CEO", s.team, { kind: "team" }),
+      kpi("Team members", s.team, { kind: "team" }),
       kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
       kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "Certified / graduates = Certified, Graduate and Alumni Member.";
+    $("c-status-note").textContent = "Certified graduates = Certified and Alumni Member.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
@@ -7079,7 +8447,10 @@ _missing_
 
   function renderLinks(fields, values) {
     linkFields = fields;
-    var form = $("linksForm");
+    renderFields($("linksForm"), fields, values);
+  }
+  // Builds the labelled boxes for a list of link fields (used by Site links and Community).
+  function renderFields(form, fields, values) {
     form.replaceChildren();
     fields.forEach(function (f) {
       var wrap = el("div", "field");
@@ -7106,6 +8477,38 @@ _missing_
       $("lk-wrap-" + f.key).classList.toggle("invalid", !!msg);
     });
   }
+  // ---------- Student community (WhatsApp and Telegram groups) ----------
+  var communityFields = [];
+  function showCommunityErrors(errs) {
+    communityFields.forEach(function (f) {
+      var msg = (errs && errs[f.key]) || "";
+      $("lk-err-" + f.key).textContent = msg;
+      $("lk-wrap-" + f.key).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadCommunity() {
+    return api("/api/admin/community").then(function (r) {
+      communityFields = r.fields;
+      renderFields($("communityForm"), r.fields, r.values);
+      $("communityMsg").textContent = "";
+    });
+  }
+  $("communitySave").addEventListener("click", function () {
+    var b = this, body = {};
+    communityFields.forEach(function (f) { body[f.key] = $("lk-" + f.key).value; });
+    b.disabled = true;
+    $("communityMsg").textContent = "Saving...";
+    showCommunityErrors(null);
+    api("/api/admin/community", "PUT", body)
+      .then(function (r) { renderFields($("communityForm"), communityFields, r.values); $("communityMsg").textContent = "Saved. Students now see these groups on their Community page."; })
+      .catch(function (err) {
+        if (err.auth) { showLogin(err.message); return; }
+        showCommunityErrors(err.fields);
+        $("communityMsg").textContent = err.message;
+      })
+      .then(function () { b.disabled = false; });
+  });
+
   function loadLinks() {
     return api("/api/admin/links").then(function (r) { renderLinks(r.fields, r.values); $("linksMsg").textContent = ""; });
   }
@@ -7311,7 +8714,7 @@ _missing_
       var editable = only ? true : d.editable.indexOf(i) >= 0;
       var wrap = el("div", "field");
       wrap.id = "sh-wrap-" + i;
-      var label = el("label", null, h + (editable ? "" : " (locked)"));
+      var label = el("label", null, d.key === "students" && i === 14 ? "Team role (shown on the Team ID card)" : h + (editable ? "" : " (locked)"));
       label.setAttribute("for", "sh-f-" + i);
       var input;
       var opts = d.selects && d.selects[i];
@@ -7349,6 +8752,13 @@ _missing_
       box.appendChild(wrap);
     });
     if (d.key === "students") {
+      // The role box only shows while the status is Team Member.
+      var stSel = $("sh-f-9"), roleWrap = $("sh-wrap-14");
+      if (stSel && roleWrap) {
+        var syncRole = function () { roleWrap.hidden = stSel.value !== "Team Member"; };
+        stSel.addEventListener("change", syncRole);
+        syncRole();
+      }
       var dl = el("datalist");
       dl.id = "shStates";
       box.appendChild(dl);
@@ -7552,11 +8962,14 @@ _missing_
       tr.appendChild(el("td", null, m.createdBy));
       tr.appendChild(el("td", null, m.createdAt));
       var act = el("td");
-      var b = el("button", "linkbtn", "Edit");
-      b.type = "button";
-      b.setAttribute("aria-label", "Edit " + m.name);
-      b.addEventListener("click", function () { openTeamDlg("edit", m); });
-      act.appendChild(b);
+      // only an owner can change a co-owner (the server enforces it too)
+      if (m.role !== "owner" || (me && me.role === "owner") || (me && m.username === me.username)) {
+        var b = el("button", "linkbtn", "Edit");
+        b.type = "button";
+        b.setAttribute("aria-label", "Edit " + m.name);
+        b.addEventListener("click", function () { openTeamDlg("edit", m); });
+        act.appendChild(b);
+      }
       tr.appendChild(act);
       body.appendChild(tr);
     });
@@ -7834,17 +9247,23 @@ _missing_
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "videos", "database", "team"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team", "idcards", "certificates"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "videos" || name === "database" || name === "team" || name === "quizcodes";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes" || name === "idcards" || name === "certificates";
     if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
     if (name === "team") openTeam();
+    if (name === "idcards") openIdCards();
+    if (name === "certificates") openCertificates();
     if (name === "videos") {
       $("videosMsg").textContent = "Loading...";
       loadVideos().catch(function (err) { if (err.auth) showLogin(err.message); else $("videosMsg").textContent = err.message; });
+    }
+    if (name === "community") {
+      $("communityMsg").textContent = "Loading...";
+      loadCommunity().catch(function (err) { if (err.auth) showLogin(err.message); else $("communityMsg").textContent = err.message; });
     }
     if (name === "links") {
       $("linksMsg").textContent = "Loading...";
@@ -7855,19 +9274,201 @@ _missing_
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-quizcodes").addEventListener("click", function () { setTab("quizcodes"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
+  $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-team").addEventListener("click", function () { setTab("team"); });
+  $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
+  $("tab-certificates").addEventListener("click", function () { setTab("certificates"); });
+
+  // ---------- ID cards (admin) ----------
+  var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;
+  function showIdCard(c, li) {
+    idCurrent = c;
+    Array.prototype.forEach.call($("idList").children, function (x) { x.classList.toggle("on", x === li); });
+    $("idMount").replaceChildren(window.renderStudentCard(c));
+    $("idActions").hidden = false;
+    // The signature is fetched separately, then the card is drawn again with it.
+    var mine = ++sigSeq;
+    api("/api/admin/id-cards/signature?reg=" + encodeURIComponent(c.regNumber)).then(function (res) {
+      if (mine !== sigSeq || idCurrent !== c || !res.signature) return;
+      $("idMount").replaceChildren(window.renderStudentCard(c, { signatureSrc: "data:image/png;base64," + res.signature }));
+    }).catch(function () { /* the card just shows without a signature */ });
+  }
+  function loadIdCards() {
+    var seq = ++idSeq, q = $("idq").value.trim();
+    $("idMsg").textContent = "Loading...";
+    return api("/api/admin/id-cards?q=" + encodeURIComponent(q)).then(function (res) {
+      if (seq !== idSeq) return;
+      var list = $("idList");
+      list.replaceChildren();
+      res.cards.forEach(function (c) {
+        var li = el("li");
+        var b = el("button", "idc-item");
+        b.type = "button";
+        b.appendChild(el("b", null, c.fullName || "(no name)"));
+        b.appendChild(el("span", null, c.regNumber + " · " + c.status));
+        b.addEventListener("click", function () { showIdCard(c, li); });
+        li.appendChild(b);
+        list.appendChild(li);
+      });
+      $("idMsg").textContent = res.total === 0 ? "No one matches that search."
+        : (res.total > res.shown ? "Showing " + res.shown + " of " + res.total + ". Type to narrow the list." : res.total + (res.total === 1 ? " person." : " people."));
+      if (idCurrent && !res.cards.some(function (c) { return c.regNumber === idCurrent.regNumber; })) {
+        idCurrent = null;
+        $("idMount").replaceChildren();
+        $("idActions").hidden = true;
+      }
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("idMsg").textContent = err.message; });
+  }
+  function openIdCards() { loadIdCards(); }
+  $("idq").addEventListener("input", function () { clearTimeout(idTimer); idTimer = setTimeout(loadIdCards, 250); });
+  $("idDownload").addEventListener("click", function () {
+    var card = document.querySelector("#idMount .idc"), b = this;
+    if (!card || b.disabled) return;
+    var label = b.textContent;
+    b.disabled = true; b.textContent = "Preparing...";
+    window.downloadIdCard(card, idCurrent && idCurrent.regNumber).then(function () { b.textContent = label; }, function () {
+      b.textContent = "Could not download. Try again";
+      setTimeout(function () { b.textContent = label; }, 3500);
+    }).then(function () { b.disabled = false; });
+  });
+  // ---------- Certificates (admin) ----------
+  var certTimer = null, certSeq = 0, certCurrent = null, certSig = "";
+  var CERT_FIELDS = ["certSignerReg", "certOrg", "certRc"];
+
+  // Who signs: the name, role and ID-card signature of the registration number typed above.
+  function showSigner(signer) {
+    var box = $("certSigner");
+    box.replaceChildren();
+    if (!signer || !signer.regNumber) { box.appendChild(el("span", null, "No signer chosen yet. Certificates print without a name or signature until you save one.")); return; }
+    if (!signer.found) { box.appendChild(el("span", "warn", "No student or team member has the registration number " + signer.regNumber + ".")); return; }
+    box.appendChild(el("b", null, signer.name));
+    box.appendChild(el("span", null, (signer.title ? signer.title + " · " : "") + signer.regNumber));
+    if (signer.signature) {
+      var img = el("img");
+      img.alt = "Signature on " + signer.name + "'s ID card";
+      img.src = "data:image/png;base64," + signer.signature;
+      box.appendChild(img);
+      box.appendChild(el("span", null, "This is the signature on their ID card. It prints on every certificate."));
+    } else {
+      box.appendChild(el("span", "warn", "They have no signature on their ID card yet. Ask them to add it in their portal; it then appears on every certificate."));
+    }
+    if (!signer.title) box.appendChild(el("span", null, "No role is set on their record, so only their name prints. Set their Team Role in the Database tab to print it in brackets."));
+  }
+  function showCertErrors(errs) {
+    CERT_FIELDS.forEach(function (f) {
+      var msg = errs && errs[f] ? errs[f] : "";
+      $("cert-e-" + f).textContent = msg;
+      $("cert-w-" + f).classList.toggle("invalid", !!msg);
+    });
+  }
+  function loadCertSettings() {
+    return api("/api/admin/certificate-settings").then(function (r) {
+      CERT_FIELDS.forEach(function (f) { $("cert-" + f).value = r.values[f] || ""; });
+      showSigner(r.signer);
+    });
+  }
+  function showCertificate(c, li) {
+    certCurrent = c;
+    Array.prototype.forEach.call($("certList").children, function (x) { x.classList.toggle("on", x === li); });
+    $("certMount").replaceChildren(window.renderCertificate(c, { signature: certSig, origin: location.origin }));
+    $("certActions").hidden = false;
+  }
+  function loadCertificates() {
+    var seq = ++certSeq, q = $("certq").value.trim();
+    $("certMsg").textContent = "Loading...";
+    return api("/api/admin/certificates?q=" + encodeURIComponent(q)).then(function (res) {
+      if (seq !== certSeq) return;
+      certSig = res.signature || "";
+      var list = $("certList");
+      list.replaceChildren();
+      res.certificates.forEach(function (c) {
+        var li = el("li");
+        var b = el("button", "idc-item");
+        b.type = "button";
+        b.appendChild(el("b", null, c.fullName || "(no name)"));
+        b.appendChild(el("span", null, c.certNo + (c.awarded ? " · " + c.awarded : "")));
+        b.addEventListener("click", function () { showCertificate(c, li); });
+        li.appendChild(b);
+        list.appendChild(li);
+      });
+      $("certMsg").textContent = res.total === 0 ? (q ? "No certified student matches that search." : "No student is Certified yet.")
+        : (res.total > res.shown ? "Showing " + res.shown + " of " + res.total + ". Type to narrow the list." : res.total + (res.total === 1 ? " certificate." : " certificates."));
+      if (certCurrent && !res.certificates.some(function (c) { return c.certNo === certCurrent.certNo; })) {
+        certCurrent = null;
+        $("certMount").replaceChildren();
+        $("certActions").hidden = true;
+      }
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("certMsg").textContent = err.message; });
+  }
+  function openCertificates() {
+    $("certSetMsg").textContent = "";
+    showCertErrors(null);
+    loadCertSettings().then(loadCertificates).catch(function (err) { if (err.auth) showLogin(err.message); else $("certMsg").textContent = err.message; });
+  }
+  $("certq").addEventListener("input", function () { clearTimeout(certTimer); certTimer = setTimeout(loadCertificates, 250); });
+  function certSettingsBody() {
+    var b = {};
+    CERT_FIELDS.forEach(function (f) { b[f] = $("cert-" + f).value; });
+    return b;
+  }
+  $("certForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("certSave");
+    btn.disabled = true;
+    showCertErrors(null);
+    $("certSetMsg").textContent = "Saving...";
+    api("/api/admin/certificate-settings", "PUT", certSettingsBody()).then(function (r) {
+      CERT_FIELDS.forEach(function (f) { $("cert-" + f).value = r.values[f] || ""; });
+      showSigner(r.signer);
+      $("certSetMsg").textContent = "Saved. Every certificate now shows these details.";
+      return loadCertificates();
+    }).catch(function (err) {
+      if (err.auth) return showLogin(err.message);
+      showCertErrors(err.fields);
+      $("certSetMsg").textContent = err.message;
+    }).then(function () { btn.disabled = false; });
+  });
+  [["certPng", "png"], ["certPdf", "pdf"]].forEach(function (x) {
+    $(x[0]).addEventListener("click", function () {
+      var frame = document.querySelector("#certMount .cert-frame"), b = this;
+      if (!frame || b.disabled || !certCurrent) return;
+      var label = b.textContent;
+      b.disabled = true; b.textContent = "Preparing...";
+      window.downloadCertificate(frame, certCurrent.certNo, x[1]).then(function () { b.textContent = label; }, function () {
+        b.textContent = "Could not download. Try again";
+        setTimeout(function () { b.textContent = label; }, 3500);
+      }).then(function () { b.disabled = false; });
+    });
+  });
+
   $("yearSel").addEventListener("change", drawMonthYear);
   ["q", "gradeFilter", "viewMode"].forEach(function (id) {
     $(id).addEventListener(id === "q" ? "input" : "change", renderResults);
   });
   $("csvBtn").addEventListener("click", downloadCsv);
 
+  // "Sign in as" drop-down: the username is the role name (Owner, Admin, Moderator, ...).
+  // If the list cannot load, a username box is shown instead.
+  var unSel = $("unSel"), unInput = $("un");
+  fetch("/api/admin/login-users").then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (list) {
+    if (!Array.isArray(list) || !list.length) return Promise.reject();
+    unSel.replaceChildren();
+    list.forEach(function (u) {
+      var o = document.createElement("option");
+      o.value = u.key; o.textContent = u.label;
+      unSel.appendChild(o);
+    });
+    unSel.hidden = false;
+    unInput.hidden = true;
+  }).catch(function () { unSel.hidden = true; unInput.hidden = false; });
+  unInput.hidden = false;
+
   $("loginForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var un = $("un").value.trim(), pw = $("pw").value;
-    if (!un) { $("loginErr").textContent = "Enter your username."; return; }
+    var useRole = !unSel.hidden, un = unInput.value.trim(), pw = $("pw").value;
+    if (!useRole && !un) { $("loginErr").textContent = "Enter your username."; return; }
     if (!pw) { $("loginErr").textContent = "Enter your password."; return; }
     var b = $("loginBtn");
     b.disabled = true;
@@ -7876,7 +9477,7 @@ _missing_
     fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: un, password: pw }),
+      body: JSON.stringify(useRole ? { role: unSel.value, password: pw } : { username: un, password: pw }),
     })
       .then(function (r) {
         return r.json().then(function (body) {
@@ -8092,6 +9693,59 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .qc-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; color: #fff; }
 .qc-Unused { background: #5a6b8c; } .qc-Unlocked { background: #b8920f; } .qc-Completed { background: #1f9d6b; } .qc-Revoked { background: #8a8a8a; }
 .qc-table td .qc-code { font-size: .92rem; }
+
+/* ---------- Hover feedback for everything clickable in the dashboard ---------- */
+/* Smooth, quick colour changes on the things people click. */
+.adm-tabs button, .sh-pick, .perm-row, .adm-actions .btn, .linkbtn, .adm-brand, .adm-select select, .filters select {
+  transition: background-color .15s, color .15s, border-color .15s, opacity .15s, box-shadow .15s;
+}
+.perm-row:has(input:disabled) { cursor: not-allowed; }
+
+/* Only for devices that really hover (mouse, trackpad), so a tap on a phone does not leave a button "stuck" lit. */
+@media (hover: hover) {
+  .adm-brand:hover { opacity: .85; }
+
+  /* Tabs */
+  .adm-tabs button:hover { color: var(--violet-deep); background: var(--purple-soft); border-radius: 10px 10px 0 0; }
+  .adm-tabs button[aria-selected="true"]:hover { background: var(--purple-soft); }
+
+  /* Header buttons (white on purple): lighten, never turn white-on-white */
+  body.adm .adm-actions .btn:hover { background: rgba(255, 255, 255, .24); border-color: #fff; color: #fff; }
+
+  /* Outline buttons in cards, tables and dialogs: Copy, Edit, Cancel, Reload, Close, pager, Show all */
+  body.adm .ghost:hover { background: var(--purple-soft); border-color: var(--violet); color: var(--violet-deep); }
+  body.adm .sh-del:hover { background: rgba(192, 38, 45, .1); border-color: var(--danger); color: var(--danger); }
+  body.adm .ghost:active { transform: translateY(1px); }
+
+  /* Table chooser pills */
+  .sh-pick:hover:not([aria-pressed="true"]) { background: var(--purple-soft); }
+  .sh-pick[aria-pressed="true"]:hover { background: var(--violet); border-color: var(--violet); }
+
+  /* Role access checklist rows (not the locked ones) */
+  .perm-row:hover { background: var(--purple-soft); border-color: var(--violet); }
+  .perm-row:has(input:disabled):hover { background: none; border-color: var(--line, #e3dff0); }
+
+  /* Text-style buttons (row numbers, "Edit") and dropdowns */
+  .linkbtn:hover { text-decoration-color: var(--violet); }
+  .adm-select select:hover, .filters select:hover, .sh-dlg select:not(:disabled):hover { border-color: var(--violet); }
+}
+
+/* ID cards tab */
+.idc-admin { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 20px; margin-top: 14px; align-items: start; }
+.idc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 640px; overflow: auto; }
+.idc-item { width: 100%; text-align: left; display: grid; justify-items: start; justify-content: stretch; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font: inherit; color: var(--ink); }
+.idc-item b { font-size: .95rem; }
+.idc-item span { font-size: .78rem; color: var(--muted); }
+.idc-item:hover { border-color: var(--violet); }
+.idc-list li.on .idc-item { border-color: var(--violet); background: var(--bone); }
+.idc-view .pass-actions { display: flex; justify-content: center; margin-top: 12px; }
+.cert-admin { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
+.cert-signer { margin: 2px 0 14px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; background: #fff; max-width: 420px; display: grid; gap: 4px; }
+.cert-signer b { font-size: .98rem; }
+.cert-signer span { font-size: .84rem; color: var(--muted); }
+.cert-signer img { max-width: 100%; max-height: 90px; justify-self: start; margin-top: 4px; }
+.cert-signer .warn { color: #8a5a00; font-weight: 600; }
+@media (max-width: 760px) { .idc-admin { grid-template-columns: 1fr; } .idc-list { max-height: 260px; } }
 ```
 
 #### `public/styles.css`
@@ -8175,7 +9829,7 @@ a { color: inherit; }
   mask-image: linear-gradient(to top, #000 10%, transparent 100%);
 }
 
-.brandbar { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+.brandbar { display: flex; align-items: center; justify-content: center; gap: 14px; text-align: center; text-decoration: none; }
 .brandbar img { width: 54px; height: auto; display: block; }
 .brandbar .name { font-family: var(--display); font-weight: 800; font-size: 1.5rem; letter-spacing: .12em; line-height: 1; }
 .brandbar .tag { display: block; font-family: var(--body); font-weight: 500; font-size: .78rem; letter-spacing: .02em; opacity: .75; margin-top: 5px; }
@@ -8353,11 +10007,11 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .ghost:hover { border-color: var(--violet); background: #fff; }
 
 /* ---------- Student ID card ---------- */
-.cardwrap { container-type: inline-size; width: 100%; max-width: 360px; margin: 0 auto; }
+.cardwrap { container-type: inline-size; width: 100%; max-width: 440px; margin: 0 auto; }
 
 .idc {
   --accent: #b9a8c4;
-  font-size: 4.2cqw;
+  font-size: 4.7cqw;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -8371,11 +10025,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   animation: passIn .55s cubic-bezier(.2, .8, .2, 1) both;
 }
 .idc[data-status="certified"] { --accent: #5ee0a4; }
-.idc[data-status="graduate"] { --accent: #e8b64c; }
 .idc[data-status="alumni-member"] { --accent: #f08ad9; }
-.idc[data-status="mentor"] { --accent: #5fd3e8; }
-.idc[data-status="staff-member"] { --accent: #9db4ff; }
-.idc[data-status="ceo"] { --accent: #e8b64c; }
 .idc::before {
   content: "";
   position: absolute; z-index: -1;
@@ -8390,12 +10040,18 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   height: .38em; background: var(--accent);
 }
 
-.idc-top { display: flex; align-items: center; justify-content: space-between; gap: .8em; padding: 1.35em 0 1.05em; }
+.idc-top { display: flex; align-items: center; justify-content: center; gap: .8em; padding: 1.1em 0 .35em; }
 .idc-brand { display: flex; align-items: center; gap: .6em; font-family: var(--display); font-weight: 800; letter-spacing: .12em; font-size: 1.05em; }
 .idc-brand img { width: 1.9em; height: auto; display: block; }
-.idc-kind { font-size: .78em; opacity: .7; }
+.idc-kind {
+  margin: 0 -1.3em; padding: .3em 1.3em; text-align: center;
+  font-family: var(--display); font-weight: 800; font-size: 1.2em; letter-spacing: .16em; text-transform: uppercase;
+  color: #fff; background: transparent;
+}
+.idc-roleline { margin: 0 0 .5em; font-family: var(--display); font-weight: 800; font-size: 1.3em; line-height: 1.15; color: var(--accent); word-break: break-word; }
+.idc[data-status="team-member"] { --accent: #5fd3e8; }
 
-.idc-hero { display: grid; grid-template-columns: 9.4em minmax(0, 1fr); gap: 1.5em; align-items: start; }
+.idc-hero { min-height: 13.6em; margin-top: .6em; display: grid; grid-template-columns: 9.4em minmax(0, 1fr); gap: 1.5em; align-items: start; }
 .idc-photo {
   position: relative;
   width: 9.4em; height: 11.75em;
@@ -8423,16 +10079,17 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .idc-flag-emoji { font-size: 1.6em; line-height: 1; }
 
 .idc-facts { margin: 0; display: grid; gap: .8em; }
-.idc-facts dt { font-size: .72em; opacity: .62; line-height: 1.2; }
-.idc-facts dd { margin: .12em 0 0; font-weight: 600; font-size: .96em; line-height: 1.2; word-break: break-word; }
+.idc-facts dt { font-size: .82em; opacity: .62; line-height: 1.2; }
+.idc-facts dd { margin: .12em 0 0; font-weight: 700; font-size: 1.08em; line-height: 1.2; word-break: break-word; }
 
-.idc-name { font-family: var(--display); font-weight: 700; font-size: 1.75em; line-height: 1.08; letter-spacing: -.02em; margin: 1.35em 0 .25em; word-break: break-word; }
-.idc-reg { margin: 0; font-weight: 600; letter-spacing: .1em; font-size: 1.02em; font-variant-numeric: tabular-nums; opacity: .92; }
+.idc-name { text-transform: uppercase; font-family: var(--display); font-weight: 700; font-size: 2em; line-height: 1.08; letter-spacing: -.02em; margin: 1.2em 0 .3em; word-break: break-word; }
+.idc-reg { margin: 0; font-weight: 700; letter-spacing: .1em; font-size: 1.15em; font-variant-numeric: tabular-nums; opacity: .92; }
 
 .idc-statusrow { display: flex; align-items: center; justify-content: space-between; gap: .6em; margin: 1em 0 0; min-height: 3.2em; }
+.idc-statusrow-solo { justify-content: flex-end; }
 .idc-statuscol { display: grid; gap: .5em; justify-items: start; }
-.idc-since { font-size: .8em; opacity: .7; }
-.idc-stamp { flex: none; width: 8.4em; height: 8.4em; margin: -1.6em -.4em -1.9em 0; transform: rotate(-13deg); color: var(--accent); filter: drop-shadow(0 0 .02em currentColor); opacity: .95; pointer-events: none; }
+.idc-since { font-size: .95em; opacity: .7; }
+.idc-stamp { flex: none; width: 7.6em; height: 7.6em; margin: -1.4em .2em -1.6em 0; transform: rotate(-13deg); color: var(--accent); filter: drop-shadow(0 0 .02em currentColor); opacity: .95; pointer-events: none; }
 .idc-stamp-svg { width: 100%; height: 100%; display: block; }
 .st-ring { fill: none; stroke: currentColor; }
 .st-ring-thick { stroke-width: 5; }
@@ -8447,31 +10104,29 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   display: inline-flex; align-items: center; gap: .55em;
   padding: .5em .95em .5em .8em;
   border-radius: 999px;
-  font-weight: 700; font-size: .88em;
+  font-weight: 800; font-size: 1.1em; white-space: nowrap;
   background: rgba(255, 255, 255, .12);
   border: 1px solid rgba(255, 255, 255, .24);
   color: var(--accent);
 }
 .status::before { content: ""; width: .6em; height: .6em; border-radius: 50%; background: currentColor; }
 .status span { color: #fff; }
-.idc[data-status="ceo"] .status { background: linear-gradient(135deg, #c98a12, #e8b64c); border-color: transparent; color: #fff; }
-.idc[data-status="ceo"] .status span { color: #2a1700; }
 
-.idc-verify { display: flex; align-items: center; gap: 1.1em; margin: 1.5em 0 0; padding: 1.1em 0 1.2em; border-top: 1px dashed rgba(255, 255, 255, .28); }
-.idc-qr { flex: none; width: 7.6em; height: 7.6em; padding: .3em; background: #fff; border-radius: .8em; }
+.idc-verify { display: flex; align-items: center; gap: 1em; margin: .9em 0 0; padding: .8em 0 1em; border-top: 1px dashed rgba(255, 255, 255, .28); }
+.idc-qr { flex: none; width: 6em; height: 6em; padding: .3em; background: #fff; border-radius: .8em; }
 .idc-qr svg { width: 100%; height: 100%; display: block; }
-.idc-vtext { display: grid; gap: .35em; font-size: .86em; line-height: 1.3; }
+.idc-vtext { display: grid; gap: .35em; font-size: .98em; line-height: 1.3; }
 .idc-vtext strong { font-size: 1.1em; }
 .idc-vtext span { opacity: .72; }
 .idc-vtext .idc-issued { opacity: .55; font-size: .92em; }
 .idc-foot { margin: 0 -1.3em; padding: 1em 1.3em; text-align: center; background: rgba(0, 0, 0, .28); }
-.idc-foot span { font-size: .72em; letter-spacing: .06em; opacity: .95; }
+.idc-foot span { font-size: .85em; letter-spacing: .06em; opacity: .95; }
 
 .success-head { margin-bottom: 22px; }
 .success-head .tick { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--violet); margin-bottom: 14px; }
 .success-head .tick svg { width: 20px; height: 20px; }
 .note { margin: 18px 0 0; font-size: .9rem; color: var(--muted); }
-.pass-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; max-width: 360px; margin-left: auto; margin-right: auto; }
+.pass-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; max-width: 360px; margin-left: auto; margin-right: auto; }
 .live { max-width: 360px; margin: 14px auto 0; font-size: .84rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #1f9d6b; box-shadow: 0 0 0 4px rgba(31, 157, 107, .18); }
 
@@ -8512,6 +10167,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   .panel { padding: 24px 20px 28px; gap: 22px; }
   .panel::before { width: 110%; right: -30%; bottom: -30%; }
   .panel::after { display: none; }
+  .brandbar { justify-content: flex-start; text-align: left; } /* phones keep the logo at the left; only computers centre it */
   .brandbar img { width: 42px; }
   .brandbar .name { font-size: 1.25rem; }
   .pitch h1 { font-size: clamp(1.9rem, 8vw, 2.5rem); max-width: 16ch; margin-bottom: 12px; }
@@ -8527,7 +10183,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 @media print {
   body * { visibility: hidden; }
   .cardwrap, .cardwrap * { visibility: visible; }
-  .cardwrap { position: absolute; left: 0; top: 0; max-width: 360px; }
+  .cardwrap { position: absolute; left: 0; top: 0; max-width: 440px; }
   .idc { box-shadow: none; animation: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -8662,7 +10318,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .journey-pct { font-family: var(--display); font-weight: 800; font-size: 1.5rem; color: var(--violet-deep); }
 .journey-sub { font-size: .88rem; color: var(--muted); }
 
-/* ---------- Mentorship Handbook ---------- */
+/* ---------- Handbook ---------- */
 .hb-progress { display: grid; gap: 10px; margin: 0 0 22px; padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: 18px; }
 .hb-progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .hb-progress-top strong { font-family: var(--display); font-size: 1.05rem; }
@@ -8725,16 +10381,16 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
     justify-content: flex-start;
   }
   .brandbar { order: 1; }
-  .panel .nav { order: 2; display: flex; flex-wrap: wrap; gap: 8px; }
+  .panel .nav { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
   .panel .nav a { padding: 10px 16px; border-radius: 999px; font-size: .95rem; }
   .panel .nav svg { width: 18px; height: 18px; }
   .panel .pitch { order: 3; margin-top: auto; }
 }
 
 /* ---------- Social icons, Deriv button, About / Contact (editable from /admin) ---------- */
-.social { display: grid; gap: 14px; }
+.social { display: grid; gap: 14px; justify-items: center; width: 100%; }
 .social[hidden] { display: none; }
-.soc-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.soc-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .soc {
   appearance: none; cursor: pointer; text-decoration: none; font: inherit;
   display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%;
@@ -8744,6 +10400,21 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .soc svg { width: 21px; height: 21px; }
 .soc:hover { background: #fff; color: var(--violet-deep); transform: translateY(-2px); }
 .soc:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+/* The platform icons keep their official brand colours on the same see-through circle as About and Contact.
+   X and TikTok use white, the official mark on dark backgrounds (black would vanish on the dark panel). The call
+   icon is green. */
+.soc-facebook, .soc-whatsapp, .soc-tiktok, .soc-x, .soc-telegram, .soc-youtube, .soc-contact { color: var(--brand); }
+.soc-facebook { --brand: #1877f2; }
+.soc-whatsapp { --brand: #25d366; }
+.soc-tiktok { --brand: #fff; }
+.soc-x { --brand: #fff; }
+.soc-telegram { --brand: #26a5e4; }
+.soc-youtube { --brand: #ff2d2d; }
+.soc-contact { --brand: #25d366; }
+.soc-tiktok svg { filter: drop-shadow(-1px -1px 0 #25f4ee) drop-shadow(1px 1px 0 #fe2c55); } /* TikTok's cyan and red edge */
+.soc-facebook:hover, .soc-whatsapp:hover, .soc-tiktok:hover, .soc-x:hover, .soc-telegram:hover, .soc-youtube:hover, .soc-contact:hover {
+  background: rgba(255, 255, 255, .22); border-color: rgba(255, 255, 255, .6); color: var(--brand);
+}
 .deriv-cta {
   display: inline-flex; align-items: center; justify-content: center; text-align: center;
   padding: 13px 20px; border-radius: 14px; font-weight: 800; text-decoration: none;
@@ -8752,7 +10423,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .deriv-cta:hover { background: var(--gold); }
 .deriv-cta:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 @media (min-width: 901px) { .panel .social { order: 4; } }
-@media (max-width: 900px) { .social { justify-items: start; } }
+@media (max-width: 900px) { .social { justify-items: center; } }
 
 .info-dlg { border: 0; border-radius: 20px; padding: 0; max-width: min(440px, calc(100vw - 32px)); width: 100%; color: var(--ink, #1c0f20); }
 .info-dlg::backdrop { background: rgba(30, 6, 36, .55); }
@@ -8771,6 +10442,117 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .hb-video-link { display: inline-block; margin-top: 8px; font-size: .85rem; font-weight: 600; color: var(--violet-deep); }
 .hb-video-soon { margin: 0; color: var(--muted); font-size: .92rem; }
 @media print { .hb-video { display: none; } }
+
+/* ---- Hover feedback for everything clickable ----
+   One shared layer for every page (admin.css loads after this). The hand-made hover styles above and in admin.css
+   are more specific, so they still win; this only fills the gaps. Zero-specificity :where() keeps it that way. */
+:where(a[href], button, [role="button"], [role="tab"], summary, select, label[for],
+  input[type="checkbox"], input[type="radio"], input[type="file"], input[type="submit"], input[type="date"]) {
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease,
+    opacity .15s ease, filter .15s ease, transform .15s ease;
+}
+:where(button:disabled, [aria-disabled="true"], input:disabled, select:disabled) { cursor: not-allowed; }
+
+@media (hover: hover) {
+  /* logo / brand links */
+  .brandbar:hover, .adm-brand:hover { opacity: .85; }
+  /* text links inside content */
+  .notice-link:hover { color: var(--violet); text-decoration: underline; text-underline-offset: 3px; }
+  :where(p, td, li, .hb-article) a[href]:not([class]):hover { text-decoration: underline; text-underline-offset: 3px; }
+  /* buttons that have no look of their own for hover */
+  .btn:not(.primary):not(.ghost):not(.deriv-cta):not(.soc):hover { filter: brightness(.94); }
+  :where(button:not([class]):not(:disabled), [role="button"]:not([class]), summary):hover { filter: brightness(.9); }
+  /* the photo picker: frame and its button react together */
+  .photo-pick:hover .photo-frame { border-color: var(--violet); background: var(--purple-soft); }
+  /* dropdowns, date boxes, checkboxes, radios, file inputs */
+  select:not(:disabled):hover, input[type="date"]:not(:disabled):hover { border-color: var(--violet); }
+  input[type="checkbox"]:not(:disabled):hover, input[type="radio"]:not(:disabled):hover { box-shadow: 0 0 0 4px rgba(139, 31, 142, .15); }
+  input[type="file"]:not(:disabled):hover { filter: brightness(.94); }
+  label[for]:hover { color: var(--violet-deep); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(a[href], button, [role="button"], [role="tab"], summary, select, label[for]) { transition: none; }
+}
+
+.photo-edit { max-width: 360px; margin: 10px auto 0; display: grid; gap: 6px; text-align: center; }
+.photo-edit .btn { cursor: pointer; }
+.photo-edit input:focus-visible + .btn { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* Workbook downloads */
+.wb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wb-row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.wb-row .hb-chapter-txt { flex: 1; }
+.wb-row .btn { flex: none; padding: 8px 14px; min-height: 0; font-size: .85rem; }
+.wb-soon { font-size: .8rem; color: var(--muted); flex: none; }
+.wb-note { margin: 14px 0 0; font-size: .85rem; color: var(--muted); }
+
+/* Signature on the ID card and the signature box */
+.idc-sig { display: grid; justify-items: center; gap: 2px; margin: .5em 0 0; }
+.idc-sig img { height: 3.2em; max-width: 72%; object-fit: contain; }
+.idc-sig span { text-align: center; font-size: .58em; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+.sig { display: grid; gap: 10px; }
+.sig-intro { margin: 0 0 8px; font-size: .84rem; color: var(--muted); }
+.sig-tabs { display: flex; gap: 8px; }
+.sig-tab { flex: 1; min-height: 40px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; font: inherit; font-weight: 700; font-size: .88rem; color: var(--muted); cursor: pointer; }
+.sig-tab[aria-pressed="true"] { border-color: var(--violet); color: var(--violet-deep); background: var(--purple-soft, #f6eaf7); }
+.sig-tab:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sig-pane { display: grid; gap: 8px; justify-items: start; }
+.sig-pane[hidden] { display: none; }
+.sig-box { position: relative; width: 100%; aspect-ratio: 3 / 1; background: #fff; border: 1.5px dashed var(--violet); border-radius: 14px; overflow: hidden; }
+.sig-pad { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.sig-line { position: absolute; left: 12px; bottom: 6px; font-size: .72rem; color: var(--muted); pointer-events: none; }
+.sig-preview { display: grid; place-items: center; }
+.sig-preview img { max-width: 90%; max-height: 90%; object-fit: contain; }
+.sig-clear, .sig-pane .btn { width: fit-content; height: 40px; padding: 0 16px; font-size: .9rem; }
+.sig-hint { margin: 0; font-size: .82rem; color: var(--muted); }
+.sig-err { margin: 0; min-height: 1em; font-size: .85rem; color: #b3261e; }
+.sig-edit { margin-top: 10px; display: grid; gap: 10px; }
+#sigPanel { display: grid; gap: 10px; padding: 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+#sigPanel[hidden] { display: none; }
+
+/* Terms and conditions on the registration form */
+.terms-check { display: flex; align-items: flex-start; gap: 10px; font-size: .92rem; line-height: 1.4; cursor: pointer; }
+.terms-check input { flex: none; width: 20px; height: 20px; margin-top: 2px; }
+.terms-check a { color: var(--violet-deep); font-weight: 700; }
+.terms-text { margin-top: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .84rem; line-height: 1.45; }
+.terms-text summary { cursor: pointer; font-weight: 700; color: var(--violet-deep); }
+.terms-text ol { margin: 10px 0 0; padding-left: 1.2em; display: grid; gap: 8px; }
+
+.sig-placeholder { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.15rem; font-weight: 600; color: #8a7a96; pointer-events: none; }
+.sig-placeholder[hidden] { display: none; }
+.signout-row { display: grid; margin: 22px auto 0; max-width: 360px; }
+
+/* Age requirement pop-up */
+.dobdlg { width: min(92vw, 440px); border: 0; border-radius: 18px; padding: 22px; box-shadow: 0 20px 60px rgba(30, 8, 40, .45); }
+.dobdlg::backdrop { background: rgba(20, 6, 30, .62); }
+.dobdlg h2 { margin: 0 0 10px; font-size: 1.25rem; }
+.dobdlg p { margin: 0 0 14px; line-height: 1.45; }
+.dobdlg .btn { margin-top: 10px; }
+.dobdlg form { display: grid; gap: 8px; }
+.dobdlg label { font-weight: 700; font-size: .9rem; }
+.dobdlg input[type="date"] { width: 100%; }
+.dob-warn { padding: 10px 12px; background: #fff6df; border: 1px solid var(--gold); border-radius: 12px; font-size: .88rem; }
+.photo-dlg-preview { width: 120px; height: 150px; object-fit: cover; border-radius: 12px; border: 2px solid var(--violet); justify-self: center; background: #eee; }
+.dobdlg label.btn { display: grid; place-items: center; text-align: center; cursor: pointer; }
+
+
+/* ---------- Certificate of completion ---------- */
+.cert-frame { width: 100%; max-width: 900px; margin: 0 auto; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 10px 34px rgba(60, 14, 70, .18), 0 0 0 1px rgba(60, 14, 70, .08); }
+.cert-svg { display: block; width: 100%; height: auto; }
+.cert-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 14px; }
+.cert-actions .btn { width: auto; min-width: 190px; }
+.cert-block { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+.cert-block h3 { margin: 0 0 4px; font-size: 1.15rem; }
+.cert-note { margin: 0 0 14px; font-size: .86rem; color: var(--muted); }
+.cert-verified { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-weight: 700; color: #17724f; }
+.cert-verified::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #1f9d6b; box-shadow: 0 0 0 4px rgba(31, 157, 107, .18); }
+.cert-none { padding: 14px 16px; border-radius: 12px; background: var(--bone, #f6f1f7); color: var(--ink); }
+
+/* ---------- Find a student: ID card / Certificate dropdown ---------- */
+.kind-pick { margin: 0 0 22px; }
+.kind-pick label { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 600; color: var(--muted); }
+.kind-pick select { width: 100%; font: inherit; font-weight: 600; padding: 12px 14px; border-radius: 12px; border: 1px solid currentColor; border-color: rgba(120,90,140,.35); background: #fff; color: inherit; }
 ```
 
 #### `public/links.js`
@@ -8896,10 +10678,10 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
       var href = safeUrl(v[k]);
       if (href) row.appendChild(iconLink(k, href));
     });
-    var about = String(v.about || "").trim();
-    if (about) row.appendChild(iconButton("about", function () { showAbout(about); }));
     var phone = String(v.contact || "").trim();
     if (digits(phone).length >= 7) row.appendChild(iconButton("contact", function () { showContact(phone); }));
+    var about = String(v.about || "").trim();
+    if (about) row.appendChild(iconButton("about", function () { showAbout(about); }));
 
     if (row.children.length) mount.appendChild(row);
     mount.hidden = !mount.children.length;
@@ -8927,11 +10709,15 @@ const FIELDS = [
   { key: "x", label: "X (Twitter)", kind: "url", hint: "https://x.com/yourname" },
   { key: "telegram", label: "Telegram", kind: "url", hint: "https://t.me/yourname" },
   { key: "youtube", label: "YouTube", kind: "url", hint: "https://youtube.com/@yourchannel" },
-  { key: "communityWhatsapp", label: "Student community: WhatsApp group or community link (students only)", kind: "url", hint: "https://chat.whatsapp.com/..." },
-  { key: "communityTelegram", label: "Student community: Telegram group link (students only)", kind: "url", hint: "https://t.me/+..." },
+  { key: "communityWhatsapp", label: "WhatsApp community group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "communityTelegram", label: "Telegram community group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
+  // Printed on every certificate. They belong to the Certificates tab (its own access), not to Site links.
+  { key: "certSignerReg", label: "Certificate: registration number of the person who signs", kind: "line", hint: "ABECFX/26/0001", max: 20, group: "certificate" },
+  { key: "certOrg", label: "Certificate: organisation name", kind: "line", hint: "Adebass Base Edge Consult FX", max: 60, group: "certificate" },
+  { key: "certRc", label: "Certificate: CAC RC number", kind: "line", hint: "9420199", max: 20, group: "certificate" },
 ];
 
 const DEFAULTS = {
@@ -8941,13 +10727,16 @@ const DEFAULTS = {
   x: "",
   telegram: "https://t.me/Abecfx",
   youtube: "https://youtube.com/@adebassbaseedgeconsultfx?si=zMhsWqnN9_9Jnm9f",
-  // Empty on purpose: until an admin sets them, the student Community page uses the official WhatsApp and Telegram above.
+  // Empty on purpose: the student Community page shows a button only once someone with the Community access sets the group.
   communityWhatsapp: "",
   communityTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
+  certSignerReg: "",
+  certOrg: "Adebass Base Edge Consult FX",
+  certRc: "9420199",
   about:
-    "Adebass Base Edge Consult (ABEC-FX) runs a forex mentorship that teaches students how to trade with discipline, " +
+    "Adebass Base Edge Consult (ABEC-FX) runs a forex course that teaches students how to trade with discipline, " +
     "risk control and a clear edge. Register to get your student number, ID card and the Mentorship Handbook.",
 };
 
@@ -8962,6 +10751,11 @@ function sanitize(input) {
   const errors = {};
   for (const f of FIELDS) {
     if (!(f.key in src)) { values[f.key] = ""; continue; }
+    if (f.kind === "line") {
+      // plain one-line text (a name, a title, a number): no links, no line breaks
+      values[f.key] = oneLine(src[f.key], f.max || 60);
+      continue;
+    }
     if (f.kind === "text") {
       values[f.key] = String(src[f.key] == null ? "" : src[f.key]).replace(/\r/g, "").trim().slice(0, f.max || 700);
       continue;
@@ -8984,13 +10778,19 @@ function sanitize(input) {
   return { values, errors };
 }
 
+// Finds a field by its sheet key, ignoring capitals (the keys are camelCase, e.g. communityWhatsapp).
+function fieldFor(key) {
+  const k = String(key || "").trim().toLowerCase();
+  return FIELDS.find((f) => f.key.toLowerCase() === k) || null;
+}
+
 // Rows from the sheet tab: [key, label, value]. Unknown keys are ignored; empty tab -> defaults.
 function fromRows(rows) {
   const out = {};
   const seen = new Set();
   for (const r of rows || []) {
-    const k = String((r && r[0]) || "").trim().toLowerCase();
-    if (FIELDS.some((f) => f.key === k)) { seen.add(k); out[k] = (r[2] == null ? "" : String(r[2])).trim(); }
+    const f = fieldFor(r && r[0]);
+    if (f) { seen.add(f.key); out[f.key] = (r[2] == null ? "" : String(r[2])).trim(); }
   }
   const { values } = sanitize(out);
   // a hand-typed value that fails the checks is dropped rather than shown
@@ -9005,22 +10805,33 @@ function toRows(values) {
 // The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
 // handed to anyone who visits the site.
 const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram"];
+// The certificate settings are not site links either: they are only sent with a certificate.
 function publicView(values) {
   const out = { ...values };
-  for (const k of STUDENT_ONLY) delete out[k];
+  for (const k of STUDENT_ONLY.concat(CERT_KEYS)) delete out[k];
   return out;
 }
 
-// What the student Community page offers: the community links, or the official channel when none is set.
+// Which fields belong to which dashboard tab. The "Site links" tab (links access) has everything without a group;
+// the "Community" tab (community access) has the two student group links. Each tab saves only its own fields.
+const COMMUNITY_KEYS = FIELDS.filter((f) => f.group === "community").map((f) => f.key);
+const CERT_KEYS = FIELDS.filter((f) => f.group === "certificate").map((f) => f.key);
+const siteFields = () => FIELDS.filter((f) => !f.group);
+const certFields = () => FIELDS.filter((f) => f.group === "certificate");
+const communityFields = () => FIELDS.filter((f) => f.group === "community");
+const pick = (values, keys) => Object.fromEntries(keys.map((k) => [k, (values && values[k]) || ""]));
+const siteKeys = () => siteFields().map((f) => f.key);
+
+// What the student Community page offers: only the groups someone set on the dashboard (no fallback).
 function communityFor(values) {
   const v = values || {};
-  return {
-    whatsapp: v.communityWhatsapp || v.whatsapp || "",
-    telegram: v.communityTelegram || v.telegram || "",
-  };
+  return { whatsapp: v.communityWhatsapp || "", telegram: v.communityTelegram || "" };
 }
 
-module.exports = { FIELDS, DEFAULTS, STUDENT_ONLY, sanitize, fromRows, toRows, publicView, communityFor };
+module.exports = {
+  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
+  siteFields, communityFields, pick, siteKeys, CERT_KEYS, certFields,
+};
 ```
 
 #### `videos.js`
@@ -9091,6 +10902,503 @@ function forStudents(values) {
 module.exports = { VIDEO_CHAPTERS, videoId, sanitize, fromRows, toRows, forStudents };
 ```
 
+#### `certificate.js`
+
+```js
+// Certificates of completion.
+//
+// A student gets a certificate once their status is Certified. Everything printed on it comes from here, so the
+// public page, the student portal and the dashboard all show the same thing:
+//   - the certificate number is the student's own registration number (ABECFX/26/0001), so each one is unique and
+//     can be checked by typing it in on the public check page
+//   - the award date is the date the student became Certified (the "Status Date" in the sheet), written as
+//     "1st June 2026" everywhere
+//   - who signs it is chosen on the dashboard's Certificates tab by registration number: the signer's name, their
+//     Team Role and the signature on their own ID card are printed on every certificate. The organisation name and
+//     the CAC RC number are set there too
+// Only a Certified student has a certificate. Anyone can look one up by registration number and see it, but only
+// the student (signed in) and the dashboard can download it.
+
+const ELIGIBLE = ["Certified"];
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTH_INDEX = {};
+MONTHS.forEach((m, i) => { MONTH_INDEX[m.toLowerCase()] = i + 1; MONTH_INDEX[m.slice(0, 3).toLowerCase()] = i + 1; });
+MONTH_INDEX.sept = 9;
+
+function realDate(y, m, d) {
+  if (!(m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 2000 && y <= 2100)) return "";
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return "";
+  return String(y) + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+}
+
+// Reads the dates people type into the sheet: 2026-06-01, 1 June 2026, 1 Jun 2026, June 1, 2026, 01/06/2026
+// (day first, like the rest of the site), with or without a time after it. Returns YYYY-MM-DD, or "" when unreadable.
+function parseDate(text) {
+  const t = String(text == null ? "" : text).trim().replace(/\s+/g, " ");
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:\b|T)/.exec(t);
+  if (m) return realDate(+m[1], +m[2], +m[3]);
+  m = /^(\d{1,2})(?:st|nd|rd|th)?[ -]([A-Za-z]{3,9})\.?,?[ -](\d{4})/.exec(t);
+  if (m && MONTH_INDEX[m[2].toLowerCase()]) return realDate(+m[3], MONTH_INDEX[m[2].toLowerCase()], +m[1]);
+  m = /^([A-Za-z]{3,9})\.? (\d{1,2})(?:st|nd|rd|th)?,? (\d{4})/.exec(t);
+  if (m && MONTH_INDEX[m[1].toLowerCase()]) return realDate(+m[3], MONTH_INDEX[m[1].toLowerCase()], +m[2]);
+  m = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})/.exec(t);
+  if (m) return realDate(+m[3], +m[2], +m[1]);
+  return "";
+}
+
+// "2026-06-01" -> "1st June 2026" (the one date style used on every certificate)
+function ordinal(n) {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return n + "th";
+  return n + (["th", "st", "nd", "rd"][n % 10] || "th");
+}
+function longDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+  return m ? ordinal(Number(m[3])) + " " + MONTHS[Number(m[2]) - 1] + " " + m[1] : "";
+}
+
+const oneLine = (v, max) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+
+function isEligible(status) {
+  return ELIGIBLE.includes(status);
+}
+
+// The certificate for one student, or null when they are not Certified.
+// card: what cardFromRow returns. settings: the certificate fields from the site links sheet.
+function forCard(card, settings) {
+  if (!card || !isEligible(card.status)) return null;
+  const s = settings || {};
+  const iso = parseDate(card.statusDate);
+  // Never print a made-up date: if the sheet's date cannot be read, show what it says, and if it is empty, none.
+  const awarded = iso ? longDate(iso) : oneLine(card.statusDate, 40);
+  const yy = parseInt(String(card.regNumber || "").split("/")[1], 10);
+  const year = iso ? Number(iso.slice(0, 4)) : Number.isNaN(yy) ? "" : 2000 + yy;
+  return {
+    certNo: card.regNumber,
+    regNumber: card.regNumber,
+    fullName: oneLine(card.fullName, 80).toUpperCase(),
+    awarded,
+    awardedISO: iso,
+    year,
+    org: oneLine(s.certOrg, 60).toUpperCase(),
+    rc: oneLine(s.certRc, 20),
+    signerName: oneLine(s.certSigner, 60),
+    signerTitle: oneLine(s.certSignerTitle, 40),
+  };
+}
+
+// Setting names the dashboard may change.
+const SETTING_KEYS = ["certSignerReg", "certOrg", "certRc"];
+
+module.exports = { ELIGIBLE, SETTING_KEYS, parseDate, longDate, isEligible, forCard };
+```
+
+#### `public/certificate.js`
+
+```js
+/*
+ * Certificate of completion: drawn as one vector picture (SVG), so it is sharp at any size and in print.
+ *   var el = window.renderCertificate(data, { signature: "<base64 PNG>", origin: location.origin, viewOnly: true });
+ *   window.downloadCertificate(el, "ABECFX/26/0001", "png" | "pdf")  -> Promise
+ * data comes from /api/certificate (see certificate.js on the server): { certNo, fullName, awarded, year, org, rc,
+ * signerName, signerTitle }. The public lookup page passes viewOnly, which adds a "view only" watermark; the
+ * student's own copy and the dashboard's copy are clean.
+ */
+(function () {
+  "use strict";
+
+  var W = 1280, H = 909;                           // the size of the original design (1280 x 909)
+  var PURPLE = "#901d85", INK = "#1d1424", BLACK = "#0d0a10", PURE_BLACK = "#000";
+  var SANS = "'Montserrat','Segoe UI',Arial,Helvetica,sans-serif";
+  var HEAVY = "'Arial Black','Segoe UI Black','Montserrat',Arial,Helvetica,sans-serif";
+  var SERIF = "'Times New Roman',Times,Georgia,serif";
+  // The real artwork taken from the approved certificate design (certificate-art.js): the bull-horn emblem and the gold seal.
+  var ART = window.CERT_ART || {};
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // Text width in pixels at a font size, measured with the browser's own fonts.
+  var ctx = null;
+  function measure(text, weight, size) {
+    try {
+      if (!ctx) ctx = document.createElement("canvas").getContext("2d");
+      ctx.font = weight + " " + size + "px " + SANS;
+      return ctx.measureText(text).width;
+    } catch (e) {
+      return text.length * size * 0.58;
+    }
+  }
+  // Largest font size (up to `max`) at which the text still fits in `width`.
+  function fit(text, weight, max, width) {
+    var w = measure(text, weight, max);
+    return w <= width ? max : Math.max(10, Math.floor(max * width / w * 10) / 10);
+  }
+  // Greedy word wrap for the paragraph; every line but the last is stretched to the full width.
+  function wrap(text, weight, size, width) {
+    var words = String(text).split(" "), lines = [], line = "";
+    words.forEach(function (w) {
+      var t = line ? line + " " + w : w;
+      if (line && measure(t, weight, size) > width) { lines.push(line); line = w; } else line = t;
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // The gold seal is the picture from the approved design (laurel wreath, stars and ribbons). Its printed year was taken out
+  // of the picture so the year printed here is always the year of the certificate.
+  function seal(year) {
+    var out = "";
+    var box = ART.sealBox || { x: 1015, y: 417, w: 200, h: 255 };
+    if (ART.seal) out += '<image x="' + box.x + '" y="' + box.y + '" width="' + box.w + '" height="' + box.h + '" preserveAspectRatio="none" href="' + ART.seal + '"/>';
+    var y = String(year || "");
+    if (/^\d{4}$/.test(y)) {
+      var t = function (txt, base) {
+        return '<text x="1095.5" y="' + base + '" font-size="30" font-weight="800" fill="' + PURPLE + '" font-family="' + SANS + '" textLength="34.5" lengthAdjust="spacingAndGlyphs">' + txt + "</text>";
+      };
+      out += t(y.slice(0, 2), 507.5) + t(y.slice(2), 533.5);
+    }
+    return "<g>" + out + "</g>";
+  }
+
+  // Round official stamp (the same design as the one on the ID card), in black ink, slightly turned like a real one.
+  function stamp(org, year) {
+    var top = String(org || "ABEC-FX").toUpperCase();
+    var topSize = Math.min(13.5, Math.floor(200 / (top.length * 0.68) * 10) / 10);
+    var bottom = "CERTIFICATE OF COMPLETION";
+    var t = function (id, str, size) {
+      return '<text font-size="' + size + '" font-weight="800" letter-spacing=".6" fill="' + BLACK + '" font-family="' + SANS + '">' +
+        '<textPath href="#' + id + '" startOffset="50%" text-anchor="middle">' + esc(str) + "</textPath></text>";
+    };
+    return '<g transform="translate(672 752) rotate(-11) scale(.68) translate(-100 -100)" opacity=".9">' +
+      '<defs><path id="stmpT" d="M 100,100 m -67,0 a 67,67 0 1,1 134,0"/><path id="stmpB" d="M 100,100 m -78,0 a 78,78 0 0,0 156,0"/></defs>' +
+      '<circle cx="100" cy="100" r="95" fill="none" stroke="' + BLACK + '" stroke-width="5"/>' +
+      '<circle cx="100" cy="100" r="88" fill="none" stroke="' + BLACK + '" stroke-width="1.6"/>' +
+      '<circle cx="100" cy="100" r="53" fill="none" stroke="' + BLACK + '" stroke-width="1.6"/>' +
+      t("stmpT", top, topSize) + t("stmpB", bottom, 10.5) +
+      '<text x="100" y="82" text-anchor="middle" font-size="10" fill="' + BLACK + '" font-family="' + SANS + '">\u2605 \u2605 \u2605</text>' +
+      '<text x="100" y="107" text-anchor="middle" font-size="21" font-weight="900" fill="' + BLACK + '" font-family="' + SANS + '">ABEC-FX</text>' +
+      '<line x1="72" y1="115" x2="128" y2="115" stroke="' + BLACK + '" stroke-width="1.6"/>' +
+      '<text x="100" y="130" text-anchor="middle" font-size="11" font-weight="800" letter-spacing="1" fill="' + BLACK + '" font-family="' + SANS + '">' + esc(year || "OFFICIAL") + "</text></g>";
+  }
+
+  function build(d, opts) {
+    var o = opts || {};
+    var org = String(d.org || "").toUpperCase();
+    var name = String(d.fullName || "").toUpperCase();
+    var s = "";
+
+    // ----- background: the exact shapes of the approved design (measured from it, so they are sharp at any size)
+    s += '<rect width="' + W + '" height="' + H + '" fill="#fff"/>';
+    s += '<polygon points="0,37 377,37 391,84 0,84" fill="' + PURPLE + '"/>';                                   // purple band, top left
+    s += '<polygon points="0,0 428,0 456,84 391,84 377,37 0,37" fill="' + PURE_BLACK + '"/>';                  // black block above it
+    s += '<line x1="431.5" y1="0" x2="519" y2="266" stroke="' + PURPLE + '" stroke-width="3"/>';                // thin purple line beside the white stripe
+    s += '<polygon points="456.5,0 1280,0 1280,877 1211.7,877 1007.6,266 544.6,266" fill="' + PURPLE + '"/>';  // big purple panel
+    s += '<polygon points="0,877 875.5,877 886,909 0,909" fill="' + PURPLE + '"/>';                             // purple strip, bottom left
+    s += '<line x1="891.5" y1="877" x2="902" y2="909" stroke="' + PURPLE + '" stroke-width="3"/>';
+    s += '<polygon points="908,876.5 1280,876.5 1280,909 918.5,909" fill="' + PURE_BLACK + '"/>';              // black strip, bottom right
+    s += '<polygon points="640,233.5 1171.5,233.5 1197,309.5 665.5,309.5" fill="' + PURE_BLACK + '"/>';         // black bar under the title
+
+    // ----- title
+    s += '<text x="575" y="181" font-size="128" font-weight="900" fill="#fff" font-family="' + HEAVY + '" textLength="619" lengthAdjust="spacingAndGlyphs">Certificate</text>';
+    s += '<text x="700" y="276.5" font-size="31" font-weight="800" fill="#fff" font-family="' + SANS + '" textLength="435" lengthAdjust="spacing">OF COMPLETION</text>';
+
+    // ----- emblem: the bull-horn logo from the design, with the name of the organisation under it
+    if (ART.logo) s += '<image x="152" y="164" width="79" height="61" preserveAspectRatio="xMidYMid meet" href="' + ART.logo + '"/>';
+    s += '<text x="102.5" y="243.7" font-size="19.5" font-weight="900" fill="' + PURPLE + '" font-family="' + HEAVY + '" textLength="180" lengthAdjust="spacingAndGlyphs">ADEBASS BASE</text>';
+    s += '<text x="131" y="262.5" font-size="17.5" font-weight="400" fill="' + PURPLE + '" font-family="' + SERIF + '" textLength="126.5" lengthAdjust="spacingAndGlyphs">EDGE CONSULT</text>';
+
+    // ----- who it is for
+    s += '<text x="82" y="396" font-size="27" font-weight="500" fill="' + INK + '" font-family="' + SANS + '">This is to certify that:</text>';
+    var ns = fit(name, 800, 60, 900);
+    s += '<text x="82" y="474" font-size="' + ns + '" font-weight="800" fill="' + PURPLE + '" font-family="' + SANS + '">' + esc(name) + '</text>';
+    s += '<line x1="82" y1="502" x2="990" y2="502" stroke="' + PURPLE + '" stroke-width="1.6" opacity=".7"/>';
+
+    // ----- the wording
+    var body = "has successfully completed the Forex Trading Training Program conducted by " + org +
+      ", a duly registered entity with the Corporate Affairs Commission (CAC). The participant demonstrated strong commitment, discipline, " +
+      "and a solid understanding of key forex trading principles, including market analysis, risk management, and trade execution.";
+    // four lines at most: a longer organisation name makes the text a little smaller instead of running into the signature
+    var size = 21, lines = wrap(body, 500, size, 910);
+    while (lines.length > 4 && size > 16) { size -= 0.5; lines = wrap(body, 500, size, 910); }
+    var y = 538, step = size * 1.5;
+    lines.forEach(function (ln, i) {
+      var last = i === lines.length - 1;
+      s += '<text x="82" y="' + y.toFixed(1) + '" font-size="' + size + '" font-weight="500" fill="' + INK + '" font-family="' + SANS + '"' +
+        (last ? "" : ' textLength="910" lengthAdjust="spacing"') + ">" + esc(ln) + "</text>";
+      y += step;
+    });
+    if (d.awarded) {
+      s += '<text x="82" y="' + (y + 10).toFixed(1) + '" font-size="23" font-weight="800" fill="' + PURPLE + '" font-family="' + SANS + '">Awarded on ' + esc(d.awarded) + "</text>";
+    }
+
+    s += seal(d.year);
+
+    // ----- signature
+    s += '<line x1="150" y1="792" x2="510" y2="792" stroke="' + INK + '" stroke-width="1.6"/>';
+    if (o.signature) {
+      s += '<image x="170" y="686" width="320" height="102" preserveAspectRatio="xMidYMax meet" href="data:image/png;base64,' + esc(o.signature) + '"/>';
+    }
+    var who = (d.signerName || "") + (d.signerTitle ? " (" + d.signerTitle + ")" : "");
+    s += '<text x="330" y="822" text-anchor="middle" font-size="' + fit(who, 600, 23, 440) + '" font-weight="600" fill="' + INK + '" font-family="' + SANS + '">' + esc(who) + "</text>";
+    s += '<text x="330" y="852" text-anchor="middle" font-size="' + fit(org, 800, 21, 440) + '" font-weight="800" fill="' + PURPLE + '" font-family="' + SANS + '">' + esc(org) + "</text>";
+
+    s += stamp(org, d.year);
+
+    // ----- certificate number (the stamp sits where the QR code used to be)
+    s += '<text x="745" y="722" font-size="13" font-weight="700" fill="#6b5a69" font-family="' + SANS + '" letter-spacing="1.6">CERTIFICATE NO.</text>';
+    s += '<text x="745" y="750" font-size="' + fit(String(d.certNo || ""), 800, 25, 172) + '" font-weight="800" fill="' + INK + '" font-family="' + SANS + '">' + esc(d.certNo || "") + "</text>";
+
+    // ----- CAC number in the black tag of the design, labelled so people know what it is
+    if (d.rc) {
+      s += '<polygon points="928,744.5 1183,744.5 1199.5,794 944.5,794" fill="' + PURE_BLACK + '"/>';
+      var rcText = "CAC RC: " + d.rc;
+      s += '<text x="1064" y="779" text-anchor="middle" font-size="' + fit(rcText, 800, 27, 220) + '" font-weight="800" fill="#fff" font-family="' + SANS + '">' + esc(rcText) + "</text>";
+    }
+
+    // ----- public look-up copies cannot be mistaken for the real download
+    if (o.viewOnly) {
+      s += '<g opacity=".1" fill="' + BLACK + '" font-family="' + SANS + '" font-weight="800" text-anchor="middle" transform="rotate(-18 640 452)">' +
+        '<text x="640" y="430" font-size="96">VIEW ONLY</text><text x="640" y="520" font-size="42" font-weight="700" letter-spacing="3">VERIFICATION COPY</text></g>';
+    }
+
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Certificate of completion for ' + esc(name) + '">' +
+      s + "</svg>";
+  }
+
+  window.renderCertificate = function (data, opts) {
+    var wrap = document.createElement("div");
+    wrap.className = "cert-frame";
+    var doc = new DOMParser().parseFromString(build(data, opts), "image/svg+xml");
+    var svg = document.importNode(doc.documentElement, true);
+    svg.removeAttribute("width"); svg.removeAttribute("height");
+    svg.setAttribute("class", "cert-svg");
+    wrap.appendChild(svg);
+    return wrap;
+  };
+
+  // ---------- download ----------
+  function toCanvas(frame, scale) {
+    return new Promise(function (resolve, reject) {
+      var svg = frame.querySelector("svg").cloneNode(true);
+      svg.setAttribute("width", W * scale); svg.setAttribute("height", H * scale);
+      svg.removeAttribute("class");
+      var xml = new XMLSerializer().serializeToString(svg);
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement("canvas");
+        c.width = W * scale; c.height = H * scale;
+        var g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(img, 0, 0, c.width, c.height);
+        resolve(c);
+      };
+      img.onerror = function () { reject(new Error("render failed")); };
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+    });
+  }
+  function save(blob, filename) {
+    var a = document.createElement("a"), url = URL.createObjectURL(blob);
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  // A one-page A4 landscape PDF holding the certificate as a high-quality picture.
+  function pdfFromJpeg(jpeg, wpx, hpx) {
+    var PW = 841.89, PH = 595.28, enc = new TextEncoder(), parts = [], offsets = [], len = 0;
+    function add(x) { var b = typeof x === "string" ? enc.encode(x) : x; parts.push(b); len += b.length; }
+    function obj(n, head, stream) {
+      offsets[n] = len;
+      add(n + " 0 obj\n" + head + "\n");
+      if (stream) { add("stream\n"); add(stream); add("\nendstream\n"); }
+      add("endobj\n");
+    }
+    var ih = PW * hpx / wpx, oy = (PH - ih) / 2;   // fit the width, keep the proportions, centre on the page
+    var content = "q " + PW + " 0 0 " + ih.toFixed(2) + " 0 " + oy.toFixed(2) + " cm /Im0 Do Q";
+    add("%PDF-1.4\n");
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    obj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + PW + " " + PH + "] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+    obj(4, "<< /Type /XObject /Subtype /Image /Width " + wpx + " /Height " + hpx + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpeg.length + " >>", jpeg);
+    obj(5, "<< /Length " + content.length + " >>", content);
+    var xref = len;
+    add("xref\n0 6\n0000000000 65535 f \n");
+    for (var i = 1; i <= 5; i++) add(("0000000000" + offsets[i]).slice(-10) + " 00000 n \n");
+    add("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF");
+    return new Blob(parts, { type: "application/pdf" });
+  }
+
+  window.downloadCertificate = function (frame, certNo, kind) {
+    var base = "ABEC-FX-Certificate-" + String(certNo || "").replace(/[^A-Za-z0-9]+/g, "-");
+    if (kind === "pdf") {
+      return toCanvas(frame, 3).then(function (c) {
+        return new Promise(function (resolve, reject) {
+          c.toBlob(function (b) {
+            if (!b) return reject(new Error("no image"));
+            b.arrayBuffer().then(function (buf) {
+              save(pdfFromJpeg(new Uint8Array(buf), c.width, c.height), base + ".pdf");
+              resolve();
+            }, reject);
+          }, "image/jpeg", 0.95);
+        });
+      });
+    }
+    return toCanvas(frame, 2).then(function (c) {
+      return new Promise(function (resolve, reject) {
+        c.toBlob(function (b) { if (!b) return reject(new Error("no image")); save(b, base + ".png"); resolve(); }, "image/png");
+      });
+    });
+  };
+})();
+```
+
+#### `public/certificate.html`
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Certificate | ABEC-FX</title>
+  <meta name="description" content="Check an ABEC-FX certificate of completion using the certificate number (registration number)." />
+  <meta name="theme-color" content="#5a1060" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="stage">
+    <aside class="panel">
+      <a class="brandbar" href="/" aria-label="ABEC-FX home">
+        <img src="/logo-white.png" alt="" />
+        <span><span class="name">ABEC-FX</span><span class="tag">Adebass Base Edge Consult</span></span>
+      </a>
+
+      <div class="pitch">
+        <h1>Check a certificate.</h1>
+        <p>Enter the certificate number to confirm a certificate is genuine.</p>
+      </div>
+
+      <nav class="nav" aria-label="Main">
+        <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2M14 10h4M14 13h3"/></svg><span>My portal</span></a>
+        <a href="/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6M17 11v6M14 14h6"/></svg><span>Register</span></a>
+        <a href="/status" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Find a student</span></a>
+      </nav>
+
+      <div class="social" id="siteLinks" hidden></div>
+    </aside>
+
+    <main class="sheet">
+      <div class="sheet-inner">
+        <div class="field kind-pick">
+          <label for="lookupKind">What do you want to check?</label>
+          <select id="lookupKind">
+            <option value="/status">ID card</option>
+            <option value="/certificate" selected>Certificate</option>
+          </select>
+        </div>
+        <h2>Check a certificate</h2>
+        <p class="lead">Enter the certificate number, for example ABECFX/26/0001. It is printed on every certificate.</p>
+
+        <form id="lookupForm" novalidate>
+          <div class="search">
+            <div class="field">
+              <label for="reg" class="sr-only">Certificate number</label>
+              <input id="reg" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" required />
+            </div>
+            <button type="submit" id="lookupBtn" class="primary" style="width:auto">Check certificate</button>
+          </div>
+          <p class="formErr" id="lookupErr" role="alert" style="margin-top:12px"></p>
+        </form>
+
+        <div class="result" id="result" hidden>
+          <p class="cert-verified" id="certOk" hidden>This certificate is genuine and was issued by ABEC-FX.</p>
+          <p class="cert-none" id="certNone" hidden></p>
+          <div id="certMount"></div>
+          <p class="cert-note" id="certView" style="text-align:center;margin-top:12px" hidden>This is a view-only copy for checking. The certificate holder can download their own copy from their ABEC-FX portal.</p>
+        </div>
+
+        <p class="sheet-foot">&copy; <span id="year"></span> Adebass Base Edge Consult</p>
+      </div>
+    </main>
+  </div>
+  <script src="/nav.js"></script>
+  <script src="/lookup-kind.js"></script>
+  <script src="/links.js"></script>
+  <script src="/certificate-art.js"></script>
+  <script src="/certificate.js"></script>
+  <script src="/certificate-page.js"></script>
+</body>
+</html>
+```
+
+#### `public/certificate-page.js`
+
+```js
+// Public certificate check: look a certificate up by its number (the student's registration number).
+// It shows a view-only copy with a watermark; downloading is only for the certificate holder (portal) and the dashboard.
+(function () {
+  var form = document.getElementById("lookupForm");
+  var input = document.getElementById("reg");
+  var err = document.getElementById("lookupErr");
+  var btn = document.getElementById("lookupBtn");
+  var result = document.getElementById("result");
+  var mount = document.getElementById("certMount");
+  var ok = document.getElementById("certOk");
+  var none = document.getElementById("certNone");
+  var view = document.getElementById("certView");
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  function show(body, reg) {
+    mount.replaceChildren();
+    if (body.eligible) {
+      none.hidden = true;
+      ok.hidden = false;
+      view.hidden = false;
+      mount.appendChild(window.renderCertificate(body.certificate, { signature: body.signature, origin: location.origin, viewOnly: true }));
+      try { history.replaceState(null, "", "/certificate?reg=" + body.certificate.certNo); } catch (e) {}
+    } else {
+      ok.hidden = true;
+      view.hidden = true;
+      none.hidden = false;
+      none.textContent = "No certificate has been issued for " + reg + " yet. A certificate is issued when a student completes the course and is certified.";
+    }
+    result.hidden = false;
+    if (window.matchMedia("(max-width: 900px)").matches) result.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function search() {
+    err.textContent = "";
+    result.hidden = true;
+    var reg = input.value.trim().toUpperCase();
+    if (!reg) { err.textContent = "Enter a certificate number to check."; input.focus(); return; }
+    btn.disabled = true;
+    btn.textContent = "Checking...";
+    fetch("/api/certificate?reg=" + encodeURIComponent(reg))
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) { err.textContent = res.body.error || "Something went wrong. Please try again."; return; }
+        show(res.body, reg);
+      })
+      .catch(function () { err.textContent = "Network problem. Check your connection and try again."; })
+      .then(function () { btn.disabled = false; btn.textContent = "Check certificate"; });
+  }
+
+  form.addEventListener("submit", function (e) { e.preventDefault(); search(); });
+
+  // Opened from a shared link (/certificate?reg=...): check it straight away.
+  var pre = new URLSearchParams(location.search).get("reg");
+  if (pre) { input.value = pre; search(); }
+})();
+```
+
 #### `status/build.js`
 
 ```js
@@ -9110,13 +11418,14 @@ const SITE_FILES = [
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
   "public/portal.html", "public/portal.js", "public/handbook.js",
-  "public/status.html", "public/status.js",
+  "public/status.html", "public/status.js", "public/lookup-kind.js",
   "public/card.js", "public/qr.js", "public/nav.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
   "public/styles.css", "public/links.js", "links.js", "videos.js",
+  "certificate.js", "public/certificate.js", "public/certificate.html", "public/certificate-page.js",
   "status/build.js",
 ];
-const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf"];
+const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf", "public/certificate-art.js"];
 const QUIZ_FILES = ["bot.js", "webapp/embed.js", "package.json", "env.example", "render.yaml"];
 
 const LANG = { js: "js", json: "json", html: "html", css: "css", yaml: "yaml", example: "bash", md: "md" };
