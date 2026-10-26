@@ -99,8 +99,8 @@ function checkPhoto(p) {
 }
 
 // The browser draws or cleans up the signature into a small transparent PNG (a few KB). Accept only that kind of file.
-function checkSignature(p, max = 46000) {
-  if (typeof p !== "string" || p.length < 200 || p.length > max) return null;
+function checkSignature(p) {
+  if (typeof p !== "string" || p.length < 200 || p.length > 46000) return null;
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(p)) return null;
   const head = Buffer.from(p.slice(0, 12), "base64");
   if (!(head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47)) return null; // PNG signature
@@ -469,16 +469,17 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
 });
 
 // ---- Certificates (see certificate.js) ----
-// Anyone can look a certificate up by registration number and SEE it (that is how it is verified, e.g. from its QR
-// code). Downloading is for the signed-in student and the dashboard. The signer's signature picture is kept on the
-// Signatures tab under a name that is not a registration number.
-const CERT_SIG_KEY = "CERTIFICATE-SIGNER";
-let certSigCache = { at: 0, value: "" };
-async function certSignature() {
-  if (Date.now() - certSigCache.at < 60000) return certSigCache.value;
+// Anyone can look a certificate up by registration number and SEE it (that is how it is verified). Downloading is for the signed-in student and the dashboard.
+// The person who signs is chosen by registration number on the dashboard. Their name, their role (the "Team Role"
+// on their record) and the signature on their own ID card are what every certificate shows, so changing the signature
+// on that card changes it on the certificates too.
+let signerSigCache = new Map(); // reg -> { at, value }
+async function signatureOf(reg) {
+  const hit = signerSigCache.get(reg);
+  if (hit && Date.now() - hit.at < 60000) return hit.value;
   let value = "";
-  try { value = (await store.getSignature(CERT_SIG_KEY)) || ""; } catch (e) { console.error("Certificate signature read failed:", e.message); return certSigCache.value; }
-  certSigCache = { at: Date.now(), value };
+  try { value = (await store.getSignature(reg)) || ""; } catch (e) { console.error("Certificate signature read failed:", e.message); return hit ? hit.value : ""; }
+  signerSigCache.set(reg, { at: Date.now(), value });
   return value;
 }
 async function certSettings() {
@@ -486,12 +487,28 @@ async function certSettings() {
   try { v = await store.readLinks(); } catch (e) { v = links.DEFAULTS; }
   return links.pick(v, links.CERT_KEYS);
 }
+// { found, regNumber, name, title, signature } for the signer's registration number.
+async function signerOf(reg, rows) {
+  const r = normaliseReg(reg);
+  if (!r) return { found: false, regNumber: "", name: "", title: "", signature: "" };
+  const row = (rows || (await store.readCached())).find((x) => (x[0] || "").toUpperCase() === r);
+  if (!row) return { found: false, regNumber: r, name: "", title: "", signature: "" };
+  const card = cardFromRow(row);
+  return { found: true, regNumber: r, name: card.fullName, title: card.teamRole || "", signature: await signatureOf(r) };
+}
+// The settings certificate.forCard prints, with the signer filled in from their record.
+async function certContext(rows) {
+  const settings = await certSettings();
+  const signer = await signerOf(settings.certSignerReg, rows);
+  return { settings: { ...settings, certSigner: signer.name, certSignerTitle: signer.title }, signature: signer.signature, signer };
+}
 // What the page needs to draw one certificate (never an email or WhatsApp number).
 async function certificateFor(row) {
   const card = cardFromRow(row);
-  const cert = certificate.forCard(card, await certSettings());
+  const ctx = await certContext();
+  const cert = certificate.forCard(card, ctx.settings);
   if (!cert) return { eligible: false, regNumber: card.regNumber, fullName: card.fullName, status: card.status };
-  return { eligible: true, certificate: cert, signature: await certSignature() };
+  return { eligible: true, certificate: cert, signature: ctx.signature };
 }
 
 app.get("/api/certificate", lookupLimiter, async (req, res) => {
@@ -1146,17 +1163,18 @@ app.get("/api/admin/id-cards/signature", adminLimiter, teamAuth, async (req, res
 });
 
 // ---- Certificates (dashboard) ----
-// Everyone Certified, newest first, with the signer's settings. Anyone with the "certificates" access can open and
-// download them, and set who signs them.
+// Everyone Certified, newest first, with the signer's details. Anyone with the "certificates" access can open and
+// download them, and choose who signs them.
 app.get("/api/admin/certificates", adminLimiter, certAuth, async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     const q = clean(req.query.q, 80).toLowerCase();
-    const settings = await certSettings();
-    const all = (await store.readCached()).filter((r) => r && r[0]).map(cardFromRow).filter((c) => certificate.isEligible(c.status));
+    const rows = (await store.readCached()).filter((r) => r && r[0]);
+    const ctx = await certContext(rows);
+    const all = rows.map(cardFromRow).filter((c) => certificate.isEligible(c.status));
     const hit = q ? all.filter((c) => [c.regNumber, c.fullName, c.country, c.state].some((v) => String(v || "").toLowerCase().includes(q))) : all;
-    const certificates = hit.slice().reverse().slice(0, 40).map((c) => certificate.forCard(c, settings));
-    res.json({ total: hit.length, shown: certificates.length, certificates, signature: await certSignature() });
+    const certificates = hit.slice().reverse().slice(0, 40).map((c) => certificate.forCard(c, ctx.settings));
+    res.json({ total: hit.length, shown: certificates.length, certificates, signature: ctx.signature });
   } catch (err) {
     console.error("Admin certificates failed:", err.message);
     res.status(500).json({ error: "Could not read the student list. Please try again shortly." });
@@ -1166,37 +1184,41 @@ app.get("/api/admin/certificates", adminLimiter, certAuth, async (req, res) => {
 app.get("/api/admin/certificate-settings", adminLimiter, certAuth, async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    certSigCache = { at: 0, value: "" };
-    res.json({ fields: links.certFields(), values: links.pick(await store.readLinks(0), links.CERT_KEYS), signature: await certSignature() });
+    signerSigCache = new Map();
+    const settings = await certSettings();
+    res.json({ fields: links.certFields(), values: settings, signer: await signerOf(settings.certSignerReg) });
   } catch (err) {
     console.error("Certificate settings read failed:", err.message);
     res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
   }
 });
 
-// Body: the four text settings, and optionally "signature" (a new base64 PNG) or "removeSignature": true.
+// Body: certSignerReg (who signs), certOrg, certRc. The signer's name, role and signature are never typed here:
+// they come from that person's own record and ID card.
 app.put("/api/admin/certificate-settings", adminLimiter, certAuth, async (req, res) => {
   const src = req.body && typeof req.body === "object" ? req.body : {};
   const body = {};
   links.CERT_KEYS.forEach((k) => { body[k] = src[k]; });
+  body.certSignerReg = String(body.certSignerReg == null ? "" : body.certSignerReg).trim().toUpperCase();
   const { values, errors } = links.sanitize(body);
   const mine = Object.fromEntries(Object.entries(errors).filter(([k]) => links.CERT_KEYS.includes(k)));
   for (const f of links.certFields()) if (!values[f.key]) mine[f.key] = "This cannot be empty: it is printed on every certificate.";
-  let sig = "";
-  if (src.signature !== undefined && src.signature !== "") {
-    // a little larger than a student's signature: it is printed big on every certificate (a cell holds up to 50,000 characters)
-    sig = checkSignature(src.signature, 49000);
-    if (!sig) mine.signature = "That signature could not be used. Draw it again, or upload a clearer picture.";
+  let signer = null;
+  if (!mine.certSignerReg) {
+    if (!normaliseReg(values.certSignerReg)) mine.certSignerReg = "Enter a registration number, e.g. ABECFX/26/0001.";
+    else {
+      signer = await signerOf(values.certSignerReg).catch(() => null);
+      if (!signer) return res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
+      if (!signer.found) mine.certSignerReg = "No student or team member has that registration number.";
+    }
   }
   if (Object.keys(mine).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors: mine });
   try {
     const current = await store.readLinks(0);
-    const merged = { ...current, ...links.pick(values, links.CERT_KEYS) };
+    const merged = { ...current, ...links.pick({ ...values, certSignerReg: signer.regNumber }, links.CERT_KEYS) };
     await store.saveLinks(merged);
-    if (sig) await store.setSignature(CERT_SIG_KEY, sig);
-    else if (src.removeSignature === true) await store.setSignature(CERT_SIG_KEY, "");
-    certSigCache = { at: 0, value: "" };
-    res.json({ ok: true, values: links.pick(merged, links.CERT_KEYS), signature: await certSignature() });
+    signerSigCache = new Map();
+    res.json({ ok: true, values: links.pick(merged, links.CERT_KEYS), signer: await signerOf(signer.regNumber) });
   } catch (err) {
     console.error("Certificate settings save failed:", err.message);
     res.status(500).json({ error: "Could not save to the sheet. Please try again shortly." });

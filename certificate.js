@@ -3,11 +3,12 @@
 // A student gets a certificate once their status is Certified. Everything printed on it comes from here, so the
 // public page, the student portal and the dashboard all show the same thing:
 //   - the certificate number is the student's own registration number (ABECFX/26/0001), so each one is unique and
-//     can be checked by typing it in, or by scanning the QR code on the certificate
+//     can be checked by typing it in on the public check page
 //   - the award date is the date the student became Certified (the "Status Date" in the sheet), written as
 //     "1st June 2026" everywhere
-//   - who signs it (name, title, signature picture), the organisation name and the CAC RC number are set on the
-//     dashboard's Certificates tab and appear on every certificate
+//   - who signs it is chosen on the dashboard's Certificates tab by registration number: the signer's name, their
+//     Team Role and the signature on their own ID card are printed on every certificate. The organisation name and
+//     the CAC RC number are set there too
 // Only a Certified student has a certificate. Anyone can look one up by registration number and see it, but only
 // the student (signed in) and the dashboard can download it.
 
@@ -82,6 +83,6 @@ function forCard(card, settings) {
 }
 
 // Setting names the dashboard may change.
-const SETTING_KEYS = ["certSigner", "certSignerTitle", "certOrg", "certRc"];
+const SETTING_KEYS = ["certSignerReg", "certOrg", "certRc"];
 
 module.exports = { ELIGIBLE, SETTING_KEYS, parseDate, longDate, isEligible, forCard };

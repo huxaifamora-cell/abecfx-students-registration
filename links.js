@@ -16,8 +16,7 @@ const FIELDS = [
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
   // Printed on every certificate. They belong to the Certificates tab (its own access), not to Site links.
-  { key: "certSigner", label: "Certificate: name of the person who signs", kind: "line", hint: "Adebisi Abass Mayowa", max: 60, group: "certificate" },
-  { key: "certSignerTitle", label: "Certificate: their title", kind: "line", hint: "CEO", max: 40, group: "certificate" },
+  { key: "certSignerReg", label: "Certificate: registration number of the person who signs", kind: "line", hint: "ABECFX/26/0001", max: 20, group: "certificate" },
   { key: "certOrg", label: "Certificate: organisation name", kind: "line", hint: "Adebass Base Edge Consult FX", max: 60, group: "certificate" },
   { key: "certRc", label: "Certificate: CAC RC number", kind: "line", hint: "9420199", max: 20, group: "certificate" },
 ];
@@ -34,8 +33,7 @@ const DEFAULTS = {
   communityTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
-  certSigner: "Adebisi Abass Mayowa",
-  certSignerTitle: "CEO",
+  certSignerReg: "",
   certOrg: "Adebass Base Edge Consult FX",
   certRc: "9420199",
   about:
