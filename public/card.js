@@ -156,10 +156,7 @@
     brand.appendChild(el("span", null, "ABEC-FX"));
     top.appendChild(brand);
     card.appendChild(top);
-    // big banner: Student / Alumni ID card. Team cards have none: it crowded the photo and the name (the card is still
-    // named for screen readers, and the stamp says "Team member").
-    if (status !== "Team Member") card.appendChild(el("div", "idc-kind", cardKind(status)));
-    else card.classList.add("idc-nokind");
+    card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Team / Alumni ID card
 
     // ---- passport photo + national flag + facts
     var hero = el("div", "idc-hero");

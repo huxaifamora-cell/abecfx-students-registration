@@ -297,7 +297,6 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 }
 .idc-roleline { margin: 0 0 .5em; font-family: var(--display); font-weight: 800; font-size: 1.3em; line-height: 1.15; color: var(--accent); word-break: break-word; }
 .idc[data-status="team-member"] { --accent: #5fd3e8; }
-.idc-nokind .idc-hero { margin-top: 1em; }
 
 .idc-hero { margin-top: .6em; display: grid; grid-template-columns: 9.4em minmax(0, 1fr); gap: 1.5em; align-items: start; }
 .idc-photo {
