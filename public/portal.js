@@ -91,8 +91,8 @@
     err.textContent = message || "";
   }
 
-  // ---- The student's ID cards: one card for each kind they hold (Student, Alumni, Team) ----
-  var cardTitles = { "Team Member": "Team ID card", "Alumni Member": "Alumni ID card" };
+  // ---- The student's ID cards: one card for each kind they hold (Student, Alumni, Staff) ----
+  var cardTitles = { "Staff Member": "Staff ID card", "Alumni Member": "Alumni ID card" };
   function cardTitle(c) { return cardTitles[c.status] || "Student ID card"; }
   // d: the portal record (with d.allCards). opts: { photoSrc, signatureSrc } shown on every card.
   function drawCards(d, opts) {

@@ -9,11 +9,11 @@
   var currentReg = "";
   var sel = document.getElementById("lookupKind");
   var kindTitle = document.getElementById("kindTitle");
-  var NAMES = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+  var NAMES = { student: "Student ID card", alumni: "Alumni ID card", staff: "Staff ID card" };
   // The card kind is "explicit" once the visitor picks one (or opens a link that names one). Until then a lookup
   // shows the person's main card, so an old QR code (/status?reg=...) still opens something the person has.
   var explicit = !!new URLSearchParams(location.search).get("kind");
-  function kindOfStatus(st) { return st === "Team Member" ? "team" : st === "Alumni Member" ? "alumni" : "student"; }
+  function kindOfStatus(st) { return st === "Staff Member" ? "staff" : st === "Alumni Member" ? "alumni" : "student"; }
   function kind() { return sel && sel.value !== "certificate" ? sel.value : "student"; }
   function labelFor() {
     var n = NAMES[kind()];
@@ -95,7 +95,7 @@
     else done();
   });
 
-  // Picking another card (Student, Alumni or Team) looks the same person up again as that card.
+  // Picking another card (Student, Alumni or Staff) looks the same person up again as that card.
   if (sel) {
     sel.addEventListener("change", function () {
       if (sel.value === "certificate") return; // lookup-kind.js opens the certificate page

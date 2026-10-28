@@ -54,7 +54,7 @@
     $("shSearch").value = "";
     me = null;
     setDashTitle();
-    teamData = null;
+    staffData = null;
     if ($("tmDlg").open) $("tmDlg").close();
     if ($("pwDlg").open) $("pwDlg").close();
     $("tmTable").replaceChildren();
@@ -89,7 +89,7 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team", idcards: "team", certificates: "certificates" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
@@ -312,13 +312,13 @@
       kpi("Total students", s.total, { kind: "all" }),
       kpi("Certified graduates", s.graduates, { kind: "graduates" }),
       kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
-      kpi("Team members", s.team, { kind: "team" }),
+      kpi("Staff members", s.staff, { kind: "staff" }),
       kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
       kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Team), so the Team and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
+    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Staff), so the Staff and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
@@ -936,7 +936,7 @@
       var editable = only ? true : d.editable.indexOf(i) >= 0;
       var wrap = el("div", "field");
       wrap.id = "sh-wrap-" + i;
-      var label = el("label", null, d.key === "students" && i === 14 ? "Team role (shown on the Team ID card)" : h + (editable ? "" : " (locked)"));
+      var label = el("label", null, d.key === "students" && i === 14 ? "Staff role (shown on the Staff ID card)" : h + (editable ? "" : " (locked)"));
       label.setAttribute("for", "sh-f-" + i);
       var input;
       var opts = d.selects && d.selects[i];
@@ -974,13 +974,13 @@
       box.appendChild(wrap);
     });
     if (d.key === "students") {
-      // The role box only shows while Team Member is ticked (or an old row still says Team Member in Status).
-      var stSel = $("sh-f-9"), teamSel = $("sh-f-16"), roleWrap = $("sh-wrap-14");
-      if (roleWrap && (teamSel || stSel)) {
+      // The role box only shows while Staff Member is ticked (or an old row still says Staff Member in Status).
+      var stSel = $("sh-f-9"), staffSel = $("sh-f-16"), roleWrap = $("sh-wrap-14");
+      if (roleWrap && (staffSel || stSel)) {
         var syncRole = function () {
-          roleWrap.hidden = !((teamSel && teamSel.value === "Yes") || (stSel && stSel.value === "Team Member"));
+          roleWrap.hidden = !((staffSel && staffSel.value === "Yes") || (stSel && stSel.value === "Staff Member"));
         };
-        if (teamSel) teamSel.addEventListener("change", syncRole);
+        if (staffSel) staffSel.addEventListener("change", syncRole);
         if (stSel) stSel.addEventListener("change", syncRole);
         syncRole();
       }
@@ -1142,18 +1142,18 @@
     });
   }
 
-  // ---------- Team ----------
-  var teamData = null; // { members, roles }
+  // ---------- Staff ----------
+  var staffData = null; // { members, roles }
   var tm = { mode: "add", member: null };
   var tmDlg = $("tmDlg");
   var TM_FIELDS = ["username", "fullName", "role", "password"];
 
-  function openTeam() {
+  function openStaff() {
     $("tmNote").textContent = "Loading...";
-    return api("/api/admin/team").then(function (r) {
-      teamData = r;
+    return api("/api/admin/staff").then(function (r) {
+      staffData = r;
       $("tmNote").textContent = "";
-      renderTeam();
+      renderStaff();
       renderRoles();
     }).catch(function (err) {
       if (err.auth) showLogin(err.message); else $("tmNote").textContent = err.message;
@@ -1161,11 +1161,11 @@
   }
 
   function roleLabel(key) {
-    var r = teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+    var r = staffData && staffData.roles.filter(function (x) { return x.key === key; })[0];
     return r ? r.label : key;
   }
 
-  function renderTeam() {
+  function renderStaff() {
     var t = $("tmTable");
     t.replaceChildren();
     var head = el("tr");
@@ -1173,9 +1173,9 @@
     head.appendChild(el("th"));
     var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
     var body = el("tbody");
-    var list = teamData ? teamData.members : [];
+    var list = staffData ? staffData.members : [];
     if (!list.length) {
-      var tr0 = el("tr"), td0 = el("td", "empty", "No team members yet. Use \"Add team member\" to create the first one.");
+      var tr0 = el("tr"), td0 = el("td", "empty", "No staff members yet. Use \"Add staff member\" to create the first one.");
       td0.colSpan = 7; tr0.appendChild(td0); body.appendChild(tr0);
     }
     list.forEach(function (m) {
@@ -1192,7 +1192,7 @@
         var b = el("button", "linkbtn", "Edit");
         b.type = "button";
         b.setAttribute("aria-label", "Edit " + m.name);
-        b.addEventListener("click", function () { openTeamDlg("edit", m); });
+        b.addEventListener("click", function () { openStaffDlg("edit", m); });
         act.appendChild(b);
       }
       tr.appendChild(act);
@@ -1201,7 +1201,7 @@
     t.appendChild(body);
   }
 
-  function showTeamErrors(errs) {
+  function showStaffErrors(errs) {
     TM_FIELDS.forEach(function (f) {
       var msg = errs && errs[f] ? errs[f] : "";
       $("tm-e-" + f).textContent = msg;
@@ -1210,11 +1210,11 @@
   }
 
   function permLabel(key) {
-    var p = teamData && teamData.permissions.filter(function (x) { return x.key === key; })[0];
+    var p = staffData && staffData.permissions.filter(function (x) { return x.key === key; })[0];
     return p ? p.label : key;
   }
   function roleFor(key) {
-    return teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+    return staffData && staffData.roles.filter(function (x) { return x.key === key; })[0];
   }
   function accessText(r) {
     return r ? r.perms.map(permLabel).join(", ") : "";
@@ -1224,13 +1224,13 @@
     $("tm-roleHelp").textContent = r ? "Can open: " + accessText(r) + "." : "";
   }
 
-  function openTeamDlg(mode, member) {
+  function openStaffDlg(mode, member) {
     tm = { mode: mode, member: member || null };
     var adding = mode === "add";
-    $("tmDlgTitle").textContent = adding ? "Add team member" : member.name;
+    $("tmDlgTitle").textContent = adding ? "Add staff member" : member.name;
     var sel = $("tm-role");
     sel.replaceChildren();
-    (teamData ? teamData.roles : []).forEach(function (r) {
+    (staffData ? staffData.roles : []).forEach(function (r) {
       // hide roles that allow more than the signed-in person has, except the one this member already holds
       if (!r.canGrant && !(member && member.role === r.key)) return;
       var o = el("option", null, r.label + (r.builtin ? "" : " (custom)")); o.value = r.key;
@@ -1254,21 +1254,21 @@
     sel.disabled = self;
     $("tm-active").disabled = self;
     $("tmRemove").hidden = adding || self;
-    $("tmSave").textContent = adding ? "Add team member" : "Save changes";
+    $("tmSave").textContent = adding ? "Add staff member" : "Save changes";
     $("tmDlgErr").textContent = "";
-    showTeamErrors(null);
+    showStaffErrors(null);
     roleHelp();
     tmDlg.showModal();
     (adding ? $("tm-username") : $("tm-fullName")).focus();
   }
 
-  function teamFail(err) {
+  function staffFail(err) {
     if (err.auth) { tmDlg.close(); return showLogin(err.message); }
-    showTeamErrors(err.fields);
+    showStaffErrors(err.fields);
     $("tmDlgErr").textContent = err.message;
   }
 
-  $("tmAdd").addEventListener("click", function () { openTeamDlg("add"); });
+  $("tmAdd").addEventListener("click", function () { openStaffDlg("add"); });
   $("tmDlgClose").addEventListener("click", function () { tmDlg.close(); });
   tmDlg.addEventListener("click", function (e) { if (e.target === tmDlg) tmDlg.close(); });
   $("tm-role").addEventListener("change", roleHelp);
@@ -1281,33 +1281,33 @@
     var btn = $("tmSave");
     btn.disabled = true;
     $("tmDlgErr").textContent = "Saving...";
-    showTeamErrors(null);
+    showStaffErrors(null);
     var job;
     if (tm.mode === "add") {
-      job = api("/api/admin/team", "POST", {
+      job = api("/api/admin/staff", "POST", {
         username: $("tm-username").value, fullName: $("tm-fullName").value, role: $("tm-role").value, password: $("tm-password").value,
       });
     } else {
       var body = { fullName: $("tm-fullName").value, role: $("tm-role").value, active: $("tm-active").value === "yes" };
       if ($("tm-password").value) body.password = $("tm-password").value;
-      job = api("/api/admin/team/" + encodeURIComponent(tm.member.username), "PUT", body);
+      job = api("/api/admin/staff/" + encodeURIComponent(tm.member.username), "PUT", body);
     }
     job.then(function () {
       tmDlg.close();
-      return openTeam().then(function () { $("tmNote").textContent = tm.mode === "add" ? "Team member added." : "Changes saved."; });
-    }).catch(teamFail).then(function () { btn.disabled = false; });
+      return openStaff().then(function () { $("tmNote").textContent = tm.mode === "add" ? "Staff member added." : "Changes saved."; });
+    }).catch(staffFail).then(function () { btn.disabled = false; });
   });
 
   $("tmRemove").addEventListener("click", function () {
     var m = tm.member;
     if (!m) return;
-    if (!window.confirm("Remove " + m.name + " (" + m.username + ") from the team? They will be signed out and cannot sign in again. This cannot be undone.")) return;
+    if (!window.confirm("Remove " + m.name + " (" + m.username + ") from the staff? They will be signed out and cannot sign in again. This cannot be undone.")) return;
     var btn = this;
     btn.disabled = true;
-    api("/api/admin/team/" + encodeURIComponent(m.username) + "/delete", "POST", {}).then(function () {
+    api("/api/admin/staff/" + encodeURIComponent(m.username) + "/delete", "POST", {}).then(function () {
       tmDlg.close();
-      return openTeam().then(function () { $("tmNote").textContent = m.name + " was removed."; });
-    }).catch(teamFail).then(function () { btn.disabled = false; });
+      return openStaff().then(function () { $("tmNote").textContent = m.name + " was removed."; });
+    }).catch(staffFail).then(function () { btn.disabled = false; });
   });
 
 
@@ -1324,7 +1324,7 @@
     head.appendChild(el("th"));
     var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
     var body = el("tbody");
-    var list = teamData ? teamData.roles : [];
+    var list = staffData ? staffData.roles : [];
     list.forEach(function (r) {
       var tr = el("tr");
       tr.appendChild(el("td", null, r.label));
@@ -1361,7 +1361,7 @@
     $("rl-name").value = adding ? "" : role.label;
     var box = $("rl-perms");
     box.replaceChildren();
-    (teamData ? teamData.permissions : []).forEach(function (p) {
+    (staffData ? staffData.permissions : []).forEach(function (p) {
       var row = el("label", "perm-row");
       var cb = document.createElement("input");
       cb.type = "checkbox";
@@ -1419,7 +1419,7 @@
     job.then(function () {
       rlDlg.close();
       var msg = rl.mode === "add" ? "Role created." : "Role saved. People with this role get the new access straight away.";
-      return openTeam().then(function () { $("rlNote").textContent = msg; });
+      return openStaff().then(function () { $("rlNote").textContent = msg; });
     }).catch(roleFail).then(function () { btn.disabled = false; });
   });
 
@@ -1431,7 +1431,7 @@
     btn.disabled = true;
     api("/api/admin/roles/" + encodeURIComponent(r.key) + "/delete", "POST", {}).then(function () {
       rlDlg.close();
-      return openTeam().then(function () { $("rlNote").textContent = "The role " + r.label + " was deleted."; });
+      return openStaff().then(function () { $("rlNote").textContent = "The role " + r.label + " was deleted."; });
     }).catch(roleFail).then(function () { btn.disabled = false; });
   });
 
@@ -1472,14 +1472,14 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team", "idcards", "certificates"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "staff", "idcards", "certificates"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes" || name === "idcards" || name === "certificates";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "idcards" || name === "certificates";
     if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
-    if (name === "team") openTeam();
+    if (name === "staff") openStaff();
     if (name === "idcards") openIdCards();
     if (name === "certificates") openCertificates();
     if (name === "videos") {
@@ -1502,14 +1502,14 @@
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
-  $("tab-team").addEventListener("click", function () { setTab("team"); });
+  $("tab-staff").addEventListener("click", function () { setTab("staff"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
   $("tab-certificates").addEventListener("click", function () { setTab("certificates"); });
 
   // ---------- ID cards (admin) ----------
   var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;
   function idKindName(card) {
-    return card.status === "Team Member" ? "Team" : card.status === "Alumni Member" ? "Alumni" : "Student";
+    return card.status === "Staff Member" ? "Staff" : card.status === "Alumni Member" ? "Alumni" : "Student";
   }
   // Draws every ID card the person holds, one under the other, each with its own download button.
   function drawIdCards(c, signatureSrc) {
@@ -1588,7 +1588,7 @@
     var box = $("certSigner");
     box.replaceChildren();
     if (!signer || !signer.regNumber) { box.appendChild(el("span", null, "No signer chosen yet. Certificates print without a name or signature until you save one.")); return; }
-    if (!signer.found) { box.appendChild(el("span", "warn", "No student or team member has the registration number " + signer.regNumber + ".")); return; }
+    if (!signer.found) { box.appendChild(el("span", "warn", "No student or staff member has the registration number " + signer.regNumber + ".")); return; }
     box.appendChild(el("b", null, signer.name));
     box.appendChild(el("span", null, (signer.title ? signer.title + " · " : "") + signer.regNumber));
     if (signer.signature) {
@@ -1600,7 +1600,7 @@
     } else {
       box.appendChild(el("span", "warn", "They have no signature on their ID card yet. Ask them to add it in their portal; it then appears on every certificate."));
     }
-    if (!signer.title) box.appendChild(el("span", null, "No role is set on their record, so only their name prints. Set their Team Role in the Database tab to print it in brackets."));
+    if (!signer.title) box.appendChild(el("span", null, "No role is set on their record, so only their name prints. Set their Staff Role in the Database tab to print it in brackets."));
   }
   function showCertErrors(errs) {
     CERT_FIELDS.forEach(function (f) {

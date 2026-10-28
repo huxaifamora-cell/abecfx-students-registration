@@ -25,7 +25,7 @@
     var card = el("article", "idcard deal");
     card.setAttribute("data-status", slug(status));
     card.setAttribute("tabindex", "-1");
-    var kind = status === "Team Member" ? "Team" : status === "Alumni Member" ? "Alumni" : "Student";
+    var kind = status === "Staff Member" ? "Staff" : status === "Alumni Member" ? "Alumni" : "Student";
     card.setAttribute("aria-label", kind + " card for " + d.fullName);
 
     var mark = el("img", "idcard-mark");

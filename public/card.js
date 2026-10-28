@@ -11,7 +11,7 @@
   var STATUS_CLASS = {
     "Uncertified": "s-uncertified",
     "Certified": "s-certified",
-    "Team Member": "s-team",
+    "Staff Member": "s-staff",
     "Alumni Member": "s-alumni"
   };
 
@@ -39,17 +39,17 @@
     }));
   }
 
-  // The kind of card: only Uncertified and Certified people are students. Team members and alumni are not called students.
+  // The kind of card: only Uncertified and Certified people are students. Staff members and alumni are not called students.
   function cardKind(status) {
-    return status === "Team Member" ? "Team ID card" : status === "Alumni Member" ? "Alumni ID card" : "Student ID card";
+    return status === "Staff Member" ? "Staff ID card" : status === "Alumni Member" ? "Alumni ID card" : "Student ID card";
   }
 
   // What the card calls a status. A Certified student shows as "Certified".
   function statusLabel(status) { return status; }
 
-  // Round stamp: "Certified", "Team member" or "Alumni member".
-  var STAMP_TOP = { "Certified": "CERTIFIED", "Team Member": "TEAM MEMBER", "Alumni Member": "ALUMNI MEMBER" };
-  var STAMP_LABEL = { "Certified": "Certified student of ABEC-FX", "Team Member": "Team member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
+  // Round stamp: "Certified", "Staff member" or "Alumni member".
+  var STAMP_TOP = { "Certified": "CERTIFIED", "Staff Member": "STAFF MEMBER", "Alumni Member": "ALUMNI MEMBER" };
+  var STAMP_LABEL = { "Certified": "Certified student of ABEC-FX", "Staff Member": "Staff member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
   function buildStamp(status, dateText) {
     var top = STAMP_TOP[status] || "CERTIFIED";
     var label = STAMP_LABEL[status] || STAMP_LABEL.Certified;
@@ -156,7 +156,7 @@
     brand.appendChild(el("span", null, "ABEC-FX"));
     top.appendChild(brand);
     card.appendChild(top);
-    card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Team / Alumni ID card
+    card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Staff / Alumni ID card
 
     // ---- passport photo + national flag + facts
     var hero = el("div", "idc-hero");
@@ -196,7 +196,7 @@
     fact("Country", d.country);
     if (d.state) fact("State", /^abuja federal capital territory$/i.test(d.state.trim()) ? "FCT Abuja" : d.state);
     fact("Gender", d.gender);
-    if (status !== "Team Member") { // programme and admission year are student details
+    if (status !== "Staff Member") { // programme and admission year are student details
       fact("Programme", d.programme);
       fact("Admitted", d.admitted ? String(d.admitted) : "");
     } else {
@@ -213,13 +213,13 @@
       card.appendChild(mark);
     }
     card.appendChild(el("h3", "idc-name", String(d.fullName || "").toUpperCase()));
-    if (status === "Team Member" && d.teamRole) card.appendChild(el("p", "idc-roleline", d.teamRole));
+    if (status === "Staff Member" && d.staffRole) card.appendChild(el("p", "idc-roleline", d.staffRole));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 
-    // ---- status (+ stamp for certified graduates, alumni and the team)
+    // ---- status (+ stamp for certified graduates, alumni and the staff)
     var row = el("div", "idc-statusrow");
-    // A team member's card shows no status chip or "Since ..." line (the round team stamp says it); only students have a status to show.
-    if (status !== "Team Member") {
+    // A staff member's card shows no status chip or "Since ..." line (the round staff stamp says it); only students have a status to show.
+    if (status !== "Staff Member") {
       var col = el("div", "idc-statuscol");
       var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
       chip.appendChild(el("span", null, statusLabel(status)));
@@ -231,7 +231,7 @@
     } else {
       row.classList.add("idc-statusrow-solo");
     }
-    if (status === "Certified" || status === "Alumni Member" || status === "Team Member") {
+    if (status === "Certified" || status === "Alumni Member" || status === "Staff Member") {
       var stampWrap = el("div", "idc-stamp");
       stampWrap.appendChild(buildStamp(status, d.statusDate));
       row.appendChild(stampWrap);
@@ -252,7 +252,7 @@
     }
 
     // ---- QR code: opens this student's live status
-    var qrKind = status === "Team Member" ? "team" : status === "Alumni Member" ? "alumni" : "student";
+    var qrKind = status === "Staff Member" ? "staff" : status === "Alumni Member" ? "alumni" : "student";
     var url = (opts.origin || location.origin) + "/status?kind=" + qrKind + "&reg=" + d.regNumber;
     var verify = el("div", "idc-verify");
     var qr = el("div", "idc-qr");

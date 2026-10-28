@@ -52,7 +52,7 @@
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-community" aria-selected="false" aria-controls="view-community" hidden>Community</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
-        <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
+        <button type="button" role="tab" id="tab-staff" aria-selected="false" aria-controls="view-staff" hidden>Staff</button>
         <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
         <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
@@ -226,7 +226,7 @@
       <div id="view-idcards" role="tabpanel" aria-labelledby="tab-idcards" hidden>
         <article class="adm-card wide">
           <h3>ID cards</h3>
-          <p class="adm-note">Find any student or team member and open their ID card. If a person holds more than one (Student, Alumni, Team), all of their ID cards show when you click their name. Search by name, registration number, country, state or status.</p>
+          <p class="adm-note">Find any student or staff member and open their ID card. If a person holds more than one (Student, Alumni, Staff), all of their ID cards show when you click their name. Search by name, registration number, country, state or status.</p>
           <div class="field" style="margin-top:12px;max-width:520px">
             <label for="idq">Search</label>
             <input id="idq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
@@ -278,11 +278,11 @@
         </article>
       </div>
 
-      <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+      <div id="view-staff" role="tabpanel" aria-labelledby="tab-staff" hidden>
         <article class="adm-card wide">
           <div class="adm-card-head">
-            <h3>Team</h3>
-            <button type="button" class="btn ghost" id="tmAdd">Add team member</button>
+            <h3>Staff</h3>
+            <button type="button" class="btn ghost" id="tmAdd">Add staff member</button>
           </div>
           <p class="adm-note">Each person has a <b>role</b>, and each role decides what they can open. The main owner (the ADMIN_PASSWORD holder) always has full access and is not listed here. An owner can make someone else an owner by giving them the Owner role; admins cannot.</p>
           <div class="tablewrap"><table class="adm-table" id="tmTable"></table></div>
@@ -302,11 +302,11 @@
     </section>
   </main>
 
-  <!-- A team member: add, change role / password, disable or remove -->
+  <!-- A staff member: add, change role / password, disable or remove -->
   <dialog id="tmDlg" class="adm-drill sh-dlg" aria-labelledby="tmDlgTitle">
     <form id="tmForm" class="drill-box" novalidate>
       <div class="drill-head">
-        <h2 id="tmDlgTitle">Team member</h2>
+        <h2 id="tmDlgTitle">Staff member</h2>
         <button type="button" class="btn ghost" id="tmDlgClose">Close</button>
       </div>
       <div class="lk-form sh-fields">
@@ -360,7 +360,7 @@
         <div class="field" id="rl-w-name">
           <label for="rl-name">Role name</label>
           <input id="rl-name" type="text" autocomplete="off" maxlength="40" />
-          <span class="hint">For example Support or Video team.</span>
+          <span class="hint">For example Support or Video staff.</span>
           <p class="lk-err" id="rl-e-name"></p>
         </div>
         <div class="field" id="rl-w-perms">
