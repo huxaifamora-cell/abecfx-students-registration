@@ -7,8 +7,8 @@ const idrules = require("./idrules");
 const grading = require("./grading");
 
 const GRADUATE_STATUSES = ["Certified", "Alumni Member"]; // Certified students are the graduates
-const TEAM_STATUSES = ["Team Member"];
-const STATUS_ORDER = ["Uncertified", "Certified", "Team Member", "Alumni Member"];
+const STAFF_STATUSES = ["Staff Member"];
+const STATUS_ORDER = ["Uncertified", "Certified", "Staff Member", "Alumni Member"];
 
 // The label each student is counted under, for every breakdown. Used by the counts AND by the lists
 // behind them, so a number on the dashboard and the list it opens can never disagree.
@@ -48,15 +48,15 @@ function nextYm(ym) {
   return `${y}-${String(m).padStart(2, "0")}`;
 }
 
-// The one status a person is counted under in the bars: student standing first, then alumni, then team.
-// (A Certified student who is also a team member is counted once, as Certified, so the bars add up to the total.)
+// The one status a person is counted under in the bars: student standing first, then alumni, then staff.
+// (A Certified student who is also a staff member is counted once, as Certified, so the bars add up to the total.)
 function statusOf(r) {
   const v = idrules.primaryStatus(r);
   return STATUS_ORDER.includes(v) ? v : "Uncertified";
 }
 // The tiles count everyone who holds the card, however many cards they hold.
 const isGraduate = (r) => { const k = idrules.idKinds(r); return k.student === "Certified" || k.alumni; };
-const isTeam = (r) => idrules.idKinds(r).team;
+const isStaff = (r) => idrules.idKinds(r).staff;
 
 function buildStats(rows, quizRows, todayISO) {
   const total = rows.length;
@@ -125,7 +125,7 @@ function buildStats(rows, quizRows, todayISO) {
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
     graduates: rows.filter(isGraduate).length, // Certified students + Alumni members
     uncertified: rows.filter((r) => idrules.idKinds(r).student === "Uncertified").length,
-    team: rows.filter(isTeam).length, // everyone ticked as a Team Member, including students who are also team
+    staff: rows.filter(isStaff).length, // everyone ticked as a Staff Member, including students who are also staff
     byYear,
     months,
     monthsByYear,
@@ -196,7 +196,7 @@ function drill(rows, quizRows, kind, value) {
     case "all": title = "All students"; pick = () => true; break;
     case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = isGraduate; break;
     case "uncertified": title = "Uncertified students"; pick = (r) => idrules.idKinds(r).student === "Uncertified"; break;
-    case "team": title = "Team members"; pick = isTeam; break;
+    case "staff": title = "Staff members"; pick = isStaff; break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
       title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;
@@ -240,4 +240,4 @@ function finish(title, type, list) {
   return { title, type, count: list.length, truncated: list.length > MAX_ROWS, rows: list.slice(0, MAX_ROWS) };
 }
 
-module.exports = { buildStats, drill, quizEntry, GRADUATE_STATUSES, TEAM_STATUSES };
+module.exports = { buildStats, drill, quizEntry, GRADUATE_STATUSES, STAFF_STATUSES };

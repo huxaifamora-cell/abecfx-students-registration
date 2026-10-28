@@ -7,7 +7,7 @@
 //   - the award date is the date the student became Certified (the "Status Date" in the sheet), written as
 //     "1st June 2026" everywhere
 //   - who signs it is chosen on the dashboard's Certificates tab by registration number: the signer's name, their
-//     Team Role and the signature on their own ID card are printed on every certificate. The organisation name and
+//     Staff Role and the signature on their own ID card are printed on every certificate. The organisation name and
 //     the CAC RC number are set there too
 // Only a Certified student has a certificate. Anyone can look one up by registration number and see it, but only
 // the student (signed in) and the dashboard can download it.

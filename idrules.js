@@ -1,10 +1,10 @@
 // ID card rules: who gets an expiry date, and the date maths behind it.
-// An ID card is one of four kinds: Uncertified, Certified, Team Member or Alumni Member.
+// An ID card is one of four kinds: Uncertified, Certified, Staff Member or Alumni Member.
 // Certified students are graduates (their ID card says "Certified"). Only Uncertified students have IDs
-// that are valid for 2 months from the issue date. Certified, Team Member and Alumni Member have no expiry.
+// that are valid for 2 months from the issue date. Certified, Staff Member and Alumni Member have no expiry.
 // "Graduate" is no longer a status of its own. Rows that still hold it in the sheet are read as Certified.
-// Old Mentor, Staff Member and CEO rows are read as Team Member.
-const LEGACY_STATUS = { graduate: "Certified", mentor: "Team Member", "staff member": "Team Member", ceo: "Team Member" };
+// Old Mentor, Team Member and CEO rows are read as Staff Member.
+const LEGACY_STATUS = { graduate: "Certified", mentor: "Staff Member", "team member": "Staff Member", "staff member": "Staff Member", ceo: "Staff Member" };
 function normalizeStatus(v) {
   const s = String(v == null ? "" : v).trim();
   return LEGACY_STATUS[s.toLowerCase()] || s;
@@ -14,41 +14,41 @@ function normalizeStatus(v) {
 // A person can hold more than one card. The editor decides which, by what is ticked in the Students sheet:
 //   Column J "Status": Uncertified, Certified or Not a student. This is the Student ID card (and the certificate,
 //     which only a Certified student has). "Not a student" means no Student ID at all.
-//   Column Q "Team Member": Yes gives a Team ID card. Works with any column J value, including Not a student.
+//   Column Q "Staff Member": Yes gives a Staff ID card. Works with any column J value, including Not a student.
 //   Column R "Alumni Member": Yes gives an Alumni ID card.
-// Old rows that still hold Team Member or Alumni Member in column J keep working as before: that person has only
+// Old rows that still hold Staff Member or Alumni Member in column J keep working as before: that person has only
 // that one card (no Student ID) until the editor ticks more.
 const TICK = /^(yes|y|true|1|x|tick|ticked|\u2713|\u2714)$/i;
 function isTick(v) {
   return TICK.test(String(v == null ? "" : v).trim());
 }
-// row: one Students row. Returns { student: "Uncertified" | "Certified" | "", team: boolean, alumni: boolean }.
+// row: one Students row. Returns { student: "Uncertified" | "Certified" | "", staff: boolean, alumni: boolean }.
 function idKinds(row) {
   const raw = normalizeStatus(row[9]);
-  const legacyTeam = raw === "Team Member";
+  const legacyStaff = raw === "Staff Member";
   const legacyAlumni = raw === "Alumni Member";
-  const none = raw === "Not a student" || legacyTeam || legacyAlumni;
+  const none = raw === "Not a student" || legacyStaff || legacyAlumni;
   return {
     student: none ? "" : raw === "Certified" ? "Certified" : "Uncertified",
-    team: isTick(row[16]) || legacyTeam,
+    staff: isTick(row[16]) || legacyStaff,
     alumni: isTick(row[17]) || legacyAlumni,
   };
 }
-// The cards a person has, in the order the dropdown lists them: ["student", "alumni", "team"] (only those they hold).
+// The cards a person has, in the order the dropdown lists them: ["student", "alumni", "staff"] (only those they hold).
 function idCards(row) {
   const k = idKinds(row);
-  return [k.student && "student", k.alumni && "alumni", k.team && "team"].filter(Boolean);
+  return [k.student && "student", k.alumni && "alumni", k.staff && "staff"].filter(Boolean);
 }
-// The status that one kind of card shows: "Uncertified" / "Certified", "Alumni Member" or "Team Member".
+// The status that one kind of card shows: "Uncertified" / "Certified", "Alumni Member" or "Staff Member".
 function kindStatus(kind, row) {
   const k = idKinds(row);
-  return kind === "team" ? "Team Member" : kind === "alumni" ? "Alumni Member" : k.student || "Uncertified";
+  return kind === "staff" ? "Staff Member" : kind === "alumni" ? "Alumni Member" : k.student || "Uncertified";
 }
 // The one status that stands for the person where a single status is needed (the portal, the dashboard counts):
-// their student standing first, then alumni, then team.
+// their student standing first, then alumni, then staff.
 function primaryStatus(row) {
   const k = idKinds(row);
-  return k.student || (k.alumni ? "Alumni Member" : k.team ? "Team Member" : "Uncertified");
+  return k.student || (k.alumni ? "Alumni Member" : k.staff ? "Staff Member" : "Uncertified");
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

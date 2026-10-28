@@ -2,7 +2,7 @@
 const { JWT } = require("google-auth-library");
 const links = require("./links");
 const videos = require("./videos");
-const team = require("./team");
+const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -11,8 +11,8 @@ const PHOTO_TAB = process.env.GOOGLE_PHOTO_TAB || "Photos";
 const SIG_TAB = process.env.GOOGLE_SIGNATURE_TAB || "Signatures";
 const API = "https://sheets.googleapis.com/v4/spreadsheets";
 
-// Column J. "Not a student" means no Student ID (a team or alumni member who never took the course).
-// Team and Alumni are ticked in columns Q and R, so one person can be a student and also a team member.
+// Column J. "Not a student" means no Student ID (a staff or alumni member who never took the course).
+// Staff and Alumni are ticked in columns Q and R, so one person can be a student and also a staff member.
 const STATUSES = [
   "Uncertified",
   "Certified",
@@ -34,9 +34,9 @@ const HEADERS = [
   "ID Issue Date",
   "State / Region",
   "Date of Birth",
-  "Team Role",
+  "Staff Role",
   "Photo To Redo (type Yes: the student must send a new passport photo)",
-  "Team Member (Yes gives a Team ID card)",
+  "Staff Member (Yes gives a Staff ID card)",
   "Alumni Member (Yes gives an Alumni ID card)",
 ];
 const LAST_COL = "R";
@@ -87,14 +87,14 @@ const VIDEO_TAB = process.env.GOOGLE_VIDEO_TAB || "Chapter Videos";
 const VIDEO_HEADERS = ["Chapter", "Chapter title", "YouTube video address"];
 const VIDEO_LAST_COL = "C";
 
-// Dashboard team (named admin / moderator accounts). Holds password HASHES only; never listed in the Database view.
-const TEAM_TAB = process.env.GOOGLE_TEAM_TAB || "Team";
-const TEAM_HEADERS = team.HEADERS;
-const TEAM_LAST_COL = "G";
+// Dashboard staff (named admin / moderator accounts). Holds password HASHES only; never listed in the Database view.
+const STAFF_TAB = process.env.GOOGLE_STAFF_TAB || process.env.GOOGLE_TEAM_TAB || "Staff";
+const STAFF_HEADERS = staff.HEADERS;
+const STAFF_LAST_COL = "G";
 
-// Custom roles (a name and the access it gives). Built-in roles live in team.js. No secrets here.
+// Custom roles (a name and the access it gives). Built-in roles live in staff.js. No secrets here.
 const ROLES_TAB = process.env.GOOGLE_ROLES_TAB || "Roles";
-const ROLES_HEADERS = team.ROLE_HEADERS;
+const ROLES_HEADERS = staff.ROLE_HEADERS;
 const ROLES_LAST_COL = "E";
 
 function loadCredentials() {
@@ -222,8 +222,18 @@ async function init() {
     });
   }
 
-  await ensureTab(TEAM_TAB);
-  await ensureHeaders(TEAM_TAB, TEAM_HEADERS, TEAM_LAST_COL);
+  // This tab used to be called "Team". An existing one is renamed so the accounts (and their password hashes) carry over.
+  if (STAFF_TAB === "Staff" && !(await findTab("Staff"))) {
+    const old = await findTab("Team");
+    if (old) {
+      await call(":batchUpdate", {
+        method: "POST",
+        data: { requests: [{ updateSheetProperties: { properties: { sheetId: old.sheetId, title: "Staff" }, fields: "title" } }] },
+      });
+    }
+  }
+  await ensureTab(STAFF_TAB);
+  await ensureHeaders(STAFF_TAB, STAFF_HEADERS, STAFF_LAST_COL);
 
   await ensureTab(ROLES_TAB);
   await ensureHeaders(ROLES_TAB, ROLES_HEADERS, ROLES_LAST_COL);
@@ -247,7 +257,7 @@ async function init() {
           },
         },
         {
-          // Dropdowns on Team Member (Q) and Alumni Member (R): Yes or empty.
+          // Dropdowns on Staff Member (Q) and Alumni Member (R): Yes or empty.
           setDataValidation: {
             range: { sheetId: students.sheetId, startRowIndex: 1, startColumnIndex: 16, endColumnIndex: 18 },
             rule: {
@@ -589,9 +599,9 @@ const EDITOR_TABS = {
   dobchanges: { title: DOB_TAB, headers: DOB_HEADERS, lastCol: "D" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
-  // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
-  team: { title: TEAM_TAB, headers: TEAM_HEADERS, lastCol: TEAM_LAST_COL },
-  // Internal only: custom roles. Managed through team.js, never the Database view.
+  // Internal only, like photos: the dashboard staff (password hashes). Managed through staff.js, never the Database view.
+  staff: { title: STAFF_TAB, headers: STAFF_HEADERS, lastCol: STAFF_LAST_COL },
+  // Internal only: custom roles. Managed through staff.js, never the Database view.
   roles: { title: ROLES_TAB, headers: ROLES_HEADERS, lastCol: ROLES_LAST_COL },
 };
 

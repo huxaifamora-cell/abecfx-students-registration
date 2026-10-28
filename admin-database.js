@@ -73,10 +73,10 @@ function create(store) {
   const TABS = {
     students: {
       label: "Students",
-      help: "One row per person. Status says whether they hold a Student ID (Uncertified, Certified) or none (Not a student). Tick Team Member and/or Alumni Member to give them those ID cards too; only Certified students get a certificate. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
+      help: "One row per person. Status says whether they hold a Student ID (Uncertified, Certified) or none (Not a student). Tick Staff Member and/or Alumni Member to give them those ID cards too; only Certified students get a certificate. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
       editable: [0, 2, 3, 4, 5, 6, 7, 9, 16, 17, 14, 10, 11, 12, 13, 15],
       selects: { 2: countries, 7: GENDERS, 9: store.STATUSES, 15: ["", "Yes"], 16: ["", "Yes"], 17: ["", "Yes"] },
-      placeholders: { 16: "Yes gives a Team ID card (a student can also be a team member)", 17: "Yes gives an Alumni ID card", 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      placeholders: { 16: "Yes gives a Staff ID card (a student can also be a staff member)", 17: "Yes gives an Alumni ID card", 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
       create: {
@@ -137,7 +137,7 @@ function create(store) {
           p[9] = clean(p[9]);
           if (!store.STATUSES.includes(p[9])) errors[9] = "Choose a status from the list.";
         }
-        // Team Member and Alumni Member are ticks: Yes, or empty. Each tick gives that person that ID card.
+        // Staff Member and Alumni Member are ticks: Yes, or empty. Each tick gives that person that ID card.
         for (const i of [16, 17]) {
           if (changed(i)) {
             p[i] = clean(p[i], 10);
@@ -147,16 +147,16 @@ function create(store) {
         }
         if (!errors[9] && !errors[16] && !errors[17]) {
           const k = idrules.idKinds(p);
-          // The role only exists for a Team Member: it is required for them and cleared for everyone else.
-          if (k.team) {
+          // The role only exists for a Staff Member: it is required for them and cleared for everyone else.
+          if (k.staff) {
             p[14] = clean(p[14], 40);
-            if (p[14].length < 2) errors[14] = "Type this team member's role, e.g. Mentor, CEO or Support Staff.";
+            if (p[14].length < 2) errors[14] = "Type this staff member's role, e.g. Mentor, CEO or Support Staff.";
           } else {
             p[14] = "";
           }
           // "Not a student" means no Student ID, so the person must hold some other card.
-          if (p[9] === "Not a student" && !k.team && !k.alumni) {
-            errors[9] = "A person with no Student ID must be ticked as a Team Member or an Alumni Member (columns Team Member / Alumni Member). Otherwise they have no ID card at all.";
+          if (p[9] === "Not a student" && !k.staff && !k.alumni) {
+            errors[9] = "A person with no Student ID must be ticked as a Staff Member or an Alumni Member (columns Staff Member / Alumni Member). Otherwise they have no ID card at all.";
           }
         }
         if (changed(15)) {

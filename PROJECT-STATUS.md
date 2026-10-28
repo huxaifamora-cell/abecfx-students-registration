@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 26 Oct 2026, 13:52 (Lagos time), after change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Team ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 26 Oct 2026, 13:52 (Lagos time), after change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -33,7 +33,7 @@
 
 15. **Change 11 (owner, 18 Oct 2026): the quiz section is only accessible after entering a one-time quiz code made by an admin or other roles in charge. A code unlocks the quiz until it is completed; after that another code is needed** [DONE, awaiting live check].
 
-16. **Change 13 (owner, 26 Oct 2026): the "Find a student" dropdown offers Student ID card, Alumni ID card, Team ID card and Certificate.** A person can be a student (certified or uncertified) and also a team member; a person can be a team member with no Student ID; what each person has depends on what the admin ticked; the certificate is only for Certified students [DONE, awaiting live check].
+16. **Change 13 (owner, 26 Oct 2026): the "Find a student" dropdown offers Student ID card, Alumni ID card, Staff ID card and Certificate.** A person can be a student (certified or uncertified) and also a staff member; a person can be a staff member with no Student ID; what each person has depends on what the admin ticked; the certificate is only for Certified students [DONE, awaiting live check].
 
 17. **Change 14 (owner, 26 Oct 2026): in the admin dashboard, if a person has more than one ID card, clicking their name under the ID cards tab shows all of them** [DONE, awaiting live check].
 
@@ -56,7 +56,7 @@
 | 2026-10-15 | Only a finished, full-run quiz is saved; "End quiz" early and "Retry missed" are practice | Keeps results meaningful. |
 | 2026-10-15 | Quiz length defaults to **Full**; shorter lengths still selectable, and the total is recorded | Owner request. |
 | 2026-10-15 | Grading: A 70-100, B 60-69, C 50-59, D 45-49, E 40-44, F 0-39 | **Assumed** (common Nigerian scale). Not yet confirmed by owner. One place to change: `grading.js`. |
-| 2026-10-15 | Dashboard "certified/graduates" = Certified + Graduate + Alumni Member; "team" = Mentor + Staff + CEO | Derived from the owner's rule that Certified = graduate. |
+| 2026-10-15 | Dashboard "certified/graduates" = Certified + Graduate + Alumni Member; "staff" = Mentor + Staff + CEO | Derived from the owner's rule that Certified = graduate. |
 | 2026-10-15 | Dashboard protected by one password (`ADMIN_PASSWORD`); shows no email or phone | Simple and safe for one editor. Off if the variable is missing. |
 | 2026-10-16 | **The student portal is private; find-a-student stays public.** A student signs in with registration number + the email they registered with. The website returns a signed session token (30 days, HMAC, `session.js`), kept in the browser and sent as `Authorization: Bearer`. `/api/portal/me`, `/api/results` and `/api/quiz/session` need it and use the registration number **from the token**, never from the page. `/api/lookup` and `/api/photo` (and so `/status`) stay open. A student who has just registered is signed in automatically. Signing secret is `SESSION_SECRET`, or `QUIZ_API_KEY` if that is not set | Owner request. Registration numbers are sequential and public, so a number alone is no longer enough; this also answers open question 6. One message for "wrong number" and "wrong email" so nobody can probe which numbers exist; only wrong attempts count toward the limit (10 per 15 min). **Assumed:** email as the second check, 30-day sign-in. |
 | 2026-10-16 | **Mentorship code replaces the promo code.** Required, one-time, given by admin/editor. Codes live on a new sheet tab **Mentorship Codes** (A: code, B: created at, C: used by reg number, D: used at). The editor adds codes by typing them in column A. Registration is refused if the code is missing, unknown or already used. The code is claimed inside the same queue that issues registration numbers | Owner request. Code is checked before a reg number is issued and marked used right after the student row is saved. Codes are not case-sensitive (stored and compared in capitals). |
@@ -90,19 +90,19 @@
 | 2026-10-18 | Every add and edit uses the **same rules as the rest of the site**: country from the list, state must belong to the country, email format and no other student with it, phone format, gender, status from the list, real dates (date of birth not in the future), score not above total, chapters must exist, links https only, videos YouTube only. Text starting with `=` is stored as plain text (`valueInputOption=RAW`) | A hand entry in the dashboard must not be able to put in data the registration form would refuse. |
 | 2026-10-18 | **A record is changed or deleted only if it still matches what the editor was looking at** (the browser sends the row as it saw it). If someone changed or removed it meanwhile, the action is refused (409), the table reloads and the editor tries again. Only the cells that changed are written | Row numbers move when rows are deleted; this stops a stale screen touching the wrong student. |
 | 2026-10-18 | Database changes wait in the same queue as registrations (handbook progress uses its own queue), and the website's short-lived caches are cleared after each change | A row number cannot move under a running save, and the public pages show a fix straight away. |
-| 2026-10-18 | **Dashboard accounts and roles (documented now; the Team tab existed before change 10 but was not written up).** People sign in on `/admin` with a username and password. The **owner** signs in as `owner` with `ADMIN_PASSWORD` on Render, always has full access, is not stored in the sheet and cannot be locked out. Everyone else lives on the **Team** sheet tab (password stored only as a salted scrypt hash). A person's access is looked up on every request, so a role change, a change to a role's access, a disable or a removal applies at once, even to someone already signed in | Code: `team.js`. |
-| 2026-10-18 | **Access is now five switches, not two.** `view` (statistics, student lists, quiz results), `links` (Site links tab), `videos` (Chapter videos tab), `database` (Database tab), `team` (Team tab: people and roles). Before, one switch `manage` covered links, videos and database together; it is replaced by three, so a role can have one without the others. **Every role always has `view`**, because the dashboard needs it to load at all. Routes: `/api/admin/links` needs `links`, `/api/admin/videos` needs `videos`, everything under `/api/admin/database` needs `database`, `/api/admin/team` and `/api/admin/roles` need `team` | Owner request ("admin should be able to select access control for the role"). The server enforces every switch; the dashboard only hides tabs a person cannot use. |
-| 2026-10-18 | **Built-in roles: Owner, Admin, Editor, Moderator.** Owner and Admin: all five. **Editor (new): `view`, `links`, `videos`, `database`. No `team`.** Moderator: `view` only. Built-in roles are fixed in `team.js` and cannot be edited or deleted from the dashboard | Owner request ("add the editor role"). **Assumed:** an Editor is someone who looks after the content (links, videos, student records) but cannot manage people or roles. If you want an Editor without the Database, remove `database` from the `editor` line in `team.js`, or create a custom role instead. |
-| 2026-10-18 | **Custom roles.** On the Team tab a new **Roles and access** card lists every role with what it can open and how many people hold it. **Create role** asks for a name and shows a tick box for each of the five accesses ("Statistics and quiz results" is ticked and locked). A custom role can be renamed, have its access changed, or be deleted from its Edit window; the role is then offered in the role list when adding or editing a team member. Custom roles are saved on a new sheet tab **Roles** (A: role key, B: role name, C: access list, D: created at, E: created by). The key is made from the name ("Video team" becomes `video-team`) and never changes | Owner request. A role name cannot be one of the built-in names, and two roles cannot share a name. |
-| 2026-10-18 | **Guard rails.** (1) Nobody can give access they do not have themselves: not when creating or editing a role, and not when giving a role to a person (the role list shows only roles you may hand out). (2) Nobody can change or delete the role they hold. (3) A role that is still held by someone cannot be deleted (the editor is told how many people hold it). (4) Someone cannot change, disable, re-role, reset the password of or remove a person whose access is bigger than their own. (5) Unknown access names in the sheet are ignored, `view` is forced on, and a row in the Roles tab can never override a built-in role | Stops a person with the Team switch from making themselves, or a friend, more powerful than they are. The owner has everything, so none of this limits the owner. |
+| 2026-10-18 | **Dashboard accounts and roles (documented now; the Staff tab existed before change 10 but was not written up).** People sign in on `/admin` with a username and password. The **owner** signs in as `owner` with `ADMIN_PASSWORD` on Render, always has full access, is not stored in the sheet and cannot be locked out. Everyone else lives on the **Staff** sheet tab (password stored only as a salted scrypt hash). A person's access is looked up on every request, so a role change, a change to a role's access, a disable or a removal applies at once, even to someone already signed in | Code: `staff.js`. |
+| 2026-10-18 | **Access is now five switches, not two.** `view` (statistics, student lists, quiz results), `links` (Site links tab), `videos` (Chapter videos tab), `database` (Database tab), `staff` (Staff tab: people and roles). Before, one switch `manage` covered links, videos and database together; it is replaced by three, so a role can have one without the others. **Every role always has `view`**, because the dashboard needs it to load at all. Routes: `/api/admin/links` needs `links`, `/api/admin/videos` needs `videos`, everything under `/api/admin/database` needs `database`, `/api/admin/staff` and `/api/admin/roles` need `staff` | Owner request ("admin should be able to select access control for the role"). The server enforces every switch; the dashboard only hides tabs a person cannot use. |
+| 2026-10-18 | **Built-in roles: Owner, Admin, Editor, Moderator.** Owner and Admin: all five. **Editor (new): `view`, `links`, `videos`, `database`. No `staff`.** Moderator: `view` only. Built-in roles are fixed in `staff.js` and cannot be edited or deleted from the dashboard | Owner request ("add the editor role"). **Assumed:** an Editor is someone who looks after the content (links, videos, student records) but cannot manage people or roles. If you want an Editor without the Database, remove `database` from the `editor` line in `staff.js`, or create a custom role instead. |
+| 2026-10-18 | **Custom roles.** On the Staff tab a new **Roles and access** card lists every role with what it can open and how many people hold it. **Create role** asks for a name and shows a tick box for each of the five accesses ("Statistics and quiz results" is ticked and locked). A custom role can be renamed, have its access changed, or be deleted from its Edit window; the role is then offered in the role list when adding or editing a staff member. Custom roles are saved on a new sheet tab **Roles** (A: role key, B: role name, C: access list, D: created at, E: created by). The key is made from the name ("Video staff" becomes `video-staff`) and never changes | Owner request. A role name cannot be one of the built-in names, and two roles cannot share a name. |
+| 2026-10-18 | **Guard rails.** (1) Nobody can give access they do not have themselves: not when creating or editing a role, and not when giving a role to a person (the role list shows only roles you may hand out). (2) Nobody can change or delete the role they hold. (3) A role that is still held by someone cannot be deleted (the editor is told how many people hold it). (4) Someone cannot change, disable, re-role, reset the password of or remove a person whose access is bigger than their own. (5) Unknown access names in the sheet are ignored, `view` is forced on, and a row in the Roles tab can never override a built-in role | Stops a person with the Staff switch from making themselves, or a friend, more powerful than they are. The owner has everything, so none of this limits the owner. |
 | 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
-| 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `team.js`, `public/portal.*`, `public/admin.*`. |
+| 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `staff.js`, `public/portal.*`, `public/admin.*`. |
 | 2026-10-26 | **Change 12: the certificate uses the real design of the owner's approved certificate image.** (1) **Background:** the purple band and black block top left, the thin purple line and white stripe, the big purple panel, the bottom purple and black strips, the black bar under the title and the black CAC tag are drawn as vector shapes whose corners were **measured from the owner's image** (a pixel check against the image differs only on one-pixel edges). The canvas is now 1280 x 909, the size of that image (was 1280 x 905). (2) **Emblem:** the bull-horn logo is the real `logo-purple.png`, and the gold seal is the **real seal picture cut out of the owner's image** (laurels, stars, four ribbon tails), with its printed "2026" painted out so the page prints each certificate's own year on it. Both live in `public/certificate-art.js` as embedded pictures, so they also appear in the PNG and PDF downloads. (3) "Certificate", "OF COMPLETION", the organisation name under the logo, the stamp, the certificate number and the CAC tag moved to the places they have in the image. The wording of the certificate, the signature block and the dynamic fields are unchanged | Owner request ("use the actual designs of the background, and the emblem"). **Assumed:** "emblem" means both the bull-horn logo and the gold seal. The seal picture is only about 175 px wide in the owner's image, so it is a little soft when printed large; a separate high-resolution copy of the seal (PNG with transparent background) can replace the picture in `certificate-art.js` without any other change. The words "ADEBASS BASE / EDGE CONSULT" under the logo are drawn as text, not cut from the image (the image copy is too small to stay sharp). The PDF now keeps the picture's own proportions on the A4 page (centred, a thin white margin top and bottom). |
-| 2026-10-26 | **The "Find a student" page is renamed "Check ID"** (menu pill on portal, register and the page itself, page title and heading, the portal button, the check button, dashboard note and README). The address stays `/status`, so every printed QR code keeps working | Owner request, since the page now covers student, alumni and team ID cards and certificates. |
-| 2026-10-26 | **Change 13: one person, up to three ID cards.** The Students sheet keeps **column J "Status"** for the Student ID: **Uncertified**, **Certified** or the new **Not a student** (no Student ID). Two new tick columns: **Q "Team Member"** and **R "Alumni Member"** (dropdown: Yes or empty). Student ID card = Uncertified or Certified; Team ID card = Q is Yes; Alumni ID card = R is Yes; **Certificate = Certified only** (unchanged rule, now independent of the other ticks, so a Certified student who is also a team member keeps the certificate). Rules live in `idrules.js` (`idKinds`, `idCards`, `kindStatus`, `primaryStatus`) | Owner request ("a person can be a student whether certified or uncertified and still be a team member ... a person can be a team member without having a student ID ... this depends on the status ticked by admin"). **Assumed:** Alumni is also a tick that can sit beside a student standing (the owner described students and team; alumni was handled the same way). A Certified student who is Alumni keeps their certificate. |
-| 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Team Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old team member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
-| 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Team ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|team`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Team ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then team) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Team ID card's QR opens the Team ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
-| 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Team Member, Alumni Member) beside Status; the role box shows only while Team Member is ticked; **Not a student** is refused unless Team Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then team), so they add up to the total; the **Team** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
+| 2026-10-26 | **The "Find a student" page is renamed "Check ID"** (menu pill on portal, register and the page itself, page title and heading, the portal button, the check button, dashboard note and README). The address stays `/status`, so every printed QR code keeps working | Owner request, since the page now covers student, alumni and staff ID cards and certificates. |
+| 2026-10-26 | **Change 13: one person, up to three ID cards.** The Students sheet keeps **column J "Status"** for the Student ID: **Uncertified**, **Certified** or the new **Not a student** (no Student ID). Two new tick columns: **Q "Staff Member"** and **R "Alumni Member"** (dropdown: Yes or empty). Student ID card = Uncertified or Certified; Staff ID card = Q is Yes; Alumni ID card = R is Yes; **Certificate = Certified only** (unchanged rule, now independent of the other ticks, so a Certified student who is also a staff member keeps the certificate). Rules live in `idrules.js` (`idKinds`, `idCards`, `kindStatus`, `primaryStatus`) | Owner request ("a person can be a student whether certified or uncertified and still be a staff member ... a person can be a staff member without having a student ID ... this depends on the status ticked by admin"). **Assumed:** Alumni is also a tick that can sit beside a student standing (the owner described students and staff; alumni was handled the same way). A Certified student who is Alumni keeps their certificate. |
+| 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Staff Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old staff member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
+| 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Staff ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|staff`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Staff ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then staff) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Staff ID card's QR opens the Staff ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
+| 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Staff Member, Alumni Member) beside Status; the role box shows only while Staff Member is ticked; **Not a student** is refused unless Staff Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then staff), so they add up to the total; the **Staff** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
 
 ## 3. Current state
 
@@ -123,7 +123,7 @@
 - **New:** the quiz runs inside the student portal ("Take the quiz here"): the student is signed in automatically, cannot switch to another number, the result is graded and saved, and the portal's results card refreshes by itself. "Close quiz" and "Not you?" remove the running quiz. Telegram still works as before.
 - **New (change 12):** certificates (on the public check page, in the portal download and in the dashboard) are drawn on the owner's approved design: the same purple, black and white shapes, the bull-horn emblem and the gold seal with the certificate year on it. Checked by rendering the certificate in a headless browser, comparing the background pixel by pixel with the owner's image, and downloading the PNG and the PDF. **Not yet seen on live Render** with a real Certified student and signature.
 
-- **New (change 13):** the find-a-student dropdown (Student ID card, Alumni ID card, Team ID card, Certificate); a person can hold several cards, set by the Team Member and Alumni Member ticks in the sheet or the Database tab. Checked with the unit tests that can run without the web packages (`test/status.test.js`, `test/admin-database.test.js`) and a direct run of the card builder. **Not run end to end** (the Express packages could not be installed here) and **not seen on live Render**.
+- **New (change 13):** the find-a-student dropdown (Student ID card, Alumni ID card, Staff ID card, Certificate); a person can hold several cards, set by the Staff Member and Alumni Member ticks in the sheet or the Database tab. Checked with the unit tests that can run without the web packages (`test/status.test.js`, `test/admin-database.test.js`) and a direct run of the card builder. **Not run end to end** (the Express packages could not be installed here) and **not seen on live Render**.
 **Pages and endpoints (registration site):**
 
 | Address | Purpose |
@@ -137,10 +137,10 @@
 | `POST /api/register` | Public, rate limited |
 | `GET /api/quiz/student`, `POST /api/quiz/result` | Quiz bot only (`x-quiz-key`). The result route accepts either a Telegram id or `source: "portal"` |
 | `GET /api/admin/stats`, `/api/admin/results` | Editor only (Bearer password) |
-| `GET /api/admin/drill?kind=...&value=...` | Editor only. The list behind one number. `kind` is one of `all`, `graduates`, `uncertified`, `team`, `status`, `gender`, `country`, `state`, `programme`, `year`, `month` (YYYY-MM), `upto` (YYYY-MM, joined by the end of that month), `undated`, `quiz-students`, `quiz-avg`, `quiz-not-taken`, `quiz-attempts`, `grade` (A-F). Anything else is refused (400). At most 5000 rows |
+| `GET /api/admin/drill?kind=...&value=...` | Editor only. The list behind one number. `kind` is one of `all`, `graduates`, `uncertified`, `staff`, `status`, `gender`, `country`, `state`, `programme`, `year`, `month` (YYYY-MM), `upto` (YYYY-MM, joined by the end of that month), `undated`, `quiz-students`, `quiz-avg`, `quiz-not-taken`, `quiz-attempts`, `grade` (A-F). Anything else is refused (400). At most 5000 rows |
 | `POST /api/admin/login`, `GET /api/admin/me`, `POST /api/admin/me/password` | Dashboard sign-in with username + password; `me` returns the person, their role and the list of access they have |
-| `GET`/`POST /api/admin/team`, `PUT /api/admin/team/:username`, `POST /api/admin/team/:username/delete` | Needs access `team`. People. `GET` also returns every role (with what it allows, how many people hold it, and whether you may hand it out) and the list of the five accesses |
-| `POST /api/admin/roles`, `PUT /api/admin/roles/:key`, `POST /api/admin/roles/:key/delete` | Needs access `team`. Create a custom role `{name, perms: [...]}`, change its name or access, delete it (refused while someone holds it, and for built-in roles) |
+| `GET`/`POST /api/admin/staff`, `PUT /api/admin/staff/:username`, `POST /api/admin/staff/:username/delete` | Needs access `staff`. People. `GET` also returns every role (with what it allows, how many people hold it, and whether you may hand it out) and the list of the five accesses |
+| `POST /api/admin/roles`, `PUT /api/admin/roles/:key`, `POST /api/admin/roles/:key/delete` | Needs access `staff`. Create a custom role `{name, perms: [...]}`, change its name or access, delete it (refused while someone holds it, and for built-in roles) |
 | `GET /api/admin/database`, `GET /api/admin/database/:key`, `POST /api/admin/database/:key/rows`, `PUT /api/admin/database/:key/rows/:n`, `POST /api/admin/database/:key/rows/:n/delete` | Editor only (Bearer password). `:key` is `students`, `codes`, `quiz`, `progress`, `links` or `videos` (anything else is 404). Create takes `{values: {columnIndex: text}}` (codes: `{text}`); update takes `{original, values}`; delete takes `{original}`. 400 with per-column messages for bad values, 403 when that table does not allow the action, 409 when the record changed. Only a wrong password counts toward the lock-out |
 
 **Sheet tabs:** Roles (A-E, new: role key, role name, access list, created at, created by; custom roles only), Handbook Progress (A-G, new: reg number, full name, chapters read, count, total, percent, updated at), Mentorship Codes (A-D), Students (A-M: reg number, registered at, country, programme, name, email, WhatsApp, gender, mentorship code, status, status date, ID issue date, state/region), Photos, Quiz Results (A-K; column I holds the Telegram ID, or the word `portal` for a quiz taken inside the portal).
@@ -163,20 +163,20 @@
 | Quiz bot | `QUIZ_API_KEY` | Same value as on the website |
 
 **Tests run in the build environment:** unit checks (expiry, grading boundaries, statistics, month names such as "Sept"); real route handlers exercised with stand-ins for Express and the sheet (key checks, grading, duplicate/attempt/Telegram-binding rules, admin auth, no email leaks); the bot's server with a properly signed Telegram login (tampered and stale logins rejected, client-supplied Telegram id ignored, oversized body 413); browser runs of the quiz app, dashboard (login, filters, CSV, phone width) and portal; photo upload under the real security policy. **Added for the in-portal quiz:** 32 checks on the pass (tampering, other number, expiry, wrong key) and the website routes (including the Telegram-link rules and the security policy), 17 checks on the quiz service (the number comes from the pass, bad passes never reach the website, Telegram login unchanged, limits), and 23 checks in a real Chromium browser over https with the real `server.js`, `bot.js` and `portal.js` (portal opens the quiz in the page, automatic sign-in, save and live refresh, close, "Not you?", Telegram-linked refusal, damaged pass, phone width).
-**Change 10 (roles) checks:** `npm test` now runs 81 tests (77 pass, 4 skipped only because `google-auth-library` is not installed in the build sandbox; the same checks run once `npm install` has been done). 19 new tests in `test/team.test.js`: built-in access per role, Editor given to a person and signing in, the roles list with member counts, creating a role (name to key, `view` forced on, standard order, unknown access refused, built-in names refused, duplicates refused, two at once: one wins), giving a custom role, an access change applying on the next check, built-in roles untouchable, delete refused while in use, a deleted role in the sheet giving no access, sheet rows unable to raise anyone, and every guard rail above. The real `server.js` was then loaded with an in-memory sheet and a stand-in for Express and its routes called in turn: an Editor reaches links, videos and database but not team or roles; a role with only videos reaches videos only; a Moderator reaches none of them; changing a role changes the same signed-in person on the very next request; a removed person is signed out; the owner password as a raw Bearer token still works; no password hash is ever sent to the browser. The dashboard was driven in a real Chromium: create a role with the tick boxes, add a person with it, add an Editor, delete refused while in use, and signing in as each shows exactly the tabs allowed. **Not yet tried on live Render with the real Google Sheet.**
+**Change 10 (roles) checks:** `npm test` now runs 81 tests (77 pass, 4 skipped only because `google-auth-library` is not installed in the build sandbox; the same checks run once `npm install` has been done). 19 new tests in `test/staff.test.js`: built-in access per role, Editor given to a person and signing in, the roles list with member counts, creating a role (name to key, `view` forced on, standard order, unknown access refused, built-in names refused, duplicates refused, two at once: one wins), giving a custom role, an access change applying on the next check, built-in roles untouchable, delete refused while in use, a deleted role in the sheet giving no access, sheet rows unable to raise anyone, and every guard rail above. The real `server.js` was then loaded with an in-memory sheet and a stand-in for Express and its routes called in turn: an Editor reaches links, videos and database but not staff or roles; a role with only videos reaches videos only; a Moderator reaches none of them; changing a role changes the same signed-in person on the very next request; a removed person is signed out; the owner password as a raw Bearer token still works; no password hash is ever sent to the browser. The dashboard was driven in a real Chromium: create a role with the tick boxes, add a person with it, add an Editor, delete refused while in use, and signing in as each shows exactly the tabs allowed. **Not yet tried on live Render with the real Google Sheet.**
 
 **Change 9 (Database tab) checks:** `npm test` runs 30 unit checks on `admin-database.js` against an in-memory sheet (`test/`): locked columns, every field rule, duplicate email, country and state, stale records (409), adding and deleting students (number never reused, cascade removes photo, quiz results and progress), quiz score recalculation, progress chapters, code adding and refusing, links and video checks, fixed tables refuse add and delete, formulas kept as plain text. The real `server.js` and the dashboard were then run with an in-memory sheet and a stand-in for Express (the build sandbox cannot reach npm): 11 checks over HTTP and **44 checks in a headless browser** (login, paging, search, add, edit, delete with confirmation, errors on the right fields, state list following the country, stale edit refused, quiz and progress add and edit, student delete cascade, unsafe link refused, sign-out clears the table, no console errors, no sideways scroll on a phone). A bug found and fixed in that run: the fifth tab made the page wider than a phone, so the tab bar now wraps. **Not tested:** real Google Sheets (the exact calls `values:batchUpdate`, `deleteDimension` and append were written from the Google Sheets API but never sent, including deleting several rows in one request for the cascade), `npm install`, Render.
 **Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 ## 4. Next steps
 
-**Owner action for change 13:** push the changed `idrules.js`, `sheets.js`, `server.js`, `stats.js`, `admin-database.js`, `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js`, `public/admin.js`, the `test/` folder, `status/STATUS-SOURCE.md` and `PROJECT-STATUS.md`. No new Render variable and no new package. On start the site adds the two headers (Team Member, Alumni Member) to the Students tab and refreshes the Status dropdown. Then in `/admin` > Database > Students (or in the sheet) tick **Team Member** and/or **Alumni Member** for the right people, and set **Status** to **Not a student** for anyone who is team only. Check on `/status`: pick each of the four choices for a student who is also a team member; a Certified student shows a certificate, an Uncertified one does not.
+**Owner action for change 13:** push the changed `idrules.js`, `sheets.js`, `server.js`, `stats.js`, `admin-database.js`, `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js`, `public/admin.js`, the `test/` folder, `status/STATUS-SOURCE.md` and `PROJECT-STATUS.md`. No new Render variable and no new package. On start the site adds the two headers (Staff Member, Alumni Member) to the Students tab and refreshes the Status dropdown. Then in `/admin` > Database > Students (or in the sheet) tick **Staff Member** and/or **Alumni Member** for the right people, and set **Status** to **Not a student** for anyone who is staff only. Check on `/status`: pick each of the four choices for a student who is also a staff member; a Certified student shows a certificate, an Uncertified one does not.
 
 **Owner action for the Database buttons fix:** push `public/admin.js` and `public/admin.css`. Open `/admin` > Database: every row should show Edit and Delete. Try Delete on a test record.
 
-**Owner action for change 11:** push the new/changed `quizcodes.js`, `server.js`, `sheets.js`, `team.js`, `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `test/quizcodes.test.js`, `test/quiz-gate.test.js`, `test/team.test.js`, `test/support/memory-store.js`, `test/support/fake-sheets.js`, `status/build.js`, `status/STATUS-SOURCE.md`, `env.example`, `README.md`. No new package. On startup the site creates the **Quiz Codes** tab. Then: (1) open `/admin` as owner > **Quiz codes** > make 1 code. (2) Sign in to the portal as a student > **Quiz**: you should see **Unlock the quiz** and no quiz buttons. (3) Enter the code: the quiz buttons appear. (4) Finish the quiz: the quiz locks again and asks for a new code. (5) To give someone else this job, **Team** > **Create role** > tick only **Quiz codes**. **Telegram:** the bot is a separate project, so its link is only shown to students whose quiz is unlocked, but anyone who already has the bot link could still use it. To close that too, set `QUIZ_CODE_FOR_TELEGRAM=on` on Render **after** checking the bot shows the website's error text when the website answers 403 (the bot code was not available when this was built).
+**Owner action for change 11:** push the new/changed `quizcodes.js`, `server.js`, `sheets.js`, `staff.js`, `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `test/quizcodes.test.js`, `test/quiz-gate.test.js`, `test/staff.test.js`, `test/support/memory-store.js`, `test/support/fake-sheets.js`, `status/build.js`, `status/STATUS-SOURCE.md`, `env.example`, `README.md`. No new package. On startup the site creates the **Quiz Codes** tab. Then: (1) open `/admin` as owner > **Quiz codes** > make 1 code. (2) Sign in to the portal as a student > **Quiz**: you should see **Unlock the quiz** and no quiz buttons. (3) Enter the code: the quiz buttons appear. (4) Finish the quiz: the quiz locks again and asks for a new code. (5) To give someone else this job, **Staff** > **Create role** > tick only **Quiz codes**. **Telegram:** the bot is a separate project, so its link is only shown to students whose quiz is unlocked, but anyone who already has the bot link could still use it. To close that too, set `QUIZ_CODE_FOR_TELEGRAM=on` on Render **after** checking the bot shows the website's error text when the website answers 403 (the bot code was not available when this was built).
 
-**Owner action for change 10:** push the new/changed `team.js`, `server.js`, `sheets.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `test/team.test.js`, `test/support/memory-store.js`, `status/build.js`, `status/STATUS-SOURCE.md`. No new Render variable and no new package. On startup the site creates the **Roles** tab. Then open `/admin`, sign in as owner, open **Team**: you should see a new **Roles and access** card with Admin, Editor and Moderator. Click **Create role**, name it (for example Video team), tick only Chapter videos, Create. Add a team member with that role and one with the Editor role, sign out, and sign in as each: the Video team person should see only Statistics, Quiz results and Chapter videos; the Editor should also see Site links and Database, but not Team. Then tick another access on the Video team role (Edit) and Refresh the first person's screen: the new tab appears without signing in again. Existing admin and moderator accounts are unchanged. **Note:** the old single access "manage" (links, videos and database together) is now three separate accesses; existing Admins keep all of them, so nothing changes for them.
+**Owner action for change 10:** push the new/changed `staff.js`, `server.js`, `sheets.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `test/staff.test.js`, `test/support/memory-store.js`, `status/build.js`, `status/STATUS-SOURCE.md`. No new Render variable and no new package. On startup the site creates the **Roles** tab. Then open `/admin`, sign in as owner, open **Staff**: you should see a new **Roles and access** card with Admin, Editor and Moderator. Click **Create role**, name it (for example Video staff), tick only Chapter videos, Create. Add a staff member with that role and one with the Editor role, sign out, and sign in as each: the Video staff person should see only Statistics, Quiz results and Chapter videos; the Editor should also see Site links and Database, but not Staff. Then tick another access on the Video staff role (Edit) and Refresh the first person's screen: the new tab appears without signing in again. Existing admin and moderator accounts are unchanged. **Note:** the old single access "manage" (links, videos and database together) is now three separate accesses; existing Admins keep all of them, so nothing changes for them.
 
 **Owner action for change 9:** push the new `admin-database.js` and the `test/` folder, and the changed `server.js`, `sheets.js`, `package.json`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `status/STATUS-SOURCE.md`, `status/build.js`. No new Render variable and no new package. Then open `/admin`, sign in, open **Database**, change one student's status and check the Google Sheet shows it, add a test mentorship code and delete it again, then add a test student and delete it (check its photo and results rows go too). The service account already has edit access (the site writes to the sheet today).
 
@@ -226,11 +226,11 @@
 
 ## 5. Open questions
 
-0c. **Change 11: should the Editor role also make quiz codes?** Built in, only Owner and Admin can (plus any custom role given the Quiz codes access), because you asked for "admin or other roles set in charge". Say the word and the Editor gets it too (one line in `team.js`).
+0c. **Change 11: should the Editor role also make quiz codes?** Built in, only Owner and Admin can (plus any custom role given the Quiz codes access), because you asked for "admin or other roles set in charge". Say the word and the Editor gets it too (one line in `staff.js`).
 
 0d. **Change 11: should a student's past results stay visible while the quiz is locked?** They do now (the code only controls taking the quiz). Codes also do not expire; say if you want an expiry time.
 
-0b. **Change 10 assumes an Editor can use the Database tab** (edit and delete students, codes and results) but cannot manage the team. Is that what you want, or should the Editor only manage links and videos?
+0b. **Change 10 assumes an Editor can use the Database tab** (edit and delete students, codes and results) but cannot manage the staff. Is that what you want, or should the Editor only manage links and videos?
 
 0. **Change 2 asks for the registered email as the second check at sign-in.** Is email right, or would you prefer WhatsApp number or a one-time code sent to them? (Answered question 6 below in the meantime.)
 
@@ -256,15 +256,15 @@
 
 | Date | Change |
 | --- | --- |
-| 2026-10-26 | **Change 14: admin ID cards tab shows every card a person holds.** `server.js` (`/api/admin/id-cards` adds `allCards`, one card per Student / Alumni / Team ID card the person holds); `public/admin.js` (clicking a name draws each card under the other with its own Download button; the list shows "2 ID cards" for people with several); `public/admin.html` (one mount box, old single Download button removed); `public/admin.css` (spacing between cards). Owner action: push those four files. |
+| 2026-10-26 | **Change 14: admin ID cards tab shows every card a person holds.** `server.js` (`/api/admin/id-cards` adds `allCards`, one card per Student / Alumni / Staff ID card the person holds); `public/admin.js` (clicking a name draws each card under the other with its own Download button; the list shows "2 ID cards" for people with several); `public/admin.html` (one mount box, old single Download button removed); `public/admin.css` (spacing between cards). Owner action: push those four files. |
 | 2026-10-26 | **Rename "Find a student" to "Check ID".** Text only in `public/status.html`, `public/status.js`, `public/certificate.html`, `public/register.html`, `public/portal.html`, `public/admin.html`, `public/card.js`, `public/lookup-kind.js`, `public/styles.css`, `server.js` (comments), `README.md` |
-| 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Team ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
+| 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Staff ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
 | 2026-10-26 | **Change 12: certificate design.** New `public/certificate-art.js` (the real bull-horn logo and the gold seal as embedded pictures); `public/certificate.js` rewritten around the measured background shapes of the owner's design, canvas 1280 x 909, new title, logo, seal, stamp, certificate number and CAC-tag positions, PDF keeps proportions; `portal.html`, `admin.html` and `certificate.html` load `certificate-art.js` before `certificate.js`; `status/build.js` now also embeds the certificate files in the latest-code section. |
 | 2026-10-18 | **Community page in the student portal.** New **Community** item in the portal's My portal menu (`#/community`) with a "Join on WhatsApp" and a "Join on Telegram" button that open the official group in a new tab. The addresses are two new fields on the dashboard's **Site links** tab (`communityWhatsapp`, `communityTelegram`, https only); when one is empty the page uses the official WhatsApp / Telegram already on Site links, and if nothing is set it says the link is coming soon. The community links are served only to signed-in students (`GET /api/community`) and are left out of the public `/api/links`. On startup the site adds the two missing rows to the Site Links tab. Files: `links.js`, `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `test/community.test.js`, `test/support/boot-server.js`, `test/support/fake-sheets.js`, `test/quiz-gate.test.js`. 3 new tests. |
 | 2026-10-26 | **Find a student now has an ID card / Certificate dropdown.** "Check a certificate" is removed from the main menu (and the phone tab bar); "Find a student" is the one entry. Its page opens with a dropdown, **ID card** or **Certificate**, and choosing one opens that lookup (the certificate page keeps "Find a student" highlighted). New `public/lookup-kind.js`; changed `public/status.html`, `public/certificate.html`, `public/styles.css`. Owner action: push those four files. |
 | 2026-10-18 | **Menu tweak (after change 11): "Register" is hidden from the main menu once someone is registered or signed in on the device.** New `public/nav.js` (loaded by the portal, register and find-a-student pages) hides the link while the portal sign-in is saved; signing out brings it back, and it is never hidden on the register page itself. A signed-out visitor still sees it, and the portal sign-in screen still has "Register as a new student". On phones the bottom tab bar now splits its width between however many tabs show (`public/styles.css`), so "My portal" and "Find a student" fill the space Register leaves. Owner action: push `public/nav.js`, `public/portal.js`, `public/portal.html`, `public/register.html`, `public/status.html`, `public/styles.css`. |
-| 2026-10-18 | **Change 11: one-time quiz codes.** New `quizcodes.js` (code rules: make, enter, finish, cancel); `sheets.js` (new **Quiz Codes** tab with a Status dropdown); `team.js` (new **Quiz codes** access); `server.js` (`POST /api/quiz/unlock`, lock on `/api/quiz/session` and `/api/quiz/result`, `unlocked` in `/api/results`, `/api/admin/quiz-codes` routes, optional `QUIZ_CODE_FOR_TELEGRAM`); portal Quiz page (code box, locked and unlocked states); **Quiz codes** dashboard tab; 31 new tests (23 for the code rules, 7 that run the real server over HTTP on a fake sheet, one updated access test). |
-| 2026-10-18 | **Change 10: Editor role and roles with chosen access.** `team.js` (five accesses, built-in Owner/Admin/Editor/Moderator, custom roles with create/change/delete and guard rails); `sheets.js` (new **Roles** tab); `server.js` (per-access checks, `/api/admin/roles` routes, role list with member counts); **Roles and access** card and role dialog on the Team tab (`public/admin.html`, `admin.js`, `admin.css`); 19 new tests. Replaces the single `manage` access by `links`, `videos` and `database`. |
+| 2026-10-18 | **Change 11: one-time quiz codes.** New `quizcodes.js` (code rules: make, enter, finish, cancel); `sheets.js` (new **Quiz Codes** tab with a Status dropdown); `staff.js` (new **Quiz codes** access); `server.js` (`POST /api/quiz/unlock`, lock on `/api/quiz/session` and `/api/quiz/result`, `unlocked` in `/api/results`, `/api/admin/quiz-codes` routes, optional `QUIZ_CODE_FOR_TELEGRAM`); portal Quiz page (code box, locked and unlocked states); **Quiz codes** dashboard tab; 31 new tests (23 for the code rules, 7 that run the real server over HTTP on a fake sheet, one updated access test). |
+| 2026-10-18 | **Change 10: Editor role and roles with chosen access.** `staff.js` (five accesses, built-in Owner/Admin/Editor/Moderator, custom roles with create/change/delete and guard rails); `sheets.js` (new **Roles** tab); `server.js` (per-access checks, `/api/admin/roles` routes, role list with member counts); **Roles and access** card and role dialog on the Staff tab (`public/admin.html`, `admin.js`, `admin.css`); 19 new tests. Replaces the single `manage` access by `links`, `videos` and `database`. |
 | 2026-10-18 | **Fix: visible Edit and Delete buttons on every Database row.** Before, editing and deleting were hidden behind clicking the small row number. Each row now has an **Actions** column (right after the row number, so it never scrolls out of view) with **Edit** and **Delete** (tables that cannot be edited show **Open**, tables that cannot be deleted from show no Delete). Delete asks for confirmation, then removes the record. Changed `public/admin.js`, `public/admin.css` only; the server rules are unchanged (the server still decides what each table allows). |
 | 2026-10-18 | **Change 9: Database tab in the editor dashboard (full create, read, update, delete).** New `admin-database.js` (what each table allows, every check); `sheets.js` gains generic table read, cell write, append, row delete and delete-by-registration; five `/api/admin/database...` routes in `server.js`; new **Database** tab (`public/admin.html`, `admin.js`, `admin.css`); `npm test` and `test/`; dashboard tab bar wraps on phones. |
 | 2026-10-17 | **Change 8: date of birth at registration.** Required date field on `register.html`; checked in `server.js` (`validDob`); stored in Students column N (`sheets.js`: header and range now A-N). Not shown publicly. |
@@ -318,7 +318,7 @@ const pdfLink = require("./pdflink");
 const links = require("./links");
 const videos = require("./videos");
 const adminDatabase = require("./admin-database");
-const team = require("./team");
+const staff = require("./staff");
 const certificate = require("./certificate");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
@@ -475,8 +475,8 @@ function validate(body) {
 }
 
 // What the public ID card is allowed to show. Email and WhatsApp number are never included.
-// kind: "student", "alumni" or "team" picks which of the person's cards to build. Left out, it builds the person's
-// main card (student first, then alumni, then team). `cards` always lists every card the person holds, and
+// kind: "student", "alumni" or "staff" picks which of the person's cards to build. Left out, it builds the person's
+// main card (student first, then alumni, then staff). `cards` always lists every card the person holds, and
 // `certified` says whether they have a certificate, so the page can offer the right choices.
 function cardFromRow(r, kind) {
   if (typeof kind !== "string") kind = undefined; // .map(cardFromRow) passes the row number as the second argument
@@ -499,7 +499,7 @@ function cardFromRow(r, kind) {
     status,
     cards,
     certified: idrules.idKinds(r).student === "Certified",
-    teamRole: status === "Team Member" ? (r[14] || "").trim() : "",
+    staffRole: status === "Staff Member" ? (r[14] || "").trim() : "",
     statusDate: status === "Uncertified" ? "" : r[10] || "",
     ...expiry, // expiryKind, expires, expired, daysLeft
   };
@@ -677,13 +677,13 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
     if (!r) {
       return res.status(404).json({ error: "No student found with that registration number." });
     }
-    // ?kind=student|alumni|team picks the card. A person only has the cards the editor ticked for them.
+    // ?kind=student|alumni|staff picks the card. A person only has the cards the editor ticked for them.
     const kind = String(req.query.kind || "").toLowerCase();
     if (kind) {
-      if (!["student", "alumni", "team"].includes(kind)) return res.status(400).json({ error: "Choose a Student, Alumni or Team ID card." });
+      if (!["student", "alumni", "staff"].includes(kind)) return res.status(400).json({ error: "Choose a Student, Alumni or Staff ID card." });
       if (!idrules.idCards(r).includes(kind)) {
         const base = cardFromRow(r);
-        const names = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+        const names = { student: "Student ID card", alumni: "Alumni ID card", staff: "Staff ID card" };
         return res.status(404).json({
           error: `${base.fullName} (${base.regNumber}) does not have a ${names[kind]}.`,
           cards: base.cards,
@@ -789,7 +789,7 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
 
 // ---- Certificates (see certificate.js) ----
 // Anyone can look a certificate up by registration number and SEE it (that is how it is verified). Downloading is for the signed-in student and the dashboard.
-// The person who signs is chosen by registration number on the dashboard. Their name, their role (the "Team Role"
+// The person who signs is chosen by registration number on the dashboard. Their name, their role (the "Staff Role"
 // on their record) and the signature on their own ID card are what every certificate shows, so changing the signature
 // on that card changes it on the certificates too.
 let signerSigCache = new Map(); // reg -> { at, value }
@@ -812,8 +812,8 @@ async function signerOf(reg, rows) {
   if (!r) return { found: false, regNumber: "", name: "", title: "", signature: "" };
   const row = (rows || (await store.readCached())).find((x) => (x[0] || "").toUpperCase() === r);
   if (!row) return { found: false, regNumber: r, name: "", title: "", signature: "" };
-  const card = cardFromRow(row, idrules.idCards(row).includes("team") ? "team" : undefined);
-  return { found: true, regNumber: r, name: card.fullName, title: card.teamRole || "", signature: await signatureOf(r) };
+  const card = cardFromRow(row, idrules.idCards(row).includes("staff") ? "staff" : undefined);
+  return { found: true, regNumber: r, name: card.fullName, title: card.staffRole || "", signature: await signatureOf(r) };
 }
 // The settings certificate.forCard prints, with the signer filled in from their record.
 async function certContext(rows) {
@@ -1128,12 +1128,12 @@ function botAuth(req, res, next) {
   next();
 }
 
-// The editor dashboard has named accounts with roles (see team.js):
+// The editor dashboard has named accounts with roles (see staff.js):
 //   owner      signs in as "owner" with ADMIN_PASSWORD on Render. Always works; cannot be removed.
-//   admin      everything, including the team and roles.
-//   editor     everything except the team: statistics, site links, chapter videos and the Database.
+//   admin      everything, including the staff and roles.
+//   editor     everything except the staff: statistics, site links, chapter videos and the Database.
 //   moderator  statistics, student lists and quiz results only (read only).
-//   custom     roles an admin creates on the dashboard, with the access they pick (see team.js).
+//   custom     roles an admin creates on the dashboard, with the access they pick (see staff.js).
 // Signing in returns a token (12 hours). It only says WHO you are; your role is looked up on every request,
 // so a role change, a disable or a removal takes effect straight away. Sending ADMIN_PASSWORD itself as the
 // Bearer token still works and counts as the owner, so existing bookmarks and scripts keep working.
@@ -1147,7 +1147,7 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many attempts. Try again in a few minutes." },
 });
-const teamService = team.create(store, { now: lagosTimestamp });
+const staffService = staff.create(store, { now: lagosTimestamp });
 
 function requirePerm(perm) {
   return async (req, res, next) => {
@@ -1156,11 +1156,11 @@ function requirePerm(perm) {
     const given = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
     try {
       let who = null;
-      const username = team.verifyToken(given, pw);
-      if (username) who = await teamService.lookup(username);
-      else if (given && safeEqual(given, pw)) who = { username: team.OWNER, name: "Owner", role: "owner" };
+      const username = staff.verifyToken(given, pw);
+      if (username) who = await staffService.lookup(username);
+      else if (given && safeEqual(given, pw)) who = { username: staff.OWNER, name: "Owner", role: "owner" };
       if (!who) return res.status(401).json({ error: "Please sign in again." });
-      const perms = await teamService.permsOf(who.role);
+      const perms = await staffService.permsOf(who.role);
       if (!perms.includes(perm)) return res.status(403).json({ error: "Your role does not allow this." });
       req.admin = { ...who, perms };
       next();
@@ -1177,7 +1177,7 @@ const videosAuth = requirePerm("videos"); // chapter videos
 const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
 const certAuth = requirePerm("certificates"); // certificate signer settings, and every certificate
 const databaseAuth = requirePerm("database"); // the Database tab
-const teamAuth = requirePerm("team"); // team accounts and roles
+const staffAuth = requirePerm("staff"); // staff accounts and roles
 
 app.get("/api/config", (_req, res) =>
   res.json({
@@ -1389,8 +1389,8 @@ app.get("/api/results", lookupLimiter, studentAuth, async (req, res) => {
 // Editor dashboard
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 
-// ---- Team accounts ----
-const teamLoginLimiter = rateLimit({
+// ---- Staff accounts ----
+const staffLoginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   skipSuccessfulRequests: true,
@@ -1399,68 +1399,68 @@ const teamLoginLimiter = rateLimit({
   message: { error: "Too many attempts. Try again in a few minutes." },
 });
 async function meOf(who) {
-  const info = who.role === "owner" ? { label: team.ROLES.owner.label, perms: team.ROLES.owner.perms } : await teamService.roleInfo(who.role);
-  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.username !== team.OWNER };
+  const info = who.role === "owner" ? { label: staff.ROLES.owner.label, perms: staff.ROLES.owner.perms } : await staffService.roleInfo(who.role);
+  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.username !== staff.OWNER };
 }
 
-function teamRoute(handler) {
+function staffRoute(handler) {
   return async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
       await handler(req, res);
     } catch (err) {
-      if (err instanceof team.TeamError) {
+      if (err instanceof staff.StaffError) {
         return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
       }
-      console.error("Team request failed:", err.message);
+      console.error("Staff request failed:", err.message);
       res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
     }
   };
 }
 
 // The sign-in page's "Sign in as" drop-down: role names only (no usernames).
-app.get("/api/admin/login-users", adminLimiter, teamRoute(async (req, res) => {
+app.get("/api/admin/login-users", adminLimiter, staffRoute(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  res.json(await teamService.loginChoices());
+  res.json(await staffService.loginChoices());
 }));
 
-app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
+app.post("/api/admin/login", staffLoginLimiter, staffRoute(async (req, res) => {
   const pw = process.env.ADMIN_PASSWORD;
-  if (!pw) throw new team.TeamError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
+  if (!pw) throw new staff.StaffError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
   const b = req.body || {};
   const given = typeof b.password === "string" ? b.password.slice(0, 200) : "";
   let who = null;
   if (b.role) {
     // Signing in as a role: the role name is the username. Try the accounts with that role.
     let lastErr = null;
-    for (const name of await teamService.loginNames(clean(b.role, 40))) {
-      try { who = await teamService.login(name, given, pw, safeEqual); break; } catch (e) { lastErr = e; if (!(e instanceof team.TeamError) || e.status !== 401) throw e; }
+    for (const name of await staffService.loginNames(clean(b.role, 40))) {
+      try { who = await staffService.login(name, given, pw, safeEqual); break; } catch (e) { lastErr = e; if (!(e instanceof staff.StaffError) || e.status !== 401) throw e; }
     }
-    if (!who) throw lastErr || new team.TeamError(401, "Wrong username or password.");
+    if (!who) throw lastErr || new staff.StaffError(401, "Wrong username or password.");
   } else {
-    who = await teamService.login(clean(b.username, 40), given, pw, safeEqual);
+    who = await staffService.login(clean(b.username, 40), given, pw, safeEqual);
   }
-  res.json({ token: team.signToken(who.username, pw), me: await meOf(who) });
+  res.json({ token: staff.signToken(who.username, pw), me: await meOf(who) });
 }));
 
-app.get("/api/admin/me", adminLimiter, adminAuth, teamRoute(async (req, res) => res.json(await meOf(req.admin))));
+app.get("/api/admin/me", adminLimiter, adminAuth, staffRoute(async (req, res) => res.json(await meOf(req.admin))));
 
-app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req, res) => {
-  if (req.admin.username === team.OWNER) throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
+app.post("/api/admin/me/password", adminLimiter, adminAuth, staffRoute(async (req, res) => {
+  if (req.admin.username === staff.OWNER) throw new staff.StaffError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
   const b = req.body || {};
-  res.json(await teamService.changeOwnPassword(req.admin.username, b.current, b.next));
+  res.json(await staffService.changeOwnPassword(req.admin.username, b.current, b.next));
 }));
 
-// ID cards: an admin (anyone with the "team" access) can find any student or team member and see their card.
+// ID cards: an admin (anyone with the "staff" access) can find any student or staff member and see their card.
 // The cards carry the same details as the public ID card (never email or WhatsApp number).
-app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
+app.get("/api/admin/id-cards", adminLimiter, staffAuth, async (req, res) => {
   try {
     const q = clean(req.query.q, 80).toLowerCase();
     const rows = (await store.readCached()).filter((r) => r && r[0]);
     const hit = q ? rows.filter((r) => [r[0], r[4], r[2], r[9], r[12]].some((v) => String(v || "").toLowerCase().includes(q))) : rows;
     const limit = 40;
     // newest first (the sheet is in registration order)
-    // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Team), so the
+    // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Staff), so the
     // dashboard can show them all when the name is clicked.
     const cards = hit.slice().reverse().slice(0, limit).map((r) => {
       const kinds = idrules.idCards(r);
@@ -1474,7 +1474,7 @@ app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
 });
 
 // The signature shown on a student's card in the admin ID cards view (same access as the cards themselves).
-app.get("/api/admin/id-cards/signature", adminLimiter, teamAuth, async (req, res) => {
+app.get("/api/admin/id-cards/signature", adminLimiter, staffAuth, async (req, res) => {
   const reg = normaliseReg(req.query.reg);
   if (!reg) return res.status(400).json({ error: "Not a valid registration number." });
   try {
@@ -1533,7 +1533,7 @@ app.put("/api/admin/certificate-settings", adminLimiter, certAuth, async (req, r
     else {
       signer = await signerOf(values.certSignerReg).catch(() => null);
       if (!signer) return res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
-      if (!signer.found) mine.certSignerReg = "No student or team member has that registration number.";
+      if (!signer.found) mine.certSignerReg = "No student or staff member has that registration number.";
     }
   }
   if (Object.keys(mine).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors: mine });
@@ -1549,33 +1549,33 @@ app.put("/api/admin/certificate-settings", adminLimiter, certAuth, async (req, r
   }
 });
 
-app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json({ members: await teamService.members(), roles: await teamService.roles(req.admin), permissions: team.PERMS });
+app.get("/api/admin/staff", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json({ members: await staffService.members(), roles: await staffService.roles(req.admin), permissions: staff.PERMS });
 }));
 
 // Roles: create one and pick its access; change a custom role's name or access; remove a custom role nobody uses.
-app.post("/api/admin/roles", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.addRole(req.body, req.admin));
+app.post("/api/admin/roles", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.addRole(req.body, req.admin));
 }));
 
-app.put("/api/admin/roles/:key", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.updateRole(String(req.params.key).toLowerCase(), req.body, req.admin));
+app.put("/api/admin/roles/:key", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.updateRole(String(req.params.key).toLowerCase(), req.body, req.admin));
 }));
 
-app.post("/api/admin/roles/:key/delete", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.removeRole(String(req.params.key).toLowerCase(), req.admin));
+app.post("/api/admin/roles/:key/delete", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.removeRole(String(req.params.key).toLowerCase(), req.admin));
 }));
 
-app.post("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.add(req.body, req.admin));
+app.post("/api/admin/staff", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.add(req.body, req.admin));
 }));
 
-app.put("/api/admin/team/:username", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.update(req.params.username, req.body, req.admin));
+app.put("/api/admin/staff/:username", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.update(req.params.username, req.body, req.admin));
 }));
 
-app.post("/api/admin/team/:username/delete", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.remove(req.params.username, req.admin));
+app.post("/api/admin/staff/:username/delete", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.remove(req.params.username, req.admin));
 }));
 
 app.get("/api/admin/stats", adminLimiter, adminAuth, async (_req, res) => {
@@ -1804,7 +1804,7 @@ app.listen(PORT, async () => {
 const { JWT } = require("google-auth-library");
 const links = require("./links");
 const videos = require("./videos");
-const team = require("./team");
+const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -1813,8 +1813,8 @@ const PHOTO_TAB = process.env.GOOGLE_PHOTO_TAB || "Photos";
 const SIG_TAB = process.env.GOOGLE_SIGNATURE_TAB || "Signatures";
 const API = "https://sheets.googleapis.com/v4/spreadsheets";
 
-// Column J. "Not a student" means no Student ID (a team or alumni member who never took the course).
-// Team and Alumni are ticked in columns Q and R, so one person can be a student and also a team member.
+// Column J. "Not a student" means no Student ID (a staff or alumni member who never took the course).
+// Staff and Alumni are ticked in columns Q and R, so one person can be a student and also a staff member.
 const STATUSES = [
   "Uncertified",
   "Certified",
@@ -1836,9 +1836,9 @@ const HEADERS = [
   "ID Issue Date",
   "State / Region",
   "Date of Birth",
-  "Team Role",
+  "Staff Role",
   "Photo To Redo (type Yes: the student must send a new passport photo)",
-  "Team Member (Yes gives a Team ID card)",
+  "Staff Member (Yes gives a Staff ID card)",
   "Alumni Member (Yes gives an Alumni ID card)",
 ];
 const LAST_COL = "R";
@@ -1889,14 +1889,14 @@ const VIDEO_TAB = process.env.GOOGLE_VIDEO_TAB || "Chapter Videos";
 const VIDEO_HEADERS = ["Chapter", "Chapter title", "YouTube video address"];
 const VIDEO_LAST_COL = "C";
 
-// Dashboard team (named admin / moderator accounts). Holds password HASHES only; never listed in the Database view.
-const TEAM_TAB = process.env.GOOGLE_TEAM_TAB || "Team";
-const TEAM_HEADERS = team.HEADERS;
-const TEAM_LAST_COL = "G";
+// Dashboard staff (named admin / moderator accounts). Holds password HASHES only; never listed in the Database view.
+const STAFF_TAB = process.env.GOOGLE_STAFF_TAB || "Staff";
+const STAFF_HEADERS = staff.HEADERS;
+const STAFF_LAST_COL = "G";
 
-// Custom roles (a name and the access it gives). Built-in roles live in team.js. No secrets here.
+// Custom roles (a name and the access it gives). Built-in roles live in staff.js. No secrets here.
 const ROLES_TAB = process.env.GOOGLE_ROLES_TAB || "Roles";
-const ROLES_HEADERS = team.ROLE_HEADERS;
+const ROLES_HEADERS = staff.ROLE_HEADERS;
 const ROLES_LAST_COL = "E";
 
 function loadCredentials() {
@@ -2024,8 +2024,8 @@ async function init() {
     });
   }
 
-  await ensureTab(TEAM_TAB);
-  await ensureHeaders(TEAM_TAB, TEAM_HEADERS, TEAM_LAST_COL);
+  await ensureTab(STAFF_TAB);
+  await ensureHeaders(STAFF_TAB, STAFF_HEADERS, STAFF_LAST_COL);
 
   await ensureTab(ROLES_TAB);
   await ensureHeaders(ROLES_TAB, ROLES_HEADERS, ROLES_LAST_COL);
@@ -2049,7 +2049,7 @@ async function init() {
           },
         },
         {
-          // Dropdowns on Team Member (Q) and Alumni Member (R): Yes or empty.
+          // Dropdowns on Staff Member (Q) and Alumni Member (R): Yes or empty.
           setDataValidation: {
             range: { sheetId: students.sheetId, startRowIndex: 1, startColumnIndex: 16, endColumnIndex: 18 },
             rule: {
@@ -2391,9 +2391,9 @@ const EDITOR_TABS = {
   dobchanges: { title: DOB_TAB, headers: DOB_HEADERS, lastCol: "D" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
-  // Internal only, like photos: the dashboard team (password hashes). Managed through team.js, never the Database view.
-  team: { title: TEAM_TAB, headers: TEAM_HEADERS, lastCol: TEAM_LAST_COL },
-  // Internal only: custom roles. Managed through team.js, never the Database view.
+  // Internal only, like photos: the dashboard staff (password hashes). Managed through staff.js, never the Database view.
+  staff: { title: STAFF_TAB, headers: STAFF_HEADERS, lastCol: STAFF_LAST_COL },
+  // Internal only: custom roles. Managed through staff.js, never the Database view.
   roles: { title: ROLES_TAB, headers: ROLES_HEADERS, lastCol: ROLES_LAST_COL },
 };
 
@@ -2523,10 +2523,10 @@ module.exports = {
 };
 ```
 
-#### `team.js`
+#### `staff.js`
 
 ```js
-// Dashboard team: named accounts with roles, and the roles themselves.
+// Dashboard staff: named accounts with roles, and the roles themselves.
 //
 // Access (what a role can open) is a list of permissions:
 //   view      Statistics, student lists and quiz results. Every role has it: it is what signing in needs.
@@ -2536,22 +2536,22 @@ module.exports = {
 //   quizcodes Quiz codes: make and cancel the one-time codes students need to unlock the quiz.
 //   certificates Certificates: choose who signs them (name, title, signature), and open and download any certificate.
 //   database  The Database tab: add, edit and delete records.
-//   team      Team accounts and roles.
+//   staff      Staff accounts and roles.
 //
 // Built-in roles (fixed, cannot be changed or deleted)
 //   owner      Everything. The person who holds ADMIN_PASSWORD on Render is the main owner: always works, is not
 //              stored in the sheet and cannot be removed or locked out by anyone. Signs in with the username "owner".
-//              An owner can also give the Owner role to a team account (a co-owner). Only an owner can do that, and
-//              only an owner can change, disable or remove a co-owner. A co-owner has a normal account on the "Team"
+//              An owner can also give the Owner role to a staff account (a co-owner). Only an owner can do that, and
+//              only an owner can change, disable or remove a co-owner. A co-owner has a normal account on the "Staff"
 //              tab with their own username and password.
-//   admin      Everything, including the team and roles.
-//   editor     Statistics, site links, the student community links, chapter videos and the Database. (Not the team, and not quiz codes: give
+//   admin      Everything, including the staff and roles.
+//   editor     Statistics, site links, the student community links, chapter videos and the Database. (Not the staff, and not quiz codes: give
 //              someone "quizcodes" through a custom role, e.g. a "Quiz supervisor" role with only that access.)
 //   moderator  Read only: statistics, student lists and quiz results.
-// Custom roles are created by anyone with the "team" permission, who picks the access for each one. They live
+// Custom roles are created by anyone with the "staff" permission, who picks the access for each one. They live
 // on the "Roles" sheet tab (a name and a list of permissions, no secrets).
 //
-// Accounts live on the "Team" sheet tab. Only a salted scrypt hash of each password is stored, never the
+// Accounts live on the "Staff" sheet tab. Only a salted scrypt hash of each password is stored, never the
 // password itself. A role change, a change to a role's access, a disable or a removal takes effect on the very
 // next request, because the sign-in token only says WHO you are; your access is looked up each time.
 const crypto = require("crypto");
@@ -2568,7 +2568,7 @@ const PERMS = [
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
   { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
-  { key: "team", label: "Team and roles", help: "Add team members, create roles and choose their access." },
+  { key: "staff", label: "Staff and roles", help: "Add staff members, create roles and choose their access." },
 ];
 const PERM_KEYS = PERMS.map((p) => p.key);
 const ALL = PERM_KEYS.slice();
@@ -2591,7 +2591,7 @@ const COL = { username: 0, name: 1, role: 2, hash: 3, active: 4, createdAt: 5, c
 const ROLE_HEADERS = ["Role Key (do not edit)", "Role Name", "Access (do not edit)", "Created At (Lagos)", "Created By"];
 const RCOL = { key: 0, name: 1, perms: 2, createdAt: 3, createdBy: 4 };
 
-class TeamError extends Error {
+class StaffError extends Error {
   constructor(status, message, fields) {
     super(message);
     this.status = status;
@@ -2712,7 +2712,7 @@ function roleFromRows(rows) {
 }
 
 // ---------- The service ----------
-// `store` needs tabRows / appendTabRows / writeTabCells / deleteTabRow for the "team" and "roles" tabs (sheets.js,
+// `store` needs tabRows / appendTabRows / writeTabCells / deleteTabRow for the "staff" and "roles" tabs (sheets.js,
 // or the in-memory stand-in the tests use). `now` gives the "Created At" text.
 function create(store, opts = {}) {
   const stamp = opts.now || (() => new Date().toISOString());
@@ -2729,7 +2729,7 @@ function create(store, opts = {}) {
   const forget = () => { cache = { at: 0, users: [] }; roleCache = { at: 0, roles: [] }; };
 
   async function listFresh() {
-    const users = fromRows(await store.tabRows("team"));
+    const users = fromRows(await store.tabRows("staff"));
     cache = { at: Date.now(), users };
     return users;
   }
@@ -2791,22 +2791,22 @@ function create(store, opts = {}) {
   async function login(username, password, ownerPassword, safeEqual) {
     const name = normUsername(username);
     if (name === OWNER) {
-      if (!ownerPassword) throw new TeamError(503, "The dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
-      if (!safeEqual(String(password || ""), ownerPassword)) throw new TeamError(401, "Wrong username or password.");
+      if (!ownerPassword) throw new StaffError(503, "The dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
+      if (!safeEqual(String(password || ""), ownerPassword)) throw new StaffError(401, "Wrong username or password.");
       return { username: OWNER, name: "Owner", role: "owner" };
     }
     const u = (await list()).find((x) => x.username === name);
     const ok = await verifyPassword(String(password || ""), u ? u.hash : await DUMMY_HASH_PROMISE);
-    if (!u || !ok) throw new TeamError(401, "Wrong username or password.");
-    if (!u.active) throw new TeamError(403, "This account has been disabled. Ask an admin.");
-    if (!(await roleInfo(u.role))) throw new TeamError(403, "This account has no valid role. Ask an admin.");
+    if (!u || !ok) throw new StaffError(401, "Wrong username or password.");
+    if (!u.active) throw new StaffError(403, "This account has been disabled. Ask an admin.");
+    if (!(await roleInfo(u.role))) throw new StaffError(403, "This account has no valid role. Ask an admin.");
     return { username: u.username, name: u.name, role: u.role };
   }
 
   // For the sign-in drop-down: the roles somebody can sign in as, and how many accounts each has.
   // Usernames are never listed.
   async function loginChoices() {
-    // The main owner (ADMIN_PASSWORD) always counts as one, plus any co-owners on the team.
+    // The main owner (ADMIN_PASSWORD) always counts as one, plus any co-owners on the staff.
     const out = [{ key: "owner", label: ROLES.owner.label, count: 1 }];
     const byRole = new Map();
     for (const u of await list()) {
@@ -2863,16 +2863,16 @@ function create(store, opts = {}) {
       await checkAssignable(b.role, actor, errors);
       const pe = passwordError(b.password);
       if (pe) errors.password = pe;
-      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      if (Object.keys(errors).length) throw new StaffError(400, "Please fix the highlighted fields.", errors);
       const users = await listFresh();
       if (users.some((u) => u.username === username)) {
-        throw new TeamError(409, "That username is already taken.", { username: "That username is already taken." });
+        throw new StaffError(409, "That username is already taken.", { username: "That username is already taken." });
       }
       const hash = await hashPassword(b.password);
       const row = [];
       row[COL.username] = username; row[COL.name] = name; row[COL.role] = b.role; row[COL.hash] = hash;
       row[COL.active] = "Yes"; row[COL.createdAt] = stamp(); row[COL.createdBy] = actor.username;
-      await store.appendTabRows("team", [row]);
+      await store.appendTabRows("staff", [row]);
       forget();
       return publicUser({ username, name, role: b.role, active: true, createdAt: row[COL.createdAt], createdBy: actor.username });
     });
@@ -2884,7 +2884,7 @@ function create(store, opts = {}) {
       const target = normUsername(username);
       const c = changes || {};
       const u = (await listFresh()).find((x) => x.username === target);
-      if (!u) throw new TeamError(404, "That account no longer exists.");
+      if (!u) throw new StaffError(404, "That account no longer exists.");
       const self = target === actor.username;
       const errors = {};
       const write = {};
@@ -2893,32 +2893,32 @@ function create(store, opts = {}) {
         if (!name) errors.fullName = "Enter their full name."; else write[COL.name] = name;
       }
       if (c.role !== undefined && c.role !== u.role) {
-        if (self) throw new TeamError(400, "You cannot change your own role.");
+        if (self) throw new StaffError(400, "You cannot change your own role.");
         if (await checkAssignable(c.role, actor, errors)) write[COL.role] = c.role;
       }
       // A co-owner is out of reach of everyone who is not an owner (an admin has the same access, so the access
       // comparison below would not stop them).
       if (!self && u.role === "owner" && actor.role !== "owner") {
-        throw new TeamError(403, "Only an owner can change an owner's account.");
+        throw new StaffError(403, "Only an owner can change an owner's account.");
       }
       // Someone whose current role allows more than the actor can do is out of the actor's reach.
       if (!self && (write[COL.role] !== undefined || c.active !== undefined || (c.password !== undefined && c.password !== ""))) {
         const theirs = await permsOf(u.role);
         if (!subsetOf(theirs, await permsOfActor(actor))) {
-          throw new TeamError(403, "This person can do more than you can, so you cannot change their account.");
+          throw new StaffError(403, "This person can do more than you can, so you cannot change their account.");
         }
       }
       if (c.active !== undefined && Boolean(c.active) !== u.active) {
-        if (self) throw new TeamError(400, "You cannot disable your own account.");
+        if (self) throw new StaffError(400, "You cannot disable your own account.");
         write[COL.active] = c.active ? "Yes" : "No";
       }
       if (c.password !== undefined && c.password !== "") {
         const pe = passwordError(c.password);
         if (pe) errors.password = pe; else write[COL.hash] = await hashPassword(c.password);
       }
-      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      if (Object.keys(errors).length) throw new StaffError(400, "Please fix the highlighted fields.", errors);
       if (Object.keys(write).length) {
-        await store.writeTabCells("team", u.n, write);
+        await store.writeTabCells("staff", u.n, write);
         forget();
       }
       return publicUser((await listFresh()).find((x) => x.username === target));
@@ -2928,31 +2928,31 @@ function create(store, opts = {}) {
   function remove(username, actor) {
     return queued(async () => {
       const target = normUsername(username);
-      if (target === actor.username) throw new TeamError(400, "You cannot remove your own account.");
+      if (target === actor.username) throw new StaffError(400, "You cannot remove your own account.");
       const u = (await listFresh()).find((x) => x.username === target);
-      if (!u) throw new TeamError(404, "That account no longer exists.");
-      if (u.role === "owner" && actor.role !== "owner") throw new TeamError(403, "Only an owner can remove an owner.");
+      if (!u) throw new StaffError(404, "That account no longer exists.");
+      if (u.role === "owner" && actor.role !== "owner") throw new StaffError(403, "Only an owner can remove an owner.");
       if (!subsetOf(await permsOf(u.role), await permsOfActor(actor))) {
-        throw new TeamError(403, "This person can do more than you can, so you cannot remove them.");
+        throw new StaffError(403, "This person can do more than you can, so you cannot remove them.");
       }
-      await store.deleteTabRow("team", u.n);
+      await store.deleteTabRow("staff", u.n);
       forget();
       return { removed: target };
     });
   }
 
-  // A team member changes their own password (the owner's lives on Render, not here).
+  // A staff member changes their own password (the owner's lives on Render, not here).
   function changeOwnPassword(username, current, next) {
     return queued(async () => {
       const target = normUsername(username);
       const u = (await listFresh()).find((x) => x.username === target);
-      if (!u) throw new TeamError(404, "Account not found.");
+      if (!u) throw new StaffError(404, "Account not found.");
       if (!(await verifyPassword(String(current || ""), u.hash))) {
-        throw new TeamError(400, "Your current password is not right.", { current: "Your current password is not right." });
+        throw new StaffError(400, "Your current password is not right.", { current: "Your current password is not right." });
       }
       const pe = passwordError(next);
-      if (pe) throw new TeamError(400, pe, { next: pe });
-      await store.writeTabCells("team", u.n, { [COL.hash]: await hashPassword(next) });
+      if (pe) throw new StaffError(400, pe, { next: pe });
+      await store.writeTabCells("staff", u.n, { [COL.hash]: await hashPassword(next) });
       forget();
       return { ok: true };
     });
@@ -2980,9 +2980,9 @@ function create(store, opts = {}) {
       const key = roleKeyFrom(label);
       if (label && key.length < 3) errors.name = "Use at least 3 letters or numbers in the name.";
       else if (label && RESERVED_ROLE_KEYS.includes(key)) errors.name = "That name is taken by a built-in role. Choose another.";
-      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      if (Object.keys(errors).length) throw new StaffError(400, "Please fix the highlighted fields.", errors);
       if ((await customFresh()).some((r) => r.key === key)) {
-        throw new TeamError(409, "A role with that name already exists.", { name: "A role with that name already exists." });
+        throw new StaffError(409, "A role with that name already exists.", { name: "A role with that name already exists." });
       }
       const row = [];
       row[RCOL.key] = key; row[RCOL.name] = label; row[RCOL.perms] = perms.join(",");
@@ -2995,16 +2995,16 @@ function create(store, opts = {}) {
 
   function updateRole(key, input, actor) {
     return queued(async () => {
-      if (ROLES[key]) throw new TeamError(400, "Built-in roles cannot be changed.");
+      if (ROLES[key]) throw new StaffError(400, "Built-in roles cannot be changed.");
       const r = (await customFresh()).find((x) => x.key === key);
-      if (!r) throw new TeamError(404, "That role no longer exists.");
-      if (actor.role === key) throw new TeamError(400, "You cannot change the role you hold. Ask someone else with access to the team.");
+      if (!r) throw new StaffError(404, "That role no longer exists.");
+      if (actor.role === key) throw new StaffError(400, "You cannot change the role you hold. Ask someone else with access to the staff.");
       const have = await permsOfActor(actor);
       // A role that allows more than the actor cannot be reduced or renamed by the actor either.
-      if (!subsetOf(r.perms, have)) throw new TeamError(403, "This role allows more than you can do, so you cannot change it.");
+      if (!subsetOf(r.perms, have)) throw new StaffError(403, "This role allows more than you can do, so you cannot change it.");
       const errors = {};
       const { label, perms } = checkRoleInput(input, have, errors);
-      if (Object.keys(errors).length) throw new TeamError(400, "Please fix the highlighted fields.", errors);
+      if (Object.keys(errors).length) throw new StaffError(400, "Please fix the highlighted fields.", errors);
       const write = {};
       if (label !== r.label) write[RCOL.name] = label;
       if (perms.join(",") !== r.perms.join(",")) write[RCOL.perms] = perms.join(",");
@@ -3018,16 +3018,16 @@ function create(store, opts = {}) {
 
   function removeRole(key, actor) {
     return queued(async () => {
-      if (ROLES[key]) throw new TeamError(400, "Built-in roles cannot be removed.");
+      if (ROLES[key]) throw new StaffError(400, "Built-in roles cannot be removed.");
       const r = (await customFresh()).find((x) => x.key === key);
-      if (!r) throw new TeamError(404, "That role no longer exists.");
-      if (actor.role === key) throw new TeamError(400, "You cannot remove the role you hold.");
-      if (!subsetOf(r.perms, await permsOfActor(actor))) throw new TeamError(403, "This role allows more than you can do, so you cannot remove it.");
+      if (!r) throw new StaffError(404, "That role no longer exists.");
+      if (actor.role === key) throw new StaffError(400, "You cannot remove the role you hold.");
+      if (!subsetOf(r.perms, await permsOfActor(actor))) throw new StaffError(403, "This role allows more than you can do, so you cannot remove it.");
       const using = (await listFresh()).filter((u) => u.role === key).length;
       if (using) {
-        throw new TeamError(409, using === 1
-          ? "One team member still has this role. Give them another role first."
-          : using + " team members still have this role. Give them another role first.");
+        throw new StaffError(409, using === 1
+          ? "One staff member still has this role. Give them another role first."
+          : using + " staff members still have this role. Give them another role first.");
       }
       await store.deleteTabRow("roles", r.n);
       forget();
@@ -3042,7 +3042,7 @@ function create(store, opts = {}) {
 }
 
 module.exports = {
-  OWNER, ROLES, ASSIGNABLE, PERMS, PERM_KEYS, RESERVED_ROLE_KEYS, HEADERS, COL, ROLE_HEADERS, RCOL, TeamError, can, create,
+  OWNER, ROLES, ASSIGNABLE, PERMS, PERM_KEYS, RESERVED_ROLE_KEYS, HEADERS, COL, ROLE_HEADERS, RCOL, StaffError, can, create,
   hashPassword, verifyPassword, signToken, verifyToken, normUsername, usernameError, passwordError, fromRows, publicUser,
   roleKeyFrom, cleanPerms, roleFromRows,
 };
@@ -3380,10 +3380,10 @@ function create(store) {
   const TABS = {
     students: {
       label: "Students",
-      help: "One row per person. Status says whether they hold a Student ID (Uncertified, Certified) or none (Not a student). Tick Team Member and/or Alumni Member to give them those ID cards too; only Certified students get a certificate. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
+      help: "One row per person. Status says whether they hold a Student ID (Uncertified, Certified) or none (Not a student). Tick Staff Member and/or Alumni Member to give them those ID cards too; only Certified students get a certificate. The sign-up time and mentorship code are locked. If you change a registration number, their photo, signature, quiz results, handbook progress and code records are updated to the new number automatically. A student's photo can only be added when the student registers.",
       editable: [0, 2, 3, 4, 5, 6, 7, 9, 16, 17, 14, 10, 11, 12, 13, 15],
       selects: { 2: countries, 7: GENDERS, 9: store.STATUSES, 15: ["", "Yes"], 16: ["", "Yes"], 17: ["", "Yes"] },
-      placeholders: { 16: "Yes gives a Team ID card (a student can also be a team member)", 17: "Yes gives an Alumni ID card", 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
+      placeholders: { 16: "Yes gives a Staff ID card (a student can also be a staff member)", 17: "Yes gives an Alumni ID card", 0: "ABECFX/26/0001 (changing it updates their photo, signature, quiz results and progress too)", 14: "e.g. Mentor, CEO, Support Staff", 10: "e.g. 15 Oct 2026", 11: "YYYY-MM-DD (a new date renews an expired ID)", 13: "YYYY-MM-DD" },
       newestFirst: true,
       needsRows: true,
       create: {
@@ -3444,7 +3444,7 @@ function create(store) {
           p[9] = clean(p[9]);
           if (!store.STATUSES.includes(p[9])) errors[9] = "Choose a status from the list.";
         }
-        // Team Member and Alumni Member are ticks: Yes, or empty. Each tick gives that person that ID card.
+        // Staff Member and Alumni Member are ticks: Yes, or empty. Each tick gives that person that ID card.
         for (const i of [16, 17]) {
           if (changed(i)) {
             p[i] = clean(p[i], 10);
@@ -3454,16 +3454,16 @@ function create(store) {
         }
         if (!errors[9] && !errors[16] && !errors[17]) {
           const k = idrules.idKinds(p);
-          // The role only exists for a Team Member: it is required for them and cleared for everyone else.
-          if (k.team) {
+          // The role only exists for a Staff Member: it is required for them and cleared for everyone else.
+          if (k.staff) {
             p[14] = clean(p[14], 40);
-            if (p[14].length < 2) errors[14] = "Type this team member's role, e.g. Mentor, CEO or Support Staff.";
+            if (p[14].length < 2) errors[14] = "Type this staff member's role, e.g. Mentor, CEO or Support Staff.";
           } else {
             p[14] = "";
           }
           // "Not a student" means no Student ID, so the person must hold some other card.
-          if (p[9] === "Not a student" && !k.team && !k.alumni) {
-            errors[9] = "A person with no Student ID must be ticked as a Team Member or an Alumni Member (columns Team Member / Alumni Member). Otherwise they have no ID card at all.";
+          if (p[9] === "Not a student" && !k.staff && !k.alumni) {
+            errors[9] = "A person with no Student ID must be ticked as a Staff Member or an Alumni Member (columns Staff Member / Alumni Member). Otherwise they have no ID card at all.";
           }
         }
         if (changed(15)) {
@@ -3846,12 +3846,12 @@ module.exports = { create, AdminError };
 
 ```js
 // ID card rules: who gets an expiry date, and the date maths behind it.
-// An ID card is one of four kinds: Uncertified, Certified, Team Member or Alumni Member.
+// An ID card is one of four kinds: Uncertified, Certified, Staff Member or Alumni Member.
 // Certified students are graduates (their ID card says "Certified"). Only Uncertified students have IDs
-// that are valid for 2 months from the issue date. Certified, Team Member and Alumni Member have no expiry.
+// that are valid for 2 months from the issue date. Certified, Staff Member and Alumni Member have no expiry.
 // "Graduate" is no longer a status of its own. Rows that still hold it in the sheet are read as Certified.
-// Old Mentor, Staff Member and CEO rows are read as Team Member.
-const LEGACY_STATUS = { graduate: "Certified", mentor: "Team Member", "staff member": "Team Member", ceo: "Team Member" };
+// Old Mentor, Staff Member and CEO rows are read as Staff Member.
+const LEGACY_STATUS = { graduate: "Certified", mentor: "Staff Member", "staff member": "Staff Member", ceo: "Staff Member" };
 function normalizeStatus(v) {
   const s = String(v == null ? "" : v).trim();
   return LEGACY_STATUS[s.toLowerCase()] || s;
@@ -3861,41 +3861,41 @@ function normalizeStatus(v) {
 // A person can hold more than one card. The editor decides which, by what is ticked in the Students sheet:
 //   Column J "Status": Uncertified, Certified or Not a student. This is the Student ID card (and the certificate,
 //     which only a Certified student has). "Not a student" means no Student ID at all.
-//   Column Q "Team Member": Yes gives a Team ID card. Works with any column J value, including Not a student.
+//   Column Q "Staff Member": Yes gives a Staff ID card. Works with any column J value, including Not a student.
 //   Column R "Alumni Member": Yes gives an Alumni ID card.
-// Old rows that still hold Team Member or Alumni Member in column J keep working as before: that person has only
+// Old rows that still hold Staff Member or Alumni Member in column J keep working as before: that person has only
 // that one card (no Student ID) until the editor ticks more.
 const TICK = /^(yes|y|true|1|x|tick|ticked|\u2713|\u2714)$/i;
 function isTick(v) {
   return TICK.test(String(v == null ? "" : v).trim());
 }
-// row: one Students row. Returns { student: "Uncertified" | "Certified" | "", team: boolean, alumni: boolean }.
+// row: one Students row. Returns { student: "Uncertified" | "Certified" | "", staff: boolean, alumni: boolean }.
 function idKinds(row) {
   const raw = normalizeStatus(row[9]);
-  const legacyTeam = raw === "Team Member";
+  const legacyStaff = raw === "Staff Member";
   const legacyAlumni = raw === "Alumni Member";
-  const none = raw === "Not a student" || legacyTeam || legacyAlumni;
+  const none = raw === "Not a student" || legacyStaff || legacyAlumni;
   return {
     student: none ? "" : raw === "Certified" ? "Certified" : "Uncertified",
-    team: isTick(row[16]) || legacyTeam,
+    staff: isTick(row[16]) || legacyStaff,
     alumni: isTick(row[17]) || legacyAlumni,
   };
 }
-// The cards a person has, in the order the dropdown lists them: ["student", "alumni", "team"] (only those they hold).
+// The cards a person has, in the order the dropdown lists them: ["student", "alumni", "staff"] (only those they hold).
 function idCards(row) {
   const k = idKinds(row);
-  return [k.student && "student", k.alumni && "alumni", k.team && "team"].filter(Boolean);
+  return [k.student && "student", k.alumni && "alumni", k.staff && "staff"].filter(Boolean);
 }
-// The status that one kind of card shows: "Uncertified" / "Certified", "Alumni Member" or "Team Member".
+// The status that one kind of card shows: "Uncertified" / "Certified", "Alumni Member" or "Staff Member".
 function kindStatus(kind, row) {
   const k = idKinds(row);
-  return kind === "team" ? "Team Member" : kind === "alumni" ? "Alumni Member" : k.student || "Uncertified";
+  return kind === "staff" ? "Staff Member" : kind === "alumni" ? "Alumni Member" : k.student || "Uncertified";
 }
 // The one status that stands for the person where a single status is needed (the portal, the dashboard counts):
-// their student standing first, then alumni, then team.
+// their student standing first, then alumni, then staff.
 function primaryStatus(row) {
   const k = idKinds(row);
-  return k.student || (k.alumni ? "Alumni Member" : k.team ? "Team Member" : "Uncertified");
+  return k.student || (k.alumni ? "Alumni Member" : k.staff ? "Staff Member" : "Uncertified");
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -4004,8 +4004,8 @@ const idrules = require("./idrules");
 const grading = require("./grading");
 
 const GRADUATE_STATUSES = ["Certified", "Alumni Member"]; // Certified students are the graduates
-const TEAM_STATUSES = ["Team Member"];
-const STATUS_ORDER = ["Uncertified", "Certified", "Team Member", "Alumni Member"];
+const STAFF_STATUSES = ["Staff Member"];
+const STATUS_ORDER = ["Uncertified", "Certified", "Staff Member", "Alumni Member"];
 
 // The label each student is counted under, for every breakdown. Used by the counts AND by the lists
 // behind them, so a number on the dashboard and the list it opens can never disagree.
@@ -4045,15 +4045,15 @@ function nextYm(ym) {
   return `${y}-${String(m).padStart(2, "0")}`;
 }
 
-// The one status a person is counted under in the bars: student standing first, then alumni, then team.
-// (A Certified student who is also a team member is counted once, as Certified, so the bars add up to the total.)
+// The one status a person is counted under in the bars: student standing first, then alumni, then staff.
+// (A Certified student who is also a staff member is counted once, as Certified, so the bars add up to the total.)
 function statusOf(r) {
   const v = idrules.primaryStatus(r);
   return STATUS_ORDER.includes(v) ? v : "Uncertified";
 }
 // The tiles count everyone who holds the card, however many cards they hold.
 const isGraduate = (r) => { const k = idrules.idKinds(r); return k.student === "Certified" || k.alumni; };
-const isTeam = (r) => idrules.idKinds(r).team;
+const isStaff = (r) => idrules.idKinds(r).staff;
 
 function buildStats(rows, quizRows, todayISO) {
   const total = rows.length;
@@ -4122,7 +4122,7 @@ function buildStats(rows, quizRows, todayISO) {
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
     graduates: rows.filter(isGraduate).length, // Certified students + Alumni members
     uncertified: rows.filter((r) => idrules.idKinds(r).student === "Uncertified").length,
-    team: rows.filter(isTeam).length, // everyone ticked as a Team Member, including students who are also team
+    staff: rows.filter(isStaff).length, // everyone ticked as a Staff Member, including students who are also staff
     byYear,
     months,
     monthsByYear,
@@ -4193,7 +4193,7 @@ function drill(rows, quizRows, kind, value) {
     case "all": title = "All students"; pick = () => true; break;
     case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = isGraduate; break;
     case "uncertified": title = "Uncertified students"; pick = (r) => idrules.idKinds(r).student === "Uncertified"; break;
-    case "team": title = "Team members"; pick = isTeam; break;
+    case "staff": title = "Staff members"; pick = isStaff; break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
       title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;
@@ -4237,7 +4237,7 @@ function finish(title, type, list) {
   return { title, type, count: list.length, truncated: list.length > MAX_ROWS, rows: list.slice(0, MAX_ROWS) };
 }
 
-module.exports = { buildStats, drill, quizEntry, GRADUATE_STATUSES, TEAM_STATUSES };
+module.exports = { buildStats, drill, quizEntry, GRADUATE_STATUSES, STAFF_STATUSES };
 ```
 
 #### `keepalive.js`
@@ -6685,7 +6685,7 @@ _missing_
           <select id="lookupKind">
             <option value="student" selected>Student ID card</option>
             <option value="alumni">Alumni ID card</option>
-            <option value="team">Team ID card</option>
+            <option value="staff">Staff ID card</option>
             <option value="certificate">Certificate</option>
           </select>
         </div>
@@ -6740,11 +6740,11 @@ _missing_
   var currentReg = "";
   var sel = document.getElementById("lookupKind");
   var kindTitle = document.getElementById("kindTitle");
-  var NAMES = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+  var NAMES = { student: "Student ID card", alumni: "Alumni ID card", staff: "Staff ID card" };
   // The card kind is "explicit" once the visitor picks one (or opens a link that names one). Until then a lookup
   // shows the person's main card, so an old QR code (/status?reg=...) still opens something the person has.
   var explicit = !!new URLSearchParams(location.search).get("kind");
-  function kindOfStatus(st) { return st === "Team Member" ? "team" : st === "Alumni Member" ? "alumni" : "student"; }
+  function kindOfStatus(st) { return st === "Staff Member" ? "staff" : st === "Alumni Member" ? "alumni" : "student"; }
   function kind() { return sel && sel.value !== "certificate" ? sel.value : "student"; }
   function labelFor() {
     var n = NAMES[kind()];
@@ -6826,7 +6826,7 @@ _missing_
     else done();
   });
 
-  // Picking another card (Student, Alumni or Team) looks the same person up again as that card.
+  // Picking another card (Student, Alumni or Staff) looks the same person up again as that card.
   if (sel) {
     sel.addEventListener("change", function () {
       if (sel.value === "certificate") return; // lookup-kind.js opens the certificate page
@@ -6849,7 +6849,7 @@ _missing_
 #### `public/lookup-kind.js`
 
 ```js
-// "Check ID" dropdown: Student ID card, Alumni ID card, Team ID card or Certificate.
+// "Check ID" dropdown: Student ID card, Alumni ID card, Staff ID card or Certificate.
 // Choosing Certificate opens the certificate page; choosing an ID card on the certificate page opens the ID page.
 // Moving between the three ID cards stays on the same page (status.js listens to the same dropdown).
 (function () {
@@ -6858,7 +6858,7 @@ _missing_
   var onCert = location.pathname.indexOf("/certificate") === 0;
   var qs = new URLSearchParams(location.search);
 
-  // A link such as /status?kind=team&reg=ABECFX/26/0001 opens with that card already chosen.
+  // A link such as /status?kind=staff&reg=ABECFX/26/0001 opens with that card already chosen.
   var wanted = qs.get("kind");
   if (!onCert && wanted && Array.prototype.some.call(sel.options, function (o) { return o.value === wanted && o.value !== "certificate"; })) {
     sel.value = wanted;
@@ -6897,7 +6897,7 @@ _missing_
   var STATUS_CLASS = {
     "Uncertified": "s-uncertified",
     "Certified": "s-certified",
-    "Team Member": "s-team",
+    "Staff Member": "s-staff",
     "Alumni Member": "s-alumni"
   };
 
@@ -6925,17 +6925,17 @@ _missing_
     }));
   }
 
-  // The kind of card: only Uncertified and Certified people are students. Team members and alumni are not called students.
+  // The kind of card: only Uncertified and Certified people are students. Staff members and alumni are not called students.
   function cardKind(status) {
-    return status === "Team Member" ? "Team ID card" : status === "Alumni Member" ? "Alumni ID card" : "Student ID card";
+    return status === "Staff Member" ? "Staff ID card" : status === "Alumni Member" ? "Alumni ID card" : "Student ID card";
   }
 
   // What the card calls a status. A Certified student shows as "Certified".
   function statusLabel(status) { return status; }
 
-  // Round stamp: "Certified", "Team member" or "Alumni member".
-  var STAMP_TOP = { "Certified": "CERTIFIED", "Team Member": "TEAM MEMBER", "Alumni Member": "ALUMNI MEMBER" };
-  var STAMP_LABEL = { "Certified": "Certified student of ABEC-FX", "Team Member": "Team member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
+  // Round stamp: "Certified", "Staff member" or "Alumni member".
+  var STAMP_TOP = { "Certified": "CERTIFIED", "Staff Member": "STAFF MEMBER", "Alumni Member": "ALUMNI MEMBER" };
+  var STAMP_LABEL = { "Certified": "Certified student of ABEC-FX", "Staff Member": "Staff member of ABEC-FX", "Alumni Member": "Alumni member of ABEC-FX" };
   function buildStamp(status, dateText) {
     var top = STAMP_TOP[status] || "CERTIFIED";
     var label = STAMP_LABEL[status] || STAMP_LABEL.Certified;
@@ -7042,7 +7042,7 @@ _missing_
     brand.appendChild(el("span", null, "ABEC-FX"));
     top.appendChild(brand);
     card.appendChild(top);
-    card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Team / Alumni ID card
+    card.appendChild(el("div", "idc-kind", cardKind(status))); // big banner: Student / Staff / Alumni ID card
 
     // ---- passport photo + national flag + facts
     var hero = el("div", "idc-hero");
@@ -7082,7 +7082,7 @@ _missing_
     fact("Country", d.country);
     if (d.state) fact("State", /^abuja federal capital territory$/i.test(d.state.trim()) ? "FCT Abuja" : d.state);
     fact("Gender", d.gender);
-    if (status !== "Team Member") { // programme and admission year are student details
+    if (status !== "Staff Member") { // programme and admission year are student details
       fact("Programme", d.programme);
       fact("Admitted", d.admitted ? String(d.admitted) : "");
     } else {
@@ -7099,13 +7099,13 @@ _missing_
       card.appendChild(mark);
     }
     card.appendChild(el("h3", "idc-name", String(d.fullName || "").toUpperCase()));
-    if (status === "Team Member" && d.teamRole) card.appendChild(el("p", "idc-roleline", d.teamRole));
+    if (status === "Staff Member" && d.staffRole) card.appendChild(el("p", "idc-roleline", d.staffRole));
     card.appendChild(el("p", "idc-reg", d.regNumber));
 
-    // ---- status (+ stamp for certified graduates, alumni and the team)
+    // ---- status (+ stamp for certified graduates, alumni and the staff)
     var row = el("div", "idc-statusrow");
-    // A team member's card shows no status chip or "Since ..." line (the round team stamp says it); only students have a status to show.
-    if (status !== "Team Member") {
+    // A staff member's card shows no status chip or "Since ..." line (the round staff stamp says it); only students have a status to show.
+    if (status !== "Staff Member") {
       var col = el("div", "idc-statuscol");
       var chip = el("span", "status " + (STATUS_CLASS[status] || "s-uncertified"));
       chip.appendChild(el("span", null, statusLabel(status)));
@@ -7117,7 +7117,7 @@ _missing_
     } else {
       row.classList.add("idc-statusrow-solo");
     }
-    if (status === "Certified" || status === "Alumni Member" || status === "Team Member") {
+    if (status === "Certified" || status === "Alumni Member" || status === "Staff Member") {
       var stampWrap = el("div", "idc-stamp");
       stampWrap.appendChild(buildStamp(status, d.statusDate));
       row.appendChild(stampWrap);
@@ -7138,7 +7138,7 @@ _missing_
     }
 
     // ---- QR code: opens this student's live status
-    var qrKind = status === "Team Member" ? "team" : status === "Alumni Member" ? "alumni" : "student";
+    var qrKind = status === "Staff Member" ? "staff" : status === "Alumni Member" ? "alumni" : "student";
     var url = (opts.origin || location.origin) + "/status?kind=" + qrKind + "&reg=" + d.regNumber;
     var verify = el("div", "idc-verify");
     var qr = el("div", "idc-qr");
@@ -7546,7 +7546,7 @@ _missing_
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-community" aria-selected="false" aria-controls="view-community" hidden>Community</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
-        <button type="button" role="tab" id="tab-team" aria-selected="false" aria-controls="view-team" hidden>Team</button>
+        <button type="button" role="tab" id="tab-staff" aria-selected="false" aria-controls="view-staff" hidden>Staff</button>
         <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
         <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
@@ -7720,7 +7720,7 @@ _missing_
       <div id="view-idcards" role="tabpanel" aria-labelledby="tab-idcards" hidden>
         <article class="adm-card wide">
           <h3>ID cards</h3>
-          <p class="adm-note">Find any student or team member and open their ID card. If a person holds more than one (Student, Alumni, Team), all of their ID cards show when you click their name. Search by name, registration number, country, state or status.</p>
+          <p class="adm-note">Find any student or staff member and open their ID card. If a person holds more than one (Student, Alumni, Staff), all of their ID cards show when you click their name. Search by name, registration number, country, state or status.</p>
           <div class="field" style="margin-top:12px;max-width:520px">
             <label for="idq">Search</label>
             <input id="idq" type="search" autocomplete="off" spellcheck="false" placeholder="Name or ABECFX/26/0001" />
@@ -7772,11 +7772,11 @@ _missing_
         </article>
       </div>
 
-      <div id="view-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+      <div id="view-staff" role="tabpanel" aria-labelledby="tab-staff" hidden>
         <article class="adm-card wide">
           <div class="adm-card-head">
-            <h3>Team</h3>
-            <button type="button" class="btn ghost" id="tmAdd">Add team member</button>
+            <h3>Staff</h3>
+            <button type="button" class="btn ghost" id="tmAdd">Add staff member</button>
           </div>
           <p class="adm-note">Each person has a <b>role</b>, and each role decides what they can open. The main owner (the ADMIN_PASSWORD holder) always has full access and is not listed here. An owner can make someone else an owner by giving them the Owner role; admins cannot.</p>
           <div class="tablewrap"><table class="adm-table" id="tmTable"></table></div>
@@ -7796,11 +7796,11 @@ _missing_
     </section>
   </main>
 
-  <!-- A team member: add, change role / password, disable or remove -->
+  <!-- A staff member: add, change role / password, disable or remove -->
   <dialog id="tmDlg" class="adm-drill sh-dlg" aria-labelledby="tmDlgTitle">
     <form id="tmForm" class="drill-box" novalidate>
       <div class="drill-head">
-        <h2 id="tmDlgTitle">Team member</h2>
+        <h2 id="tmDlgTitle">Staff member</h2>
         <button type="button" class="btn ghost" id="tmDlgClose">Close</button>
       </div>
       <div class="lk-form sh-fields">
@@ -7854,7 +7854,7 @@ _missing_
         <div class="field" id="rl-w-name">
           <label for="rl-name">Role name</label>
           <input id="rl-name" type="text" autocomplete="off" maxlength="40" />
-          <span class="hint">For example Support or Video team.</span>
+          <span class="hint">For example Support or Video staff.</span>
           <p class="lk-err" id="rl-e-name"></p>
         </div>
         <div class="field" id="rl-w-perms">
@@ -8001,7 +8001,7 @@ _missing_
     $("shSearch").value = "";
     me = null;
     setDashTitle();
-    teamData = null;
+    staffData = null;
     if ($("tmDlg").open) $("tmDlg").close();
     if ($("pwDlg").open) $("pwDlg").close();
     $("tmTable").replaceChildren();
@@ -8036,7 +8036,7 @@ _missing_
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", team: "team", idcards: "team", certificates: "certificates" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
@@ -8259,13 +8259,13 @@ _missing_
       kpi("Total students", s.total, { kind: "all" }),
       kpi("Certified graduates", s.graduates, { kind: "graduates" }),
       kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
-      kpi("Team members", s.team, { kind: "team" }),
+      kpi("Staff members", s.staff, { kind: "staff" }),
       kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
       kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Team), so the Team and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
+    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Staff), so the Staff and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
@@ -8883,7 +8883,7 @@ _missing_
       var editable = only ? true : d.editable.indexOf(i) >= 0;
       var wrap = el("div", "field");
       wrap.id = "sh-wrap-" + i;
-      var label = el("label", null, d.key === "students" && i === 14 ? "Team role (shown on the Team ID card)" : h + (editable ? "" : " (locked)"));
+      var label = el("label", null, d.key === "students" && i === 14 ? "Staff role (shown on the Staff ID card)" : h + (editable ? "" : " (locked)"));
       label.setAttribute("for", "sh-f-" + i);
       var input;
       var opts = d.selects && d.selects[i];
@@ -8921,13 +8921,13 @@ _missing_
       box.appendChild(wrap);
     });
     if (d.key === "students") {
-      // The role box only shows while Team Member is ticked (or an old row still says Team Member in Status).
-      var stSel = $("sh-f-9"), teamSel = $("sh-f-16"), roleWrap = $("sh-wrap-14");
-      if (roleWrap && (teamSel || stSel)) {
+      // The role box only shows while Staff Member is ticked (or an old row still says Staff Member in Status).
+      var stSel = $("sh-f-9"), staffSel = $("sh-f-16"), roleWrap = $("sh-wrap-14");
+      if (roleWrap && (staffSel || stSel)) {
         var syncRole = function () {
-          roleWrap.hidden = !((teamSel && teamSel.value === "Yes") || (stSel && stSel.value === "Team Member"));
+          roleWrap.hidden = !((staffSel && staffSel.value === "Yes") || (stSel && stSel.value === "Staff Member"));
         };
-        if (teamSel) teamSel.addEventListener("change", syncRole);
+        if (staffSel) staffSel.addEventListener("change", syncRole);
         if (stSel) stSel.addEventListener("change", syncRole);
         syncRole();
       }
@@ -9089,18 +9089,18 @@ _missing_
     });
   }
 
-  // ---------- Team ----------
-  var teamData = null; // { members, roles }
+  // ---------- Staff ----------
+  var staffData = null; // { members, roles }
   var tm = { mode: "add", member: null };
   var tmDlg = $("tmDlg");
   var TM_FIELDS = ["username", "fullName", "role", "password"];
 
-  function openTeam() {
+  function openStaff() {
     $("tmNote").textContent = "Loading...";
-    return api("/api/admin/team").then(function (r) {
-      teamData = r;
+    return api("/api/admin/staff").then(function (r) {
+      staffData = r;
       $("tmNote").textContent = "";
-      renderTeam();
+      renderStaff();
       renderRoles();
     }).catch(function (err) {
       if (err.auth) showLogin(err.message); else $("tmNote").textContent = err.message;
@@ -9108,11 +9108,11 @@ _missing_
   }
 
   function roleLabel(key) {
-    var r = teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+    var r = staffData && staffData.roles.filter(function (x) { return x.key === key; })[0];
     return r ? r.label : key;
   }
 
-  function renderTeam() {
+  function renderStaff() {
     var t = $("tmTable");
     t.replaceChildren();
     var head = el("tr");
@@ -9120,9 +9120,9 @@ _missing_
     head.appendChild(el("th"));
     var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
     var body = el("tbody");
-    var list = teamData ? teamData.members : [];
+    var list = staffData ? staffData.members : [];
     if (!list.length) {
-      var tr0 = el("tr"), td0 = el("td", "empty", "No team members yet. Use \"Add team member\" to create the first one.");
+      var tr0 = el("tr"), td0 = el("td", "empty", "No staff members yet. Use \"Add staff member\" to create the first one.");
       td0.colSpan = 7; tr0.appendChild(td0); body.appendChild(tr0);
     }
     list.forEach(function (m) {
@@ -9139,7 +9139,7 @@ _missing_
         var b = el("button", "linkbtn", "Edit");
         b.type = "button";
         b.setAttribute("aria-label", "Edit " + m.name);
-        b.addEventListener("click", function () { openTeamDlg("edit", m); });
+        b.addEventListener("click", function () { openStaffDlg("edit", m); });
         act.appendChild(b);
       }
       tr.appendChild(act);
@@ -9148,7 +9148,7 @@ _missing_
     t.appendChild(body);
   }
 
-  function showTeamErrors(errs) {
+  function showStaffErrors(errs) {
     TM_FIELDS.forEach(function (f) {
       var msg = errs && errs[f] ? errs[f] : "";
       $("tm-e-" + f).textContent = msg;
@@ -9157,11 +9157,11 @@ _missing_
   }
 
   function permLabel(key) {
-    var p = teamData && teamData.permissions.filter(function (x) { return x.key === key; })[0];
+    var p = staffData && staffData.permissions.filter(function (x) { return x.key === key; })[0];
     return p ? p.label : key;
   }
   function roleFor(key) {
-    return teamData && teamData.roles.filter(function (x) { return x.key === key; })[0];
+    return staffData && staffData.roles.filter(function (x) { return x.key === key; })[0];
   }
   function accessText(r) {
     return r ? r.perms.map(permLabel).join(", ") : "";
@@ -9171,13 +9171,13 @@ _missing_
     $("tm-roleHelp").textContent = r ? "Can open: " + accessText(r) + "." : "";
   }
 
-  function openTeamDlg(mode, member) {
+  function openStaffDlg(mode, member) {
     tm = { mode: mode, member: member || null };
     var adding = mode === "add";
-    $("tmDlgTitle").textContent = adding ? "Add team member" : member.name;
+    $("tmDlgTitle").textContent = adding ? "Add staff member" : member.name;
     var sel = $("tm-role");
     sel.replaceChildren();
-    (teamData ? teamData.roles : []).forEach(function (r) {
+    (staffData ? staffData.roles : []).forEach(function (r) {
       // hide roles that allow more than the signed-in person has, except the one this member already holds
       if (!r.canGrant && !(member && member.role === r.key)) return;
       var o = el("option", null, r.label + (r.builtin ? "" : " (custom)")); o.value = r.key;
@@ -9201,21 +9201,21 @@ _missing_
     sel.disabled = self;
     $("tm-active").disabled = self;
     $("tmRemove").hidden = adding || self;
-    $("tmSave").textContent = adding ? "Add team member" : "Save changes";
+    $("tmSave").textContent = adding ? "Add staff member" : "Save changes";
     $("tmDlgErr").textContent = "";
-    showTeamErrors(null);
+    showStaffErrors(null);
     roleHelp();
     tmDlg.showModal();
     (adding ? $("tm-username") : $("tm-fullName")).focus();
   }
 
-  function teamFail(err) {
+  function staffFail(err) {
     if (err.auth) { tmDlg.close(); return showLogin(err.message); }
-    showTeamErrors(err.fields);
+    showStaffErrors(err.fields);
     $("tmDlgErr").textContent = err.message;
   }
 
-  $("tmAdd").addEventListener("click", function () { openTeamDlg("add"); });
+  $("tmAdd").addEventListener("click", function () { openStaffDlg("add"); });
   $("tmDlgClose").addEventListener("click", function () { tmDlg.close(); });
   tmDlg.addEventListener("click", function (e) { if (e.target === tmDlg) tmDlg.close(); });
   $("tm-role").addEventListener("change", roleHelp);
@@ -9228,33 +9228,33 @@ _missing_
     var btn = $("tmSave");
     btn.disabled = true;
     $("tmDlgErr").textContent = "Saving...";
-    showTeamErrors(null);
+    showStaffErrors(null);
     var job;
     if (tm.mode === "add") {
-      job = api("/api/admin/team", "POST", {
+      job = api("/api/admin/staff", "POST", {
         username: $("tm-username").value, fullName: $("tm-fullName").value, role: $("tm-role").value, password: $("tm-password").value,
       });
     } else {
       var body = { fullName: $("tm-fullName").value, role: $("tm-role").value, active: $("tm-active").value === "yes" };
       if ($("tm-password").value) body.password = $("tm-password").value;
-      job = api("/api/admin/team/" + encodeURIComponent(tm.member.username), "PUT", body);
+      job = api("/api/admin/staff/" + encodeURIComponent(tm.member.username), "PUT", body);
     }
     job.then(function () {
       tmDlg.close();
-      return openTeam().then(function () { $("tmNote").textContent = tm.mode === "add" ? "Team member added." : "Changes saved."; });
-    }).catch(teamFail).then(function () { btn.disabled = false; });
+      return openStaff().then(function () { $("tmNote").textContent = tm.mode === "add" ? "Staff member added." : "Changes saved."; });
+    }).catch(staffFail).then(function () { btn.disabled = false; });
   });
 
   $("tmRemove").addEventListener("click", function () {
     var m = tm.member;
     if (!m) return;
-    if (!window.confirm("Remove " + m.name + " (" + m.username + ") from the team? They will be signed out and cannot sign in again. This cannot be undone.")) return;
+    if (!window.confirm("Remove " + m.name + " (" + m.username + ") from the staff? They will be signed out and cannot sign in again. This cannot be undone.")) return;
     var btn = this;
     btn.disabled = true;
-    api("/api/admin/team/" + encodeURIComponent(m.username) + "/delete", "POST", {}).then(function () {
+    api("/api/admin/staff/" + encodeURIComponent(m.username) + "/delete", "POST", {}).then(function () {
       tmDlg.close();
-      return openTeam().then(function () { $("tmNote").textContent = m.name + " was removed."; });
-    }).catch(teamFail).then(function () { btn.disabled = false; });
+      return openStaff().then(function () { $("tmNote").textContent = m.name + " was removed."; });
+    }).catch(staffFail).then(function () { btn.disabled = false; });
   });
 
 
@@ -9271,7 +9271,7 @@ _missing_
     head.appendChild(el("th"));
     var thead = el("thead"); thead.appendChild(head); t.appendChild(thead);
     var body = el("tbody");
-    var list = teamData ? teamData.roles : [];
+    var list = staffData ? staffData.roles : [];
     list.forEach(function (r) {
       var tr = el("tr");
       tr.appendChild(el("td", null, r.label));
@@ -9308,7 +9308,7 @@ _missing_
     $("rl-name").value = adding ? "" : role.label;
     var box = $("rl-perms");
     box.replaceChildren();
-    (teamData ? teamData.permissions : []).forEach(function (p) {
+    (staffData ? staffData.permissions : []).forEach(function (p) {
       var row = el("label", "perm-row");
       var cb = document.createElement("input");
       cb.type = "checkbox";
@@ -9366,7 +9366,7 @@ _missing_
     job.then(function () {
       rlDlg.close();
       var msg = rl.mode === "add" ? "Role created." : "Role saved. People with this role get the new access straight away.";
-      return openTeam().then(function () { $("rlNote").textContent = msg; });
+      return openStaff().then(function () { $("rlNote").textContent = msg; });
     }).catch(roleFail).then(function () { btn.disabled = false; });
   });
 
@@ -9378,7 +9378,7 @@ _missing_
     btn.disabled = true;
     api("/api/admin/roles/" + encodeURIComponent(r.key) + "/delete", "POST", {}).then(function () {
       rlDlg.close();
-      return openTeam().then(function () { $("rlNote").textContent = "The role " + r.label + " was deleted."; });
+      return openStaff().then(function () { $("rlNote").textContent = "The role " + r.label + " was deleted."; });
     }).catch(roleFail).then(function () { btn.disabled = false; });
   });
 
@@ -9419,14 +9419,14 @@ _missing_
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "team", "idcards", "certificates"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "staff", "idcards", "certificates"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "team" || name === "quizcodes" || name === "idcards" || name === "certificates";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "idcards" || name === "certificates";
     if (name === "quizcodes") openQuizCodes();
     if (name === "database") openSheets();
-    if (name === "team") openTeam();
+    if (name === "staff") openStaff();
     if (name === "idcards") openIdCards();
     if (name === "certificates") openCertificates();
     if (name === "videos") {
@@ -9449,14 +9449,14 @@ _missing_
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
-  $("tab-team").addEventListener("click", function () { setTab("team"); });
+  $("tab-staff").addEventListener("click", function () { setTab("staff"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
   $("tab-certificates").addEventListener("click", function () { setTab("certificates"); });
 
   // ---------- ID cards (admin) ----------
   var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;
   function idKindName(card) {
-    return card.status === "Team Member" ? "Team" : card.status === "Alumni Member" ? "Alumni" : "Student";
+    return card.status === "Staff Member" ? "Staff" : card.status === "Alumni Member" ? "Alumni" : "Student";
   }
   // Draws every ID card the person holds, one under the other, each with its own download button.
   function drawIdCards(c, signatureSrc) {
@@ -9535,7 +9535,7 @@ _missing_
     var box = $("certSigner");
     box.replaceChildren();
     if (!signer || !signer.regNumber) { box.appendChild(el("span", null, "No signer chosen yet. Certificates print without a name or signature until you save one.")); return; }
-    if (!signer.found) { box.appendChild(el("span", "warn", "No student or team member has the registration number " + signer.regNumber + ".")); return; }
+    if (!signer.found) { box.appendChild(el("span", "warn", "No student or staff member has the registration number " + signer.regNumber + ".")); return; }
     box.appendChild(el("b", null, signer.name));
     box.appendChild(el("span", null, (signer.title ? signer.title + " · " : "") + signer.regNumber));
     if (signer.signature) {
@@ -9547,7 +9547,7 @@ _missing_
     } else {
       box.appendChild(el("span", "warn", "They have no signature on their ID card yet. Ask them to add it in their portal; it then appears on every certificate."));
     }
-    if (!signer.title) box.appendChild(el("span", null, "No role is set on their record, so only their name prints. Set their Team Role in the Database tab to print it in brackets."));
+    if (!signer.title) box.appendChild(el("span", null, "No role is set on their record, so only their name prints. Set their Staff Role in the Database tab to print it in brackets."));
   }
   function showCertErrors(errs) {
     CERT_FIELDS.forEach(function (f) {
@@ -10244,7 +10244,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   color: #fff; background: transparent;
 }
 .idc-roleline { margin: 0 0 .5em; font-family: var(--display); font-weight: 800; font-size: 1.3em; line-height: 1.15; color: var(--accent); word-break: break-word; }
-.idc[data-status="team-member"] { --accent: #5fd3e8; }
+.idc[data-status="staff-member"] { --accent: #5fd3e8; }
 
 .idc-hero { min-height: 13.6em; margin-top: .6em; display: grid; grid-template-columns: 9.4em minmax(0, 1fr); gap: 1.5em; align-items: start; }
 .idc-photo {
@@ -11109,7 +11109,7 @@ module.exports = { VIDEO_CHAPTERS, videoId, sanitize, fromRows, toRows, forStude
 //   - the award date is the date the student became Certified (the "Status Date" in the sheet), written as
 //     "1st June 2026" everywhere
 //   - who signs it is chosen on the dashboard's Certificates tab by registration number: the signer's name, their
-//     Team Role and the signature on their own ID card are printed on every certificate. The organisation name and
+//     Staff Role and the signature on their own ID card are printed on every certificate. The organisation name and
 //     the CAC RC number are set there too
 // Only a Certified student has a certificate. Anyone can look one up by registration number and see it, but only
 // the student (signed in) and the dashboard can download it.
@@ -11496,7 +11496,7 @@ module.exports = { ELIGIBLE, SETTING_KEYS, parseDate, longDate, isEligible, forC
           <select id="lookupKind">
             <option value="student">Student ID card</option>
             <option value="alumni">Alumni ID card</option>
-            <option value="team">Team ID card</option>
+            <option value="staff">Staff ID card</option>
             <option value="certificate" selected>Certificate</option>
           </select>
         </div>
@@ -11610,7 +11610,7 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "team.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "server.js", "sheets.js", "staff.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
   "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",

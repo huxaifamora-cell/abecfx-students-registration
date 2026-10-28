@@ -19,7 +19,7 @@ const pdfLink = require("./pdflink");
 const links = require("./links");
 const videos = require("./videos");
 const adminDatabase = require("./admin-database");
-const team = require("./team");
+const staff = require("./staff");
 const certificate = require("./certificate");
 
 // The quiz runs inside the student portal in a frame. QUIZ_APP_URL is the quiz service's own web
@@ -176,8 +176,8 @@ function validate(body) {
 }
 
 // What the public ID card is allowed to show. Email and WhatsApp number are never included.
-// kind: "student", "alumni" or "team" picks which of the person's cards to build. Left out, it builds the person's
-// main card (student first, then alumni, then team). `cards` always lists every card the person holds, and
+// kind: "student", "alumni" or "staff" picks which of the person's cards to build. Left out, it builds the person's
+// main card (student first, then alumni, then staff). `cards` always lists every card the person holds, and
 // `certified` says whether they have a certificate, so the page can offer the right choices.
 function cardFromRow(r, kind) {
   if (typeof kind !== "string") kind = undefined; // .map(cardFromRow) passes the row number as the second argument
@@ -200,13 +200,13 @@ function cardFromRow(r, kind) {
     status,
     cards,
     certified: idrules.idKinds(r).student === "Certified",
-    teamRole: status === "Team Member" ? (r[14] || "").trim() : "",
+    staffRole: status === "Staff Member" ? (r[14] || "").trim() : "",
     statusDate: status === "Uncertified" ? "" : r[10] || "",
     ...expiry, // expiryKind, expires, expired, daysLeft
   };
 }
 
-// Every ID card the person holds (Student, Alumni, Team), each built with its own status. The portal shows them all.
+// Every ID card the person holds (Student, Alumni, Staff), each built with its own status. The portal shows them all.
 function allCardsFromRow(r) {
   const kinds = idrules.idCards(r);
   return kinds.length ? kinds.map((k) => cardFromRow(r, k)) : [cardFromRow(r)];
@@ -384,13 +384,14 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
     if (!r) {
       return res.status(404).json({ error: "No student found with that registration number." });
     }
-    // ?kind=student|alumni|team picks the card. A person only has the cards the editor ticked for them.
-    const kind = String(req.query.kind || "").toLowerCase();
+    // ?kind=student|alumni|staff picks the card. A person only has the cards the editor ticked for them.
+    let kind = String(req.query.kind || "").toLowerCase();
+    if (kind === "team") kind = "staff"; // old links
     if (kind) {
-      if (!["student", "alumni", "team"].includes(kind)) return res.status(400).json({ error: "Choose a Student, Alumni or Team ID card." });
+      if (!["student", "alumni", "staff"].includes(kind)) return res.status(400).json({ error: "Choose a Student, Alumni or Staff ID card." });
       if (!idrules.idCards(r).includes(kind)) {
         const base = cardFromRow(r);
-        const names = { student: "Student ID card", alumni: "Alumni ID card", team: "Team ID card" };
+        const names = { student: "Student ID card", alumni: "Alumni ID card", staff: "Staff ID card" };
         return res.status(404).json({
           error: `${base.fullName} (${base.regNumber}) does not have a ${names[kind]}.`,
           cards: base.cards,
@@ -496,7 +497,7 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
 
 // ---- Certificates (see certificate.js) ----
 // Anyone can look a certificate up by registration number and SEE it (that is how it is verified). Downloading is for the signed-in student and the dashboard.
-// The person who signs is chosen by registration number on the dashboard. Their name, their role (the "Team Role"
+// The person who signs is chosen by registration number on the dashboard. Their name, their role (the "Staff Role"
 // on their record) and the signature on their own ID card are what every certificate shows, so changing the signature
 // on that card changes it on the certificates too.
 let signerSigCache = new Map(); // reg -> { at, value }
@@ -519,8 +520,8 @@ async function signerOf(reg, rows) {
   if (!r) return { found: false, regNumber: "", name: "", title: "", signature: "" };
   const row = (rows || (await store.readCached())).find((x) => (x[0] || "").toUpperCase() === r);
   if (!row) return { found: false, regNumber: r, name: "", title: "", signature: "" };
-  const card = cardFromRow(row, idrules.idCards(row).includes("team") ? "team" : undefined);
-  return { found: true, regNumber: r, name: card.fullName, title: card.teamRole || "", signature: await signatureOf(r) };
+  const card = cardFromRow(row, idrules.idCards(row).includes("staff") ? "staff" : undefined);
+  return { found: true, regNumber: r, name: card.fullName, title: card.staffRole || "", signature: await signatureOf(r) };
 }
 // The settings certificate.forCard prints, with the signer filled in from their record.
 async function certContext(rows) {
@@ -835,12 +836,12 @@ function botAuth(req, res, next) {
   next();
 }
 
-// The editor dashboard has named accounts with roles (see team.js):
+// The editor dashboard has named accounts with roles (see staff.js):
 //   owner      signs in as "owner" with ADMIN_PASSWORD on Render. Always works; cannot be removed.
-//   admin      everything, including the team and roles.
-//   editor     everything except the team: statistics, site links, chapter videos and the Database.
+//   admin      everything, including the staff and roles.
+//   editor     everything except the staff: statistics, site links, chapter videos and the Database.
 //   moderator  statistics, student lists and quiz results only (read only).
-//   custom     roles an admin creates on the dashboard, with the access they pick (see team.js).
+//   custom     roles an admin creates on the dashboard, with the access they pick (see staff.js).
 // Signing in returns a token (12 hours). It only says WHO you are; your role is looked up on every request,
 // so a role change, a disable or a removal takes effect straight away. Sending ADMIN_PASSWORD itself as the
 // Bearer token still works and counts as the owner, so existing bookmarks and scripts keep working.
@@ -854,7 +855,7 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many attempts. Try again in a few minutes." },
 });
-const teamService = team.create(store, { now: lagosTimestamp });
+const staffService = staff.create(store, { now: lagosTimestamp });
 
 function requirePerm(perm) {
   return async (req, res, next) => {
@@ -863,11 +864,11 @@ function requirePerm(perm) {
     const given = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
     try {
       let who = null;
-      const username = team.verifyToken(given, pw);
-      if (username) who = await teamService.lookup(username);
-      else if (given && safeEqual(given, pw)) who = { username: team.OWNER, name: "Owner", role: "owner" };
+      const username = staff.verifyToken(given, pw);
+      if (username) who = await staffService.lookup(username);
+      else if (given && safeEqual(given, pw)) who = { username: staff.OWNER, name: "Owner", role: "owner" };
       if (!who) return res.status(401).json({ error: "Please sign in again." });
-      const perms = await teamService.permsOf(who.role);
+      const perms = await staffService.permsOf(who.role);
       if (!perms.includes(perm)) return res.status(403).json({ error: "Your role does not allow this." });
       req.admin = { ...who, perms };
       next();
@@ -884,7 +885,7 @@ const videosAuth = requirePerm("videos"); // chapter videos
 const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
 const certAuth = requirePerm("certificates"); // certificate signer settings, and every certificate
 const databaseAuth = requirePerm("database"); // the Database tab
-const teamAuth = requirePerm("team"); // team accounts and roles
+const staffAuth = requirePerm("staff"); // staff accounts and roles
 
 app.get("/api/config", (_req, res) =>
   res.json({
@@ -1096,8 +1097,8 @@ app.get("/api/results", lookupLimiter, studentAuth, async (req, res) => {
 // Editor dashboard
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 
-// ---- Team accounts ----
-const teamLoginLimiter = rateLimit({
+// ---- Staff accounts ----
+const staffLoginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   skipSuccessfulRequests: true,
@@ -1106,68 +1107,68 @@ const teamLoginLimiter = rateLimit({
   message: { error: "Too many attempts. Try again in a few minutes." },
 });
 async function meOf(who) {
-  const info = who.role === "owner" ? { label: team.ROLES.owner.label, perms: team.ROLES.owner.perms } : await teamService.roleInfo(who.role);
-  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.username !== team.OWNER };
+  const info = who.role === "owner" ? { label: staff.ROLES.owner.label, perms: staff.ROLES.owner.perms } : await staffService.roleInfo(who.role);
+  return { username: who.username, name: who.name, role: who.role, roleLabel: info ? info.label : who.role, perms: info ? info.perms : [], canChangePassword: who.username !== staff.OWNER };
 }
 
-function teamRoute(handler) {
+function staffRoute(handler) {
   return async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
       await handler(req, res);
     } catch (err) {
-      if (err instanceof team.TeamError) {
+      if (err instanceof staff.StaffError) {
         return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
       }
-      console.error("Team request failed:", err.message);
+      console.error("Staff request failed:", err.message);
       res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
     }
   };
 }
 
 // The sign-in page's "Sign in as" drop-down: role names only (no usernames).
-app.get("/api/admin/login-users", adminLimiter, teamRoute(async (req, res) => {
+app.get("/api/admin/login-users", adminLimiter, staffRoute(async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  res.json(await teamService.loginChoices());
+  res.json(await staffService.loginChoices());
 }));
 
-app.post("/api/admin/login", teamLoginLimiter, teamRoute(async (req, res) => {
+app.post("/api/admin/login", staffLoginLimiter, staffRoute(async (req, res) => {
   const pw = process.env.ADMIN_PASSWORD;
-  if (!pw) throw new team.TeamError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
+  if (!pw) throw new staff.StaffError(503, "The editor dashboard is not set up yet. Set ADMIN_PASSWORD on Render.");
   const b = req.body || {};
   const given = typeof b.password === "string" ? b.password.slice(0, 200) : "";
   let who = null;
   if (b.role) {
     // Signing in as a role: the role name is the username. Try the accounts with that role.
     let lastErr = null;
-    for (const name of await teamService.loginNames(clean(b.role, 40))) {
-      try { who = await teamService.login(name, given, pw, safeEqual); break; } catch (e) { lastErr = e; if (!(e instanceof team.TeamError) || e.status !== 401) throw e; }
+    for (const name of await staffService.loginNames(clean(b.role, 40))) {
+      try { who = await staffService.login(name, given, pw, safeEqual); break; } catch (e) { lastErr = e; if (!(e instanceof staff.StaffError) || e.status !== 401) throw e; }
     }
-    if (!who) throw lastErr || new team.TeamError(401, "Wrong username or password.");
+    if (!who) throw lastErr || new staff.StaffError(401, "Wrong username or password.");
   } else {
-    who = await teamService.login(clean(b.username, 40), given, pw, safeEqual);
+    who = await staffService.login(clean(b.username, 40), given, pw, safeEqual);
   }
-  res.json({ token: team.signToken(who.username, pw), me: await meOf(who) });
+  res.json({ token: staff.signToken(who.username, pw), me: await meOf(who) });
 }));
 
-app.get("/api/admin/me", adminLimiter, adminAuth, teamRoute(async (req, res) => res.json(await meOf(req.admin))));
+app.get("/api/admin/me", adminLimiter, adminAuth, staffRoute(async (req, res) => res.json(await meOf(req.admin))));
 
-app.post("/api/admin/me/password", adminLimiter, adminAuth, teamRoute(async (req, res) => {
-  if (req.admin.username === team.OWNER) throw new team.TeamError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
+app.post("/api/admin/me/password", adminLimiter, adminAuth, staffRoute(async (req, res) => {
+  if (req.admin.username === staff.OWNER) throw new staff.StaffError(400, "The owner password is set as ADMIN_PASSWORD on Render.");
   const b = req.body || {};
-  res.json(await teamService.changeOwnPassword(req.admin.username, b.current, b.next));
+  res.json(await staffService.changeOwnPassword(req.admin.username, b.current, b.next));
 }));
 
-// ID cards: an admin (anyone with the "team" access) can find any student or team member and see their card.
+// ID cards: an admin (anyone with the "staff" access) can find any student or staff member and see their card.
 // The cards carry the same details as the public ID card (never email or WhatsApp number).
-app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
+app.get("/api/admin/id-cards", adminLimiter, staffAuth, async (req, res) => {
   try {
     const q = clean(req.query.q, 80).toLowerCase();
     const rows = (await store.readCached()).filter((r) => r && r[0]);
     const hit = q ? rows.filter((r) => [r[0], r[4], r[2], r[9], r[12]].some((v) => String(v || "").toLowerCase().includes(q))) : rows;
     const limit = 40;
     // newest first (the sheet is in registration order)
-    // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Team), so the
+    // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Staff), so the
     // dashboard can show them all when the name is clicked.
     const cards = hit.slice().reverse().slice(0, limit).map((r) => {
       return { ...cardFromRow(r), allCards: allCardsFromRow(r) };
@@ -1180,7 +1181,7 @@ app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
 });
 
 // The signature shown on a student's card in the admin ID cards view (same access as the cards themselves).
-app.get("/api/admin/id-cards/signature", adminLimiter, teamAuth, async (req, res) => {
+app.get("/api/admin/id-cards/signature", adminLimiter, staffAuth, async (req, res) => {
   const reg = normaliseReg(req.query.reg);
   if (!reg) return res.status(400).json({ error: "Not a valid registration number." });
   try {
@@ -1239,7 +1240,7 @@ app.put("/api/admin/certificate-settings", adminLimiter, certAuth, async (req, r
     else {
       signer = await signerOf(values.certSignerReg).catch(() => null);
       if (!signer) return res.status(500).json({ error: "Could not read the sheet. Please try again shortly." });
-      if (!signer.found) mine.certSignerReg = "No student or team member has that registration number.";
+      if (!signer.found) mine.certSignerReg = "No student or staff member has that registration number.";
     }
   }
   if (Object.keys(mine).length) return res.status(400).json({ error: "Please fix the highlighted fields.", errors: mine });
@@ -1255,33 +1256,33 @@ app.put("/api/admin/certificate-settings", adminLimiter, certAuth, async (req, r
   }
 });
 
-app.get("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json({ members: await teamService.members(), roles: await teamService.roles(req.admin), permissions: team.PERMS });
+app.get("/api/admin/staff", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json({ members: await staffService.members(), roles: await staffService.roles(req.admin), permissions: staff.PERMS });
 }));
 
 // Roles: create one and pick its access; change a custom role's name or access; remove a custom role nobody uses.
-app.post("/api/admin/roles", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.addRole(req.body, req.admin));
+app.post("/api/admin/roles", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.addRole(req.body, req.admin));
 }));
 
-app.put("/api/admin/roles/:key", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.updateRole(String(req.params.key).toLowerCase(), req.body, req.admin));
+app.put("/api/admin/roles/:key", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.updateRole(String(req.params.key).toLowerCase(), req.body, req.admin));
 }));
 
-app.post("/api/admin/roles/:key/delete", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.removeRole(String(req.params.key).toLowerCase(), req.admin));
+app.post("/api/admin/roles/:key/delete", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.removeRole(String(req.params.key).toLowerCase(), req.admin));
 }));
 
-app.post("/api/admin/team", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.add(req.body, req.admin));
+app.post("/api/admin/staff", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.add(req.body, req.admin));
 }));
 
-app.put("/api/admin/team/:username", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.update(req.params.username, req.body, req.admin));
+app.put("/api/admin/staff/:username", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.update(req.params.username, req.body, req.admin));
 }));
 
-app.post("/api/admin/team/:username/delete", adminLimiter, teamAuth, teamRoute(async (req, res) => {
-  res.json(await teamService.remove(req.params.username, req.admin));
+app.post("/api/admin/staff/:username/delete", adminLimiter, staffAuth, staffRoute(async (req, res) => {
+  res.json(await staffService.remove(req.params.username, req.admin));
 }));
 
 app.get("/api/admin/stats", adminLimiter, adminAuth, async (_req, res) => {
