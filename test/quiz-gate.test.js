@@ -132,7 +132,7 @@ test("only admins and roles given 'quizcodes' can make codes; students and other
 
   // built-in editor and moderator do not have it
   for (const role of ["editor", "moderator"]) {
-    let r = await s.call("POST", "/api/admin/team", { token: owner, body: { username: role + "1", fullName: "Test " + role, role, password: "goodpass123" } });
+    let r = await s.call("POST", "/api/admin/staff", { token: owner, body: { username: role + "1", fullName: "Test " + role, role, password: "goodpass123" } });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     const tok = await s.adminToken(role + "1", "goodpass123");
     r = await s.call("GET", "/api/admin/quiz-codes", { token: tok });
@@ -144,12 +144,12 @@ test("only admins and roles given 'quizcodes' can make codes; students and other
   }
 
   // the dashboard offers 'quizcodes' as access that a custom role can be given
-  let r = await s.call("GET", "/api/admin/team", { token: owner });
+  let r = await s.call("GET", "/api/admin/staff", { token: owner });
   assert.ok(r.body.permissions.some((p) => p.key === "quizcodes"));
   r = await s.call("POST", "/api/admin/roles", { token: owner, body: { name: "Quiz supervisor", perms: ["quizcodes"] } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body.perms, ["view", "quizcodes"]);
-  r = await s.call("POST", "/api/admin/team", { token: owner, body: { username: "supervisor1", fullName: "Sup Ervisor", role: "quiz-supervisor", password: "goodpass123" } });
+  r = await s.call("POST", "/api/admin/staff", { token: owner, body: { username: "supervisor1", fullName: "Sup Ervisor", role: "quiz-supervisor", password: "goodpass123" } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const sup = await s.adminToken("supervisor1", "goodpass123");
   r = await s.call("POST", "/api/admin/quiz-codes", { token: sup, body: { count: 1 } });
@@ -157,7 +157,7 @@ test("only admins and roles given 'quizcodes' can make codes; students and other
   const code = r.body.codes[0].code;
   assert.equal((await s.call("GET", "/api/admin/quiz-codes", { token: sup })).status, 200);
   // ... but nothing else beyond the basics
-  assert.equal((await s.call("GET", "/api/admin/team", { token: sup })).status, 403);
+  assert.equal((await s.call("GET", "/api/admin/staff", { token: sup })).status, 403);
   assert.equal((await s.call("GET", "/api/admin/database", { token: sup })).status, 403);
   // the code works for a student, and the supervisor is recorded as its maker
   assert.equal((await s.call("POST", "/api/quiz/unlock", { token: a, body: { code } })).status, 200);

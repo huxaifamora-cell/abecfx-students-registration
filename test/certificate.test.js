@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const certificate = require("../certificate");
 const links = require("../links");
-const team = require("../team");
+const staff = require("../staff");
 const { boot } = require("./support/boot-server");
 
 const D = "ABECFX/26/0004"; // seeded as Certified by FAKE_CERTIFIED
@@ -28,7 +28,7 @@ test("only a Certified student has a certificate, numbered by their registration
     certNo: "ABECFX/26/0004", regNumber: "ABECFX/26/0004", fullName: "ALABA EMMANUEL AKINDEJOYE", awarded: "1st June 2026", awardedISO: "2026-06-01",
     year: 2026, org: "ADEBASS BASE EDGE CONSULT FX", rc: "9420199", signerName: "Adebisi Abass Mayowa", signerTitle: "CEO",
   });
-  for (const status of ["Uncertified", "Team Member", "Alumni Member", ""]) assert.equal(certificate.forCard({ ...card, status }, settings), null, status);
+  for (const status of ["Uncertified", "Staff Member", "Alumni Member", ""]) assert.equal(certificate.forCard({ ...card, status }, settings), null, status);
   // an unreadable date is shown as written, never replaced by a made-up one; no date at all prints no date
   assert.equal(certificate.forCard({ ...card, statusDate: "sometime in June" }, settings).awarded, "sometime in June");
   const none = certificate.forCard({ ...card, statusDate: "" }, settings);
@@ -49,11 +49,11 @@ test("the certificate settings are not site links and never go out with the publ
 });
 
 test("the certificates access exists, admins and the owner have it, editors and moderators do not", () => {
-  assert.ok(team.PERM_KEYS.includes("certificates"));
-  assert.equal(team.can("owner", "certificates"), true);
-  assert.equal(team.can("admin", "certificates"), true);
-  assert.equal(team.can("editor", "certificates"), false);
-  assert.equal(team.can("moderator", "certificates"), false);
+  assert.ok(staff.PERM_KEYS.includes("certificates"));
+  assert.equal(staff.can("owner", "certificates"), true);
+  assert.equal(staff.can("admin", "certificates"), true);
+  assert.equal(staff.can("editor", "certificates"), false);
+  assert.equal(staff.can("moderator", "certificates"), false);
 });
 
 test("public look-up: shows a Certified student's certificate, nothing for anyone else, never the email", async (t) => {
@@ -109,7 +109,7 @@ test("dashboard: only the certificates access; the signer and signature appear o
   }
   // an editor and a moderator may not
   for (const role of ["editor", "moderator"]) {
-    const make = await s.call("POST", "/api/admin/team", { token: owner, body: { username: role + "1", fullName: "Test " + role, role, password: "goodpass123" } });
+    const make = await s.call("POST", "/api/admin/staff", { token: owner, body: { username: role + "1", fullName: "Test " + role, role, password: "goodpass123" } });
     assert.equal(make.status, 200, JSON.stringify(make.body));
     const tok = await s.adminToken(role + "1", "goodpass123");
     assert.equal((await s.call("GET", "/api/admin/certificates", { token: tok })).status, 403, role);
@@ -118,10 +118,10 @@ test("dashboard: only the certificates access; the signer and signature appear o
   // a custom role can be given just this
   let r = await s.call("POST", "/api/admin/roles", { token: owner, body: { name: "Certificate officer", perms: ["certificates"] } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  r = await s.call("POST", "/api/admin/team", { token: owner, body: { username: "cert1", fullName: "Cert Officer", role: "certificate-officer", password: "goodpass123" } });
+  r = await s.call("POST", "/api/admin/staff", { token: owner, body: { username: "cert1", fullName: "Cert Officer", role: "certificate-officer", password: "goodpass123" } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const officer = await s.adminToken("cert1", "goodpass123");
-  assert.equal((await s.call("GET", "/api/admin/team", { token: officer })).status, 403, "that access is not the team access");
+  assert.equal((await s.call("GET", "/api/admin/staff", { token: officer })).status, 403, "that access is not the staff access");
 
   r = await s.call("GET", "/api/admin/certificate-settings", { token: officer });
   assert.equal(r.status, 200);

@@ -114,7 +114,7 @@ test("locked columns cannot be changed, and a change to them is refused rather t
   assert.equal(out.changed, true);
 });
 
-test("Team Member is a tick: it needs a role, and a student can hold it too", async () => {
+test("Staff Member is a tick: it needs a role, and a student can hold it too", async () => {
   const { svc } = setup();
   const o = student(1);
   await rejects(svc.update("students", 2, o, { 16: "Yes" }), 400, 14);
@@ -123,10 +123,10 @@ test("Team Member is a tick: it needs a role, and a student can hold it too", as
   assert.equal(a.row[9], "Uncertified", "still a student");
   assert.equal(a.row[14], "Head Mentor");
   const b = await svc.update("students", 2, a.row, { 16: "" });
-  assert.equal(b.row[14], "", "the role is cleared once they are no longer team");
+  assert.equal(b.row[14], "", "the role is cleared once they are no longer staff");
 });
 
-test("Not a student needs another card: Team Member or Alumni Member", async () => {
+test("Not a student needs another card: Staff Member or Alumni Member", async () => {
   const { svc } = setup();
   const o = student(1);
   await rejects(svc.update("students", 2, o, { 9: "Not a student" }), 400, 9);

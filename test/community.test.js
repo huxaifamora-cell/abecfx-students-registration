@@ -85,7 +85,7 @@ test("community access: admin and editor have it; a custom role can be given jus
 
   // moderator cannot; editor can
   for (const [role, status] of [["moderator", 403], ["editor", 200]]) {
-    let r = await s.call("POST", "/api/admin/team", { token: owner, body: { username: role + "1", fullName: "Test " + role, role, password: "goodpass123" } });
+    let r = await s.call("POST", "/api/admin/staff", { token: owner, body: { username: role + "1", fullName: "Test " + role, role, password: "goodpass123" } });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     const tok = await s.adminToken(role + "1", "goodpass123");
     assert.equal((await s.call("GET", "/api/admin/community", { token: tok })).status, status, role + " read");
@@ -93,18 +93,18 @@ test("community access: admin and editor have it; a custom role can be given jus
   }
 
   // the dashboard offers "community" as access for a custom role; with only that, nothing else opens
-  let r = await s.call("GET", "/api/admin/team", { token: owner });
+  let r = await s.call("GET", "/api/admin/staff", { token: owner });
   assert.ok(r.body.permissions.some((p) => p.key === "community"));
   r = await s.call("POST", "/api/admin/roles", { token: owner, body: { name: "Community manager", perms: ["community"] } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body.perms, ["view", "community"]);
-  r = await s.call("POST", "/api/admin/team", { token: owner, body: { username: "comm1", fullName: "Com Munity", role: "community-manager", password: "goodpass123" } });
+  r = await s.call("POST", "/api/admin/staff", { token: owner, body: { username: "comm1", fullName: "Com Munity", role: "community-manager", password: "goodpass123" } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const cm = await s.adminToken("comm1", "goodpass123");
   assert.equal((await put(cm)).status, 200, "a role in charge of the community can set the groups");
   assert.deepEqual((await s.call("GET", "/api/community", { token: a })).body, { whatsapp: "https://chat.whatsapp.com/ROLEGRP", telegram: "" });
   assert.equal((await s.call("GET", "/api/admin/links", { token: cm })).status, 403, "no Site links");
   assert.equal((await s.call("PUT", "/api/admin/links", { token: cm, body: {} })).status, 403);
-  assert.equal((await s.call("GET", "/api/admin/team", { token: cm })).status, 403);
+  assert.equal((await s.call("GET", "/api/admin/staff", { token: cm })).status, 403);
   assert.equal((await s.call("GET", "/api/admin/database", { token: cm })).status, 403);
 });
