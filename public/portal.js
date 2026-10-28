@@ -91,6 +91,57 @@
     err.textContent = message || "";
   }
 
+  // ---- The student's ID cards: one card for each kind they hold (Student, Alumni, Team) ----
+  var cardTitles = { "Team Member": "Team ID card", "Alumni Member": "Alumni ID card" };
+  function cardTitle(c) { return cardTitles[c.status] || "Student ID card"; }
+  // d: the portal record (with d.allCards). opts: { photoSrc, signatureSrc } shown on every card.
+  function drawCards(d, opts) {
+    var mount = document.getElementById("cardMount");
+    var list = d.allCards && d.allCards.length ? d.allCards : [d];
+    var many = list.length > 1;
+    document.getElementById("downloadBtn").parentNode.hidden = many;
+    document.getElementById("viewCard").classList.toggle("many-cards", many);
+    document.getElementById("cardLead").textContent = many ? "These are your ID cards." : "This is your ID card.";
+    mount.replaceChildren();
+    list.forEach(function (c) {
+      var one = document.createElement("section");
+      one.className = "idc-one";
+      if (many) {
+        var h = document.createElement("h3");
+        h.className = "idc-one-title";
+        h.textContent = cardTitle(c);
+        one.appendChild(h);
+      }
+      var wrap = document.createElement("div");
+      wrap.className = "cardwrap";
+      wrap.appendChild(window.renderStudentCard(c, opts));
+      one.appendChild(wrap);
+      if (many) {
+        var actions = document.createElement("p");
+        actions.className = "pass-actions";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn ghost";
+        var label = "Download " + cardTitle(c);
+        btn.textContent = label;
+        btn.addEventListener("click", function () {
+          var node = wrap.querySelector(".idc");
+          if (!node || btn.disabled) return;
+          btn.disabled = true; btn.textContent = "Preparing...";
+          window.downloadIdCard(node, currentReg + " " + cardTitle(c).replace(" ID card", "")).then(function () {
+            btn.textContent = label;
+          }, function () {
+            btn.textContent = "Could not download. Try again";
+            setTimeout(function () { btn.textContent = label; }, 3500);
+          }).then(function () { btn.disabled = false; });
+        });
+        actions.appendChild(btn);
+        one.appendChild(actions);
+      }
+      mount.appendChild(one);
+    });
+  }
+
   function showHome(d) {
     loading.hidden = true;
     signin.hidden = true;
@@ -102,7 +153,7 @@
     pendingPhotoNotice = !!d.photoRedo;
     showDobNotice(d.dobNotice);
     if (!d.dobNotice) nextNotice();
-    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
+    drawCards(d, { photoSrc: photoUrl(d.regNumber) });
     loadSignature(d);
     loadCertificate();
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -557,7 +608,7 @@
         try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
         pendingPhotoNotice = false;
         return myCard().then(function (res) {
-          if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
+          if (res.ok) drawCards(res.body, { photoSrc: dataUrl, signatureSrc: mySig });
           setPhotoEditable(false);
           msg.textContent = "";
           photoNoticeDlg.close();
@@ -636,7 +687,7 @@
     sigMsg.style.color = ok ? "var(--violet, #5a1060)" : "";
   }
   function redrawCard(d) {
-    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber), signatureSrc: mySig }));
+    drawCards(d, { photoSrc: photoUrl(d.regNumber), signatureSrc: mySig });
   }
   function loadSignature(d) {
     sigPanel.hidden = true;
@@ -722,7 +773,7 @@
             try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
             // Show the photo just chosen (the saved copy can be cached by the browser for a few minutes)
             return myCard().then(function (res) {
-              if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
+              if (res.ok) drawCards(res.body, { photoSrc: dataUrl, signatureSrc: mySig });
               setPhotoEditable(false);
               photoNote("Your photo has been updated. A photo can only be changed once, so this is final.", true);
             });

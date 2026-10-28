@@ -800,3 +800,8 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .kind-pick { margin: 0 0 22px; }
 .kind-pick label { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 600; color: var(--muted); }
 .kind-pick select { width: 100%; font: inherit; font-weight: 600; padding: 12px 14px; border-radius: 12px; border: 1px solid currentColor; border-color: rgba(120,90,140,.35); background: #fff; color: inherit; }
+
+/* Portal: several ID cards (Student, Alumni, Team) stacked, each titled and with its own download button */
+#cardMount { max-width: none; }
+.idc-one + .idc-one { margin-top: 28px; }
+.idc-one-title { margin: 0 0 10px; text-align: center; font-size: 1rem; color: var(--violet-deep); }
