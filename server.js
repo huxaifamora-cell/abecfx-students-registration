@@ -206,6 +206,12 @@ function cardFromRow(r, kind) {
   };
 }
 
+// Every ID card the person holds (Student, Alumni, Team), each built with its own status. The portal shows them all.
+function allCardsFromRow(r) {
+  const kinds = idrules.idCards(r);
+  return kinds.length ? kinds.map((k) => cardFromRow(r, k)) : [cardFromRow(r)];
+}
+
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/api/countries", (_req, res) => res.json(countries));
 // States / regions for a country. An empty list means the form shows a free-text box instead.
@@ -468,7 +474,7 @@ app.post("/api/portal/login", loginLimiter, async (req, res) => {
     if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
       return res.status(401).json({ error: "That registration number and email do not match our records." });
     }
-    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg), signatureMissing: await signatureMissing(reg), photoRedo: photoRedo(r) });
+    res.json({ token: session.sign(reg, secret), card: { ...cardFromRow(r), allCards: allCardsFromRow(r) }, photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg), signatureMissing: await signatureMissing(reg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal sign-in failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -481,7 +487,7 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached();
     const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
     if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
-    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg), photoRedo: photoRedo(r) });
+    res.json({ ...cardFromRow(r), allCards: allCardsFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -1164,8 +1170,7 @@ app.get("/api/admin/id-cards", adminLimiter, teamAuth, async (req, res) => {
     // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Team), so the
     // dashboard can show them all when the name is clicked.
     const cards = hit.slice().reverse().slice(0, limit).map((r) => {
-      const kinds = idrules.idCards(r);
-      return { ...cardFromRow(r), allCards: kinds.length ? kinds.map((k) => cardFromRow(r, k)) : [cardFromRow(r)] };
+      return { ...cardFromRow(r), allCards: allCardsFromRow(r) };
     });
     res.json({ total: hit.length, shown: cards.length, cards });
   } catch (err) {
