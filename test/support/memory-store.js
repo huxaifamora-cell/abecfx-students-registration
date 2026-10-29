@@ -7,6 +7,8 @@ const HEADERS = {
   students: ["Reg Number", "Registered At (Lagos)", "Country", "Programme Type", "Full Name", "Email", "WhatsApp Number", "Gender", "Mentorship Code", "Status", "Status Date", "ID Issue Date", "State / Region", "Date of Birth", "Staff Role", "Photo To Redo (type Yes: the student must send a new passport photo)", "Staff Member (Yes gives a Staff ID card)", "Alumni Member (Yes gives an Alumni ID card)"],
   codes: ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"],
   quizcodes: ["Quiz Code", "Created At (Lagos)", "Created By", "For (Reg Number, optional)", "Status", "Used By (Reg Number)", "Unlocked At (Lagos)", "Completed At (Lagos)", "Revoked (By, At)"],
+  classes: ["Class ID", "Title", "Meet Link", "Started At (Lagos)", "Started (UTC)", "Ended At (Lagos)", "Ended (UTC)", "Started By"],
+  attendance: ["Class ID", "Reg Number", "Minutes Present (added)", "Recorded At (Lagos)"],
   quiz: ["Submitted At (Lagos)", "Reg Number", "Full Name", "Score", "Total Questions", "Percent", "Grade", "Attempt", "Telegram ID", "Breakdown (JSON)", "Submitted (UTC)"],
   progress: ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"],
   links: ["Key (do not edit)", "What it is", "Value"],
@@ -26,7 +28,7 @@ function student(n, over = {}) {
 
 function createMemoryStore(seed = {}) {
   const fit = (row, w) => { const r = (row || []).map((c) => (c == null ? "" : String(c))); while (r.length < w) r.push(""); return r.slice(0, w); };
-  const data = { students: [], codes: [], quizcodes: [], quiz: [], progress: [], links: [], videos: [], photos: [], staff: [], roles: [] };
+  const data = { students: [], codes: [], quizcodes: [], classes: [], attendance: [], quiz: [], progress: [], links: [], videos: [], photos: [], staff: [], roles: [] };
   for (const k of Object.keys(seed)) data[k] = seed[k].map((r) => r.slice());
   const width = (key) => HEADERS[key].length;
   const calls = []; // what was written, for the tests to look at
