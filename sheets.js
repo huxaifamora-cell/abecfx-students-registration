@@ -4,6 +4,7 @@ const links = require("./links");
 const videos = require("./videos");
 const staff = require("./staff");
 const quizcodes = require("./quizcodes");
+const attendance = require("./attendance");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -71,6 +72,15 @@ const CODE_LAST_COL = "D";
 const QUIZCODE_TAB = process.env.GOOGLE_QUIZCODE_TAB || "Quiz Codes";
 const QUIZCODE_HEADERS = quizcodes.HEADERS;
 const QUIZCODE_LAST_COL = "I";
+
+// Live-class attendance (see attendance.js): one row per class, and rows of minutes each student was present.
+// Managed from the dashboard's "Attendance" tab, never through the Database view.
+const CLASS_TAB = process.env.GOOGLE_CLASS_TAB || "Classes";
+const CLASS_HEADERS = attendance.CLASS_HEADERS;
+const CLASS_LAST_COL = "H";
+const ATT_TAB = process.env.GOOGLE_ATTENDANCE_TAB || "Attendance";
+const ATT_HEADERS = attendance.ATT_HEADERS;
+const ATT_LAST_COL = "D";
 
 // Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
@@ -185,6 +195,11 @@ async function init() {
 
   const quizCodes = await ensureTab(QUIZCODE_TAB);
   await ensureHeaders(QUIZCODE_TAB, QUIZCODE_HEADERS, QUIZCODE_LAST_COL);
+
+  await ensureTab(CLASS_TAB);
+  await ensureHeaders(CLASS_TAB, CLASS_HEADERS, CLASS_LAST_COL);
+  await ensureTab(ATT_TAB);
+  await ensureHeaders(ATT_TAB, ATT_HEADERS, ATT_LAST_COL);
 
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
@@ -599,6 +614,9 @@ const EDITOR_TABS = {
   dobchanges: { title: DOB_TAB, headers: DOB_HEADERS, lastCol: "D" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
+  // Internal only: live classes and who attended. Managed through attendance.js and the "Attendance" dashboard tab.
+  classes: { title: CLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
+  attendance: { title: ATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },
   // Internal only, like photos: the dashboard staff (password hashes). Managed through staff.js, never the Database view.
   staff: { title: STAFF_TAB, headers: STAFF_HEADERS, lastCol: STAFF_LAST_COL },
   // Internal only: custom roles. Managed through staff.js, never the Database view.

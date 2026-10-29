@@ -12,6 +12,7 @@ const { buildStats, drill, quizEntry } = require("./stats");
 const crypto = require("crypto");
 const quizToken = require("./quiztoken");
 const quizcodes = require("./quizcodes");
+const attendanceLib = require("./attendance");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -882,6 +883,7 @@ const adminAuth = requirePerm("view"); // statistics, student lists and quiz res
 const linksAuth = requirePerm("links"); // site links
 const communityAuth = requirePerm("community"); // the student WhatsApp / Telegram groups
 const videosAuth = requirePerm("videos"); // chapter videos
+const attendanceAuth = requirePerm("attendance"); // live classes and attendance
 const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
 const certAuth = requirePerm("certificates"); // certificate signer settings, and every certificate
 const databaseAuth = requirePerm("database"); // the Database tab
@@ -1435,6 +1437,65 @@ app.post("/api/admin/quiz-codes", adminLimiter, quizCodesAuth, quizCodeRoute(asy
 
 app.post("/api/admin/quiz-codes/revoke", adminLimiter, quizCodesAuth, quizCodeRoute(async (req, res) => {
   res.json(await quizCodes.revoke((req.body || {}).code, req.admin));
+}));
+
+
+// ---- Live-class attendance (rules in attendance.js) ----
+const attendance = attendanceLib.create(store, { now: lagosTimestamp });
+// Minutes are written to the sheet in one batch every few minutes while a class runs (and when it is ended).
+setInterval(() => { attendance.flush().catch((e) => console.error("Attendance save failed:", e.message)); }, 3 * 60 * 1000).unref();
+
+const heartbeatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 8,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests." },
+});
+function attendanceRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof attendanceLib.AttendanceError) {
+        return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      }
+      console.error("Attendance request failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
+}
+
+// The student's portal: the live class (with its Meet link) and their own attendance record.
+app.get("/api/portal/attendance", lookupLimiter, studentAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.forStudent(req.studentReg));
+}));
+// Sent every 30 seconds while the student's Meet window is open.
+app.post("/api/portal/attendance/heartbeat", heartbeatLimiter, studentAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.heartbeat(req.studentReg, (req.body || {}).classId));
+}));
+
+app.get("/api/admin/attendance", adminLimiter, attendanceAuth, attendanceRoute(async (_req, res) => {
+  res.json(await attendance.list());
+}));
+app.post("/api/admin/attendance/start", adminLimiter, attendanceAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.start(req.body, req.admin));
+}));
+app.post("/api/admin/attendance/end", adminLimiter, attendanceAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.end(req.admin));
+}));
+app.get("/api/admin/attendance/report", adminLimiter, attendanceAuth, attendanceRoute(async (req, res) => {
+  const out = await attendance.report(String(req.query.id || ""));
+  const rows = await store.readCached(5000);
+  const byReg = new Map(rows.map((r) => [(r[0] || "").toUpperCase(), r]));
+  const people = out.people.map((p) => ({ ...p, name: (byReg.get(p.reg) || [])[4] || "" }));
+  // Registered students who never joined are listed as absent.
+  const joined = new Set(out.people.map((p) => p.reg));
+  const absent = rows.filter((r) => r && r[0] && idrules.idKinds(r).student && !joined.has((r[0] || "").toUpperCase()))
+    .map((r) => ({ reg: r[0], name: r[4] || "", minutes: 0, percent: 0, present: false }));
+  res.json({ ...out, people: people.concat(absent) });
 }));
 
 // ---- Database view: the editor browses, adds, edits and deletes records from /admin ----

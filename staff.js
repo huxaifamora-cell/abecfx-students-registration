@@ -38,6 +38,7 @@ const PERMS = [
   { key: "community", label: "Student community", help: "Set the WhatsApp and Telegram groups students open from the Community page of their portal." },
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
+  { key: "attendance", label: "Attendance", help: "Start and end live classes and see who attended (present for at least half of the class)." },
   { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "staff", label: "Staff and roles", help: "Add staff members, create roles and choose their access." },

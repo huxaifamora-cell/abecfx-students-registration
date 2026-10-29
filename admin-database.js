@@ -204,6 +204,7 @@ function create(store) {
         await store.deleteTabRowsByReg("dobchanges", reg, 0);
         await store.deleteTabRowsByReg("quiz", reg, 1);
         await store.deleteTabRowsByReg("progress", reg, 0);
+        await store.deleteTabRowsByReg("attendance", reg, 1);
       },
     },
 
@@ -401,7 +402,7 @@ function create(store) {
   }
 
   // Every place a registration number is stored besides the Students tab: [tab, column index].
-  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5]];
+  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1]];
 
   // A new number must not already appear anywhere as someone else's (including a deleted student's records).
   async function regConflict(newReg) {
