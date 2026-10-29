@@ -805,3 +805,10 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 #cardMount { max-width: none; }
 .idc-one + .idc-one { margin-top: 28px; }
 .idc-one-title { margin: 0 0 10px; text-align: center; font-size: 1rem; color: var(--violet-deep); }
+
+/* Portal: live class */
+.cls-h { margin: 22px 0 8px; font-size: 1rem; color: var(--violet-deep); }
+.cls-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.cls-table th, .cls-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.cls-table th { color: var(--muted); font-weight: 700; }
+.cls-table caption { text-align: left; color: var(--muted); padding: 8px 0; }

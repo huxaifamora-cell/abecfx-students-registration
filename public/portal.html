@@ -62,6 +62,7 @@
           <!-- My portal submenu -->
           <nav class="subnav" id="subnav" aria-label="My portal">
             <a href="#/card" data-view="card" aria-current="page">ID card</a>
+            <a href="#/class" data-view="class">Live class</a>
             <a href="#/community" data-view="community">Community</a>
             <a href="#/handbook" data-view="handbook">Handbook</a>
             <a href="#/workbook" data-view="workbook">Workbook</a>
@@ -146,6 +147,23 @@
               <iframe id="quizFrame" title="ABEC-FX Edge Handbook quiz" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
               <p class="quizrun-foot"><a id="quizTab" href="#" target="_blank" rel="noopener">Quiz not loading? Open it in a new tab</a></p>
             </section>
+          </div>
+
+          <!-- View: Live class (join the Google Meet class; time in the Meet window counts towards attendance) -->
+          <div id="viewClass" class="view" hidden>
+            <h2>Live class</h2>
+            <p class="lead">Join your class on Google Meet from here. You are marked present when you are in the class for at least <b id="clsThreshold">50</b>% of it.</p>
+            <section class="quizcard" aria-label="Live class">
+              <p class="live" id="clsMsg" role="status">Loading...</p>
+              <div id="clsLive" hidden>
+                <h3 id="clsTitle"></h3>
+                <button type="button" class="btn primary wide" id="clsJoin">Join class on Google Meet</button>
+                <p class="live" id="clsStatus" role="status"></p>
+                <p class="cert-note">Keep this page open in your browser while you are in class. Your time is counted while the Meet window stays open.</p>
+              </div>
+            </section>
+            <h3 class="cls-h">Your attendance</h3>
+            <div class="hb-tablewrap"><table class="cls-table" id="clsTable"></table></div>
           </div>
 
           <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->

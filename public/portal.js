@@ -57,6 +57,7 @@
 
   // The sign-in has expired or is not valid: back to the sign-in form.
   function signedOut(message) {
+    if (typeof stopClassBeat === "function") stopClassBeat();
     closeQuiz(true);
     window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
@@ -172,11 +173,11 @@
   }
 
   // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community"];
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "class"];
   var currentView = "";
 
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|workbook|community)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community|class)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -195,6 +196,7 @@
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
+    if (r.view === "class" && currentView !== "class") showClass();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
     if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
@@ -203,6 +205,75 @@
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+
+  // ---- Live class: join Google Meet in its own window; time with that window open counts towards attendance ----
+  var cls = { id: "", win: null, timer: null, minutes: 0 };
+  function stopClassBeat() { if (cls.timer) { clearInterval(cls.timer); cls.timer = null; } }
+  function clsStatus(text) { document.getElementById("clsStatus").textContent = text || ""; }
+  function beat() {
+    if (!cls.win || cls.win.closed) {
+      stopClassBeat();
+      clsStatus("Your Meet window is closed, so your time is not being counted. Press Join to go back in.");
+      return;
+    }
+    authFetch("/api/portal/attendance/heartbeat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ classId: cls.id }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { stopClassBeat(); signedOut(b.error); return; }
+        if (!r.ok) return;
+        if (!b.live) { stopClassBeat(); clsStatus("This class has ended. Thank you for joining."); showClass(true); return; }
+        cls.minutes = b.minutes;
+        clsStatus("You are being counted: " + b.minutes + (b.minutes === 1 ? " minute" : " minutes") + " so far.");
+      });
+    }).catch(function () { /* a missed beat is fine; the next one counts */ });
+  }
+  function renderClassHistory(b) {
+    var t = document.getElementById("clsTable");
+    t.replaceChildren();
+    if (!b.history.length) { t.innerHTML = ""; var p = document.createElement("caption"); p.textContent = "No classes yet."; t.appendChild(p); return; }
+    var head = t.createTHead().insertRow();
+    ["Class", "Date", "Time in class", "Result"].forEach(function (h) { var th = document.createElement("th"); th.textContent = h; head.appendChild(th); });
+    var body = t.createTBody();
+    b.history.forEach(function (c) {
+      var row = body.insertRow();
+      var res = c.live ? "Live now" : c.present ? "Present" : "Absent";
+      [c.title, (c.startedAt || "").split(",")[0], c.minutes + " of " + c.lengthMinutes + " min (" + c.percent + "%)", res].forEach(function (v) { row.insertCell().textContent = v; });
+    });
+  }
+  function showClass(keepBeat) {
+    var msg = document.getElementById("clsMsg");
+    var box = document.getElementById("clsLive");
+    if (!keepBeat) { msg.textContent = "Loading..."; msg.hidden = false; box.hidden = true; }
+    authFetch("/api/portal/attendance")
+      .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
+      .then(function (b) {
+        document.getElementById("clsThreshold").textContent = b.threshold;
+        renderClassHistory(b);
+        if (b.live) {
+          msg.hidden = true; box.hidden = false;
+          document.getElementById("clsTitle").textContent = b.live.title;
+          cls.id = b.live.id; cls.link = b.live.link;
+        } else {
+          stopClassBeat();
+          box.hidden = true; msg.hidden = false;
+          msg.textContent = "No class is live right now. When your mentor starts one, it will appear here.";
+        }
+      })
+      .catch(function (err) { if (err.message !== "signed out") { msg.hidden = false; msg.textContent = err.message || "Could not load the class."; } });
+  }
+  document.getElementById("clsJoin").addEventListener("click", function () {
+    if (!cls.link) return;
+    // Opened straight from the click so the browser allows it; we keep the window to see when it is closed.
+    cls.win = window.open(cls.link, "abecfxMeet");
+    if (!cls.win) { clsStatus("Your browser blocked the Meet window. Allow pop-ups for this site, then press Join again."); return; }
+    stopClassBeat();
+    clsStatus("Joining...");
+    beat();
+    cls.timer = setInterval(beat, 30000);
+  });
 
   // ---- Community: the WhatsApp and Telegram groups set on the dashboard, opened in a new tab ----
   function safeHttps(u) {

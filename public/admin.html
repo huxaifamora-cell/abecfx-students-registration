@@ -49,6 +49,7 @@
         <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
         <button type="button" role="tab" id="tab-quizcodes" aria-selected="false" aria-controls="view-quizcodes" hidden>Quiz codes</button>
+        <button type="button" role="tab" id="tab-attendance" aria-selected="false" aria-controls="view-attendance" hidden>Attendance</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-community" aria-selected="false" aria-controls="view-community" hidden>Community</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
@@ -161,6 +162,54 @@
           </div>
           <div class="tablewrap"><table class="adm-table" id="qcTable"></table></div>
           <p class="adm-note" id="qcNote" role="status"></p>
+        </article>
+      </div>
+
+      <div id="view-attendance" role="tabpanel" aria-labelledby="tab-attendance" hidden>
+        <article class="adm-card wide">
+          <h3>Live class</h3>
+          <p class="adm-note">Start the class here when your Google Meet begins and end it when it finishes. Students open the class from their portal, which opens your Meet link in its own window. Their time is counted while that window stays open. A student is marked present when they were there for at least <b id="atThreshold">50</b>% of the class.</p>
+          <div id="atLiveBox" hidden>
+            <p class="adm-note"><b id="atLiveTitle"></b> is live. Started <span id="atLiveSince"></span>.</p>
+            <div class="lk-bar">
+              <button type="button" class="primary" id="atEnd">End class</button>
+              <span class="lk-msg" id="atEndMsg" role="status"></span>
+            </div>
+          </div>
+          <form id="atForm" class="lk-form" novalidate>
+            <div class="field">
+              <label for="at-title">Class name</label>
+              <input id="at-title" type="text" maxlength="100" autocomplete="off" placeholder="Week 3: Risk management" />
+              <p class="lk-err" id="at-e-title" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="at-link">Google Meet link</label>
+              <input id="at-link" type="url" maxlength="200" autocomplete="off" spellcheck="false" placeholder="https://meet.google.com/abc-defg-hij" />
+              <p class="lk-err" id="at-e-link" role="alert"></p>
+            </div>
+            <div class="lk-bar">
+              <button type="submit" class="primary" id="atStart">Start class</button>
+              <span class="lk-msg" id="atMsg" role="status"></span>
+            </div>
+          </form>
+        </article>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Classes</h3>
+            <button type="button" class="btn ghost" id="atReload">Reload</button>
+          </div>
+          <div class="tablewrap"><table class="adm-table" id="atTable"></table></div>
+          <p class="adm-note" id="atNote" role="status"></p>
+        </article>
+
+        <article class="adm-card wide" id="atReportCard" hidden>
+          <div class="adm-card-head">
+            <h3 id="atReportTitle">Attendance</h3>
+            <button type="button" class="btn ghost" id="atCsv">Download CSV</button>
+          </div>
+          <div class="tablewrap"><table class="adm-table" id="atReportTable"></table></div>
+          <p class="adm-note" id="atReportNote" role="status"></p>
         </article>
       </div>
 

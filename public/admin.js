@@ -89,7 +89,7 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
@@ -532,6 +532,87 @@
 
   // ---------- Site links ----------
   var linkFields = [];
+  // ---------- Attendance: start and end a live class, and see who was present ----------
+  var at = { classes: [], report: null, threshold: 50 };
+  function openAttendance() {
+    $("atNote").textContent = "Loading...";
+    loadAttendance().catch(function (err) { if (err.auth) showLogin(err.message); else $("atNote").textContent = err.message; });
+  }
+  function loadAttendance() {
+    return api("/api/admin/attendance").then(function (r) {
+      at.classes = r.classes; at.threshold = r.threshold;
+      $("atThreshold").textContent = r.threshold;
+      renderAttendance();
+    });
+  }
+  function renderAttendance() {
+    var live = at.classes.filter(function (c) { return c.live; })[0];
+    $("atLiveBox").hidden = !live;
+    $("atForm").hidden = !!live;
+    if (live) { $("atLiveTitle").textContent = live.title; $("atLiveSince").textContent = live.startedAt; }
+    $("atNote").textContent = at.classes.length ? "" : "No classes yet. Start one above.";
+    table($("atTable"), [
+      { t: "Class" }, { t: "Started" }, { t: "Length" }, { t: "Joined", n: 1 }, { t: "Present", n: 1 }, { t: "" },
+    ], at.classes.map(function (c) {
+      var b = el("button", "btn ghost sh-rowbtn", "View");
+      b.type = "button";
+      b.addEventListener("click", function () { showAttendanceReport(c); });
+      return [c.title + (c.live ? " (live)" : ""), c.startedAt, c.lengthMinutes + " min", c.joined, c.present, { node: b }];
+    }));
+  }
+  function showAttendanceReport(c) {
+    $("atReportCard").hidden = false;
+    $("atReportTitle").textContent = c.title + " - attendance";
+    $("atReportNote").textContent = "Loading...";
+    $("atReportTable").replaceChildren();
+    api("/api/admin/attendance/report?id=" + encodeURIComponent(c.id)).then(function (r) {
+      at.report = r;
+      var present = r.people.filter(function (p) { return p.present; }).length;
+      var joined = r.people.filter(function (p) { return p.minutes > 0; }).length;
+      $("atReportNote").textContent = present + " present (at least " + r.threshold + "% of " + r.class.lengthMinutes + " minutes), " + joined + " joined, " + (r.people.length - joined) + " registered students never joined.";
+      table($("atReportTable"), [
+        { t: "Student" }, { t: "Reg number" }, { t: "Minutes", n: 1 }, { t: "%", n: 1 }, { t: "Result" },
+      ], r.people.map(function (p) {
+        return [p.name, p.reg, p.minutes, p.percent + "%", p.present ? "Present" : "Absent"];
+      }));
+      $("atReportCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("atReportNote").textContent = err.message; });
+  }
+  $("atForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    $("at-e-title").textContent = ""; $("at-e-link").textContent = ""; $("atMsg").textContent = "";
+    var b = $("atStart"); b.disabled = true;
+    api("/api/admin/attendance/start", "POST", { title: $("at-title").value, link: $("at-link").value }).then(function () {
+      $("at-title").value = ""; $("at-link").value = "";
+      $("atMsg").textContent = "Class started. Students can now join it from their portal.";
+      return loadAttendance();
+    }).catch(function (err) {
+      if (err.auth) return showLogin(err.message);
+      $("at-e-title").textContent = (err.fields && err.fields.title) || "";
+      $("at-e-link").textContent = (err.fields && err.fields.link) || "";
+      $("atMsg").textContent = err.fields ? "" : err.message;
+    }).then(function () { b.disabled = false; });
+  });
+  $("atEnd").addEventListener("click", function () {
+    if (!window.confirm("End the live class now? Students will stop being counted.")) return;
+    var b = $("atEnd"); b.disabled = true; $("atEndMsg").textContent = "Saving...";
+    api("/api/admin/attendance/end", "POST", {}).then(function () { $("atEndMsg").textContent = ""; return loadAttendance(); })
+      .catch(function (err) { if (err.auth) showLogin(err.message); else $("atEndMsg").textContent = err.message; })
+      .then(function () { b.disabled = false; });
+  });
+  $("atReload").addEventListener("click", openAttendance);
+  $("atCsv").addEventListener("click", function () {
+    if (!at.report) return;
+    var q = function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
+    var lines = [["Student", "Reg number", "Minutes", "Percent", "Result"].map(q).join(",")].concat(at.report.people.map(function (p) {
+      return [p.name, p.reg, p.minutes, p.percent, p.present ? "Present" : "Absent"].map(q).join(",");
+    }));
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    a.download = "attendance-" + at.report["class"].id + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+
   // ---------- Quiz codes: make, list and cancel the one-time codes that unlock the quiz ----------
   var QC_LABEL = { Unused: "Unused", Unlocked: "In use", Completed: "Completed", Revoked: "Cancelled" };
 
@@ -1472,12 +1553,13 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "staff", "idcards", "certificates"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "database", "staff", "idcards", "certificates"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "idcards" || name === "certificates";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates";
     if (name === "quizcodes") openQuizCodes();
+    if (name === "attendance") openAttendance();
     if (name === "database") openSheets();
     if (name === "staff") openStaff();
     if (name === "idcards") openIdCards();
@@ -1498,6 +1580,7 @@
   $("tab-overview").addEventListener("click", function () { setTab("overview"); });
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-quizcodes").addEventListener("click", function () { setTab("quizcodes"); });
+  $("tab-attendance").addEventListener("click", function () { setTab("attendance"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
