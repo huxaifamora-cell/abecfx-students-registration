@@ -174,12 +174,23 @@ async function ensureHeaders(tab, headers, lastCol) {
 }
 
 // Make sure both tabs exist with headers, and the Status column is a dropdown.
+// The Staff tab used to be called "Team". An existing one is renamed so the accounts (and their password hashes) carry over.
+async function renameLegacyStaffTab() {
+  if (STAFF_TAB !== "Staff" || (await findTab("Staff"))) return;
+  const old = await findTab("Team");
+  if (!old) return;
+  await call(":batchUpdate", {
+    method: "POST",
+    data: { requests: [{ updateSheetProperties: { properties: { sheetId: old.sheetId, title: "Staff" }, fields: "title" } }] },
+  });
+}
+
 async function init() {
   const students = await ensureTab(TAB);
   await ensureHeaders(TAB, HEADERS, LAST_COL);
 
   const photos = await ensureTab(PHOTO_TAB);
-  await ensureHeaders(PHOTO_TAB, PHOTO_HEADERS, "B");
+  await ensureHeaders(PHOTO_TAB, PHOTO_HEADERS, "C");
 
   await ensureTab(SIG_TAB);
   await ensureHeaders(SIG_TAB, SIG_HEADERS, "B");
@@ -237,16 +248,7 @@ async function init() {
     });
   }
 
-  // This tab used to be called "Team". An existing one is renamed so the accounts (and their password hashes) carry over.
-  if (STAFF_TAB === "Staff" && !(await findTab("Staff"))) {
-    const old = await findTab("Team");
-    if (old) {
-      await call(":batchUpdate", {
-        method: "POST",
-        data: { requests: [{ updateSheetProperties: { properties: { sheetId: old.sheetId, title: "Staff" }, fields: "title" } }] },
-      });
-    }
-  }
+  await renameLegacyStaffTab();
   await ensureTab(STAFF_TAB);
   await ensureHeaders(STAFF_TAB, STAFF_HEADERS, STAFF_LAST_COL);
 
@@ -652,10 +654,25 @@ function sheetUrl() {
   return SHEET_ID ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/edit` : "";
 }
 
+// If a tab is missing (the start-up setup did not finish), make it and its header row, then try again once.
+// Google reports a missing tab as "Unable to parse range".
+async function healing(key, run) {
+  try {
+    return await run();
+  } catch (err) {
+    if (!/unable to parse range/i.test(String((err && err.message) || ""))) throw err;
+    const t = editorTab(key);
+    if (key === "staff") await renameLegacyStaffTab();
+    await ensureTab(t.title);
+    await ensureHeaders(t.title, t.headers, t.lastCol);
+    return run();
+  }
+}
+
 // Every data row of a tab, always read fresh. `n` is the row number in the sheet (the header is row 1).
 async function tabRows(key) {
   const t = editorTab(key);
-  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  const data = await healing(key, () => call(`/values/${range(`A2:${t.lastCol}`, t.title)}`));
   return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
 }
 
@@ -700,10 +717,10 @@ async function renameRegCells(key, col, oldReg, newReg) {
 async function appendTabRows(key, rows) {
   const t = editorTab(key);
   if (!rows.length) return;
-  await call(
+  await healing(key, () => call(
     `/values/${range(`A:${t.lastCol}`, t.title)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: "POST", data: { values: rows.map((r) => fitRow(r, t.headers.length)) } }
-  );
+  ));
   invalidate(key);
 }
 
