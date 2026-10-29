@@ -30,14 +30,14 @@ test("staff columns match the real sheets.js (when its dependencies are installe
 });
 
 test("built-in roles: owner and admin everything, editor everything but the staff and quiz codes, moderator only view", () => {
-  const all = ["view", "links", "community", "videos", "quizcodes", "certificates", "database", "staff"];
+  const all = ["view", "links", "community", "videos", "quizcodes", "attendance", "certificates", "database", "staff"];
   assert.deepEqual(staff.PERM_KEYS, all);
   for (const r of ["admin", "owner"]) for (const p of all) assert.equal(staff.can(r, p), true, r + " " + p);
   for (const p of ["view", "links", "community", "videos", "database"]) assert.equal(staff.can("editor", p), true, "editor " + p);
   assert.equal(staff.can("editor", "staff"), false);
   assert.equal(staff.can("editor", "quizcodes"), false, "quiz codes are given through a custom role, not to every editor");
   assert.equal(staff.can("moderator", "view"), true);
-  for (const p of ["links", "community", "videos", "quizcodes", "certificates", "database", "staff"]) assert.equal(staff.can("moderator", p), false, "moderator " + p);
+  for (const p of ["links", "community", "videos", "quizcodes", "attendance", "certificates", "database", "staff"]) assert.equal(staff.can("moderator", p), false, "moderator " + p);
   assert.equal(staff.can("editor", "certificates"), false, "certificates are given through a custom role, not to every editor");
   assert.equal(staff.can("nobody", "view"), false);
   assert.deepEqual(staff.ASSIGNABLE, ["owner", "admin", "editor", "moderator"]);
