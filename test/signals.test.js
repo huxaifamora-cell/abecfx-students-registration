@@ -35,7 +35,7 @@ test("the alert text has no lot size or margin, and shows a reminder only after 
 });
 
 // A fake Deriv: lists two markets, answers every candle request with the series given for that market.
-function fakeDeriv(series, listed) {
+function fakeDeriv(series, listed, refuseSubscribe) {
   const sockets = [];
   class FakeWS extends EventEmitter {
     constructor() { super(); this.sent = []; sockets.push(this); setImmediate(() => this.emit("open")); }
@@ -44,6 +44,9 @@ function fakeDeriv(series, listed) {
       this.sent.push(r);
       if (r.active_symbols) {
         return setImmediate(() => this.emit("message", JSON.stringify({ msg_type: "active_symbols", req_id: r.req_id, active_symbols: listed || [{ symbol: "BOOM1000" }, { symbol: "CRASH1000" }] })));
+      }
+      if (r.ticks_history && r.subscribe && refuseSubscribe) {
+        return setImmediate(() => this.emit("message", JSON.stringify({ msg_type: "ticks_history", req_id: r.req_id, error: { code: "RateLimit", message: "subscription limit exceeded" } })));
       }
       if (r.ticks_history) {
         const closes = series[r.ticks_history];
@@ -148,6 +151,30 @@ test("markets are matched to Deriv by code or by name, and the page data is spli
   assert.deepEqual(g("crash").watching, []);
   assert.deepEqual(g("volatility").watching, ["Volatility 75 Index", "Volatility 10 (1s) Index"]);
   assert.equal(g("jump").watching.length, 0);
+});
+
+test("only M30 is streamed; H1 is built from it and gives the same setup", async () => {
+  const { FakeWS, sockets } = fakeDeriv({ BOOM1000: falling, CRASH1000: flat });
+  const mon = signals.create({ enabled: true, WebSocketImpl: FakeWS, now: () => 1_000_000, log: () => {} });
+  mon.start();
+  await new Promise((r) => setTimeout(r, 2500));
+  const streamed = sockets[0].sent.filter((x) => x.subscribe === 1).map((x) => x.granularity);
+  assert.ok(streamed.length > 0 && streamed.every((g) => g === 1800), "no H1, H4 or D1 stream");
+  assert.equal(sockets[0].sent.some((x) => x.granularity === 3600), false, "H1 is never asked for");
+  mon.check();
+  const tfs = mon.snapshot().active.filter((a) => a.market === "Boom 1000").map((a) => a.tf).sort();
+  assert.deepEqual(tfs, ["H1", "M30"]);
+  mon.stop();
+});
+
+test("when Deriv refuses a stream (subscription limit) the market is asked for repeatedly instead", async () => {
+  const { FakeWS } = fakeDeriv({ BOOM1000: falling, CRASH1000: flat }, undefined, true);
+  const mon = signals.create({ enabled: true, WebSocketImpl: FakeWS, now: () => 1_000_000, log: () => {} });
+  mon.start();
+  await new Promise((r) => setTimeout(r, 2500));
+  mon.check();
+  assert.ok(mon.snapshot().active.some((a) => a.market === "Boom 1000" && a.type === "SELL"), "still tracked through plain requests");
+  mon.stop();
 });
 
 test("the signals page is for Alumni members only, and says so when it is switched off", async () => {
