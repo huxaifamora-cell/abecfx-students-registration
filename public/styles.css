@@ -812,3 +812,11 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .cls-table th, .cls-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
 .cls-table th { color: var(--muted); font-weight: 700; }
 .cls-table caption { text-align: left; color: var(--muted); padding: 8px 0; }
+
+/* Portal: alumni signals */
+.sig-tools { margin: 6px 0 0; font-size: .9rem; }
+.sig-grid { display: grid; gap: 10px; }
+.sig-card { display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line); border-left: 6px solid var(--violet-deep); }
+.sig-card.sig-sell { border-left-color: #c0392b; }
+.sig-card.sig-buy { border-left-color: #1e8449; }
+.sig-card span { color: var(--muted); font-size: .9rem; }

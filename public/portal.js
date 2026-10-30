@@ -58,6 +58,7 @@
   // The sign-in has expired or is not valid: back to the sign-in form.
   function signedOut(message) {
     if (typeof stopClassBeat === "function") stopClassBeat();
+    if (typeof stopSignals === "function") stopSignals();
     closeQuiz(true);
     window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
@@ -149,6 +150,10 @@
     var first = (d.fullName || "").split(" ")[0];
     document.getElementById("welcome").textContent = first ? "Welcome back, " + first : "Welcome back";
     mySig = "";
+    // The Signals page is only for Alumni members.
+    var isAlumni = (d.cards || []).indexOf("alumni") >= 0;
+    document.getElementById("signalsLink").hidden = !isAlumni;
+    sigAllowed = isAlumni;
     sigNote("");
     pendingSigNotice = !!d.signatureMissing;
     pendingPhotoNotice = !!d.photoRedo;
@@ -173,11 +178,11 @@
   }
 
   // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "class"];
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "class", "signals"];
   var currentView = "";
 
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|workbook|community|class)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community|class|signals)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -197,6 +202,8 @@
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
     if (r.view === "class" && currentView !== "class") showClass();
+    if (r.view === "signals" && currentView !== "signals") showSignals();
+    if (r.view !== "signals") stopSignals();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
     if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
@@ -274,6 +281,82 @@
     beat();
     cls.timer = setInterval(beat, 30000);
   });
+
+  // ---- Signals (Alumni members): live Boom / Crash setups, refreshed every few seconds ----
+  var sigAllowed = false, sigTimer = null, sigSeen = 0, sigPrimed = false;
+  function stopSignals() { if (sigTimer) { clearInterval(sigTimer); sigTimer = null; } }
+  function beep() {
+    try {
+      var A = window.AudioContext || window.webkitAudioContext;
+      var ctx = new A(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 880; g.gain.value = 0.15;
+      o.connect(g); g.connect(ctx.destination); o.start();
+      setTimeout(function () { o.stop(); ctx.close(); }, 350);
+    } catch (e) { /* no sound available */ }
+  }
+  function renderSignals(b) {
+    var st = document.getElementById("sigStatus");
+    if (!b.enabled) st.textContent = "Signals are not switched on yet. Please check back later.";
+    else if (!b.connected) st.textContent = "Connecting to the market feed...";
+    else st.textContent = "Live. Watching " + b.watching.length + " markets. Updated " + new Date(b.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + ".";
+    document.getElementById("sigNote").textContent = b.unavailable && b.unavailable.length
+      ? "Not available from the market feed (so not monitored here): " + b.unavailable.join(", ") + "."
+      : "";
+    var grid = document.getElementById("sigActive");
+    grid.replaceChildren();
+    if (!b.active.length) {
+      var none = document.createElement("p");
+      none.className = "live";
+      none.textContent = "No setup is valid right now.";
+      grid.appendChild(none);
+    }
+    b.active.forEach(function (a) {
+      var c = document.createElement("div");
+      c.className = "sig-card sig-" + a.type.toLowerCase();
+      var h = document.createElement("strong");
+      h.textContent = a.market + " " + a.type;
+      var l1 = document.createElement("span");
+      l1.textContent = "Timeframe " + a.tf + " · valid " + a.minutes + (a.minutes === 1 ? " minute" : " minutes");
+      var l2 = document.createElement("span");
+      l2.textContent = "H4: " + a.h4 + " · D1: " + a.d1;
+      c.appendChild(h); c.appendChild(l1); c.appendChild(l2);
+      grid.appendChild(c);
+    });
+    var t = document.getElementById("sigRecent");
+    t.replaceChildren();
+    if (!b.recent.length) { var cap = document.createElement("caption"); cap.textContent = "No alerts yet."; t.appendChild(cap); }
+    else {
+      var head = t.createTHead().insertRow();
+      ["Time", "Market", "Setup", "TF", "H4", "D1"].forEach(function (x) { var th = document.createElement("th"); th.textContent = x; head.appendChild(th); });
+      var body = t.createTBody();
+      b.recent.forEach(function (e) {
+        var row = body.insertRow();
+        [new Date(e.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), e.market, e.type + (e.first ? "" : " (reminder)"), e.tf, e.h4, e.d1].forEach(function (v) { row.insertCell().textContent = v; });
+      });
+    }
+    var newest = b.recent.length ? b.recent[0].id : 0;
+    if (sigPrimed && newest > sigSeen && document.getElementById("sigSound").checked) beep();
+    sigSeen = Math.max(sigSeen, newest);
+    sigPrimed = true;
+  }
+  function loadSignals() {
+    authFetch("/api/portal/signals")
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { r: r, b: b }; }); })
+      .then(function (x) {
+        if (x.r.status === 401) { stopSignals(); signedOut(x.b.error); return; }
+        if (!x.r.ok) { document.getElementById("sigStatus").textContent = x.b.error || "Could not load signals."; return; }
+        renderSignals(x.b);
+      })
+      .catch(function () { document.getElementById("sigStatus").textContent = "Network problem. Retrying..."; });
+  }
+  function showSignals() {
+    stopSignals();
+    if (!sigAllowed) { document.getElementById("sigStatus").textContent = "Signals are for Alumni members."; return; }
+    sigPrimed = false; sigSeen = 0;
+    document.getElementById("sigStatus").textContent = "Loading...";
+    loadSignals();
+    sigTimer = setInterval(loadSignals, 5000);
+  }
 
   // ---- Community: the WhatsApp and Telegram groups set on the dashboard, opened in a new tab ----
   function safeHttps(u) {

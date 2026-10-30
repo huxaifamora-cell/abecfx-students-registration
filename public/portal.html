@@ -63,6 +63,7 @@
           <nav class="subnav" id="subnav" aria-label="My portal">
             <a href="#/card" data-view="card" aria-current="page">ID card</a>
             <a href="#/class" data-view="class">Live class</a>
+            <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
             <a href="#/community" data-view="community">Community</a>
             <a href="#/handbook" data-view="handbook">Handbook</a>
             <a href="#/workbook" data-view="workbook">Workbook</a>
@@ -164,6 +165,22 @@
             </section>
             <h3 class="cls-h">Your attendance</h3>
             <div class="hb-tablewrap"><table class="cls-table" id="clsTable"></table></div>
+          </div>
+
+          <!-- View: Signals (Alumni members only) -->
+          <div id="viewSignals" class="view" hidden>
+            <h2>Signals</h2>
+            <p class="lead">Live Boom and Crash trade setups on the M30 and H1 charts, with the H4 and D1 trend. This page updates by itself.</p>
+            <p class="live" id="sigStatus" role="status">Loading...</p>
+            <div class="sig-tools">
+              <label class="sig-sound"><input type="checkbox" id="sigSound" /> Play a sound for new alerts</label>
+            </div>
+            <h3 class="cls-h">Valid right now</h3>
+            <div id="sigActive" class="sig-grid"></div>
+            <h3 class="cls-h">Recent alerts</h3>
+            <div class="hb-tablewrap"><table class="cls-table" id="sigRecent"></table></div>
+            <p class="cert-note" id="sigNote"></p>
+            <p class="cert-note">These are trade setups from a fixed set of rules, not financial advice. Always manage your own risk.</p>
           </div>
 
           <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
