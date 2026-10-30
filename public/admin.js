@@ -312,13 +312,14 @@
       kpi("Total students", s.total, { kind: "all" }),
       kpi("Certified graduates", s.graduates, { kind: "graduates" }),
       kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
+      kpi("Alumni members", s.alumni, { kind: "alumni" }),
       kpi("Staff members", s.staff, { kind: "staff" }),
       kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
       kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Staff), so the Staff and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
+    $("c-status-note").textContent = "A person can hold several ID cards (Student, Alumni, Staff). They are counted under every status they hold, so the bars can add up to more than the total number of students.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
