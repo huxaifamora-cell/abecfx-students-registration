@@ -170,16 +170,21 @@
           <!-- View: Signals (Alumni members only) -->
           <div id="viewSignals" class="view" hidden>
             <h2>Signals</h2>
-            <p class="lead">Live Boom and Crash trade setups on the M30 and H1 charts, with the H4 and D1 trend. This page updates by itself.</p>
+            <p class="lead">Live trade setups on the M30 and H1 charts for Boom, Crash, Jump, Step and Volatility indices, with the H4 and D1 trend. This page updates by itself.</p>
             <p class="live" id="sigStatus" role="status">Loading...</p>
             <div class="sig-tools">
               <label class="sig-sound"><input type="checkbox" id="sigSound" /> Play a sound for new alerts</label>
             </div>
-            <h3 class="cls-h">Valid right now</h3>
-            <div id="sigActive" class="sig-grid"></div>
-            <h3 class="cls-h">Recent alerts</h3>
-            <div class="hb-tablewrap"><table class="cls-table" id="sigRecent"></table></div>
-            <p class="cert-note" id="sigNote"></p>
+            <nav class="sig-tabs" id="sigTabs" role="tablist" aria-label="Index type"></nav>
+            <section id="sigPane" aria-live="polite">
+              <h3 class="cls-h">Indices tracked</h3>
+              <p class="sig-chips" id="sigTracked"></p>
+              <p class="cert-note" id="sigMissing"></p>
+              <h3 class="cls-h">Valid right now</h3>
+              <div id="sigActive" class="sig-grid"></div>
+              <h3 class="cls-h">Recent alerts</h3>
+              <div class="hb-tablewrap"><table class="cls-table" id="sigRecent"></table></div>
+            </section>
             <p class="cert-note">These are trade setups from a fixed set of rules, not financial advice. Always manage your own risk.</p>
           </div>
 

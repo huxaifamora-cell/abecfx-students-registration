@@ -294,23 +294,48 @@
       setTimeout(function () { o.stop(); ctx.close(); }, 350);
     } catch (e) { /* no sound available */ }
   }
+  var sigGroup = "boom", sigLast = null;
+  function chip(text, cls) { var c = document.createElement("span"); c.className = "sig-chip" + (cls ? " " + cls : ""); c.textContent = text; return c; }
   function renderSignals(b) {
+    sigLast = b;
     var st = document.getElementById("sigStatus");
     if (!b.enabled) st.textContent = "Signals are not switched on yet. Please check back later.";
     else if (!b.connected) st.textContent = "Connecting to the market feed...";
-    else st.textContent = "Live. Watching " + b.watching.length + " markets. Updated " + new Date(b.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + ".";
-    document.getElementById("sigNote").textContent = b.unavailable && b.unavailable.length
-      ? "Not available from the market feed (so not monitored here): " + b.unavailable.join(", ") + "."
+    else st.textContent = "Live. Watching " + b.watching.length + " indices. Updated " + new Date(b.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + ".";
+
+    // One tab for each index type, with how many setups are valid in it right now.
+    var tabs = document.getElementById("sigTabs");
+    tabs.replaceChildren();
+    b.groups.forEach(function (g) {
+      var n = b.active.filter(function (a) { return a.group === g.key; }).length;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-selected", g.key === sigGroup ? "true" : "false");
+      btn.textContent = g.title + (n ? " (" + n + ")" : "");
+      btn.addEventListener("click", function () { sigGroup = g.key; renderSignals(sigLast); });
+      tabs.appendChild(btn);
+    });
+
+    var g = b.groups.filter(function (x) { return x.key === sigGroup; })[0] || b.groups[0];
+    var tracked = document.getElementById("sigTracked");
+    tracked.replaceChildren();
+    if (!g.watching.length) tracked.appendChild(chip("None of the " + g.title + " indices is available from the market feed.", "sig-chip-off"));
+    g.watching.forEach(function (name) { tracked.appendChild(chip(name)); });
+    document.getElementById("sigMissing").textContent = g.unavailable.length
+      ? "Not available from the market feed (so not tracked): " + g.unavailable.join(", ") + "."
       : "";
+
     var grid = document.getElementById("sigActive");
     grid.replaceChildren();
-    if (!b.active.length) {
+    var active = b.active.filter(function (a) { return a.group === g.key; });
+    if (!active.length) {
       var none = document.createElement("p");
       none.className = "live";
-      none.textContent = "No setup is valid right now.";
+      none.textContent = "No " + g.title + " setup is valid right now.";
       grid.appendChild(none);
     }
-    b.active.forEach(function (a) {
+    active.forEach(function (a) {
       var c = document.createElement("div");
       c.className = "sig-card sig-" + a.type.toLowerCase();
       var h = document.createElement("strong");
@@ -324,16 +349,18 @@
     });
     var t = document.getElementById("sigRecent");
     t.replaceChildren();
-    if (!b.recent.length) { var cap = document.createElement("caption"); cap.textContent = "No alerts yet."; t.appendChild(cap); }
+    var recent = b.recent.filter(function (e) { return e.group === g.key; });
+    if (!recent.length) { var cap = document.createElement("caption"); cap.textContent = "No " + g.title + " alerts yet."; t.appendChild(cap); }
     else {
       var head = t.createTHead().insertRow();
-      ["Time", "Market", "Setup", "TF", "H4", "D1"].forEach(function (x) { var th = document.createElement("th"); th.textContent = x; head.appendChild(th); });
+      ["Time", "Index", "Setup", "TF", "H4", "D1"].forEach(function (x) { var th = document.createElement("th"); th.textContent = x; head.appendChild(th); });
       var body = t.createTBody();
-      b.recent.forEach(function (e) {
+      recent.forEach(function (e) {
         var row = body.insertRow();
         [new Date(e.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), e.market, e.type + (e.first ? "" : " (reminder)"), e.tf, e.h4, e.d1].forEach(function (v) { row.insertCell().textContent = v; });
       });
     }
+    // The sound plays for a new alert in any index type, not only the tab that is open.
     var newest = b.recent.length ? b.recent[0].id : 0;
     if (sigPrimed && newest > sigSeen && document.getElementById("sigSound").checked) beep();
     sigSeen = Math.max(sigSeen, newest);
