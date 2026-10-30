@@ -50,8 +50,18 @@ function nextYm(ym) {
   return `${y}-${String(m).padStart(2, "0")}`;
 }
 
-// The one status a person is counted under in the bars: student standing first, then alumni, then staff.
-// (A Certified student who is also a staff member is counted once, as Certified, so the bars add up to the total.)
+// Every status a person holds, one for each ID card: Uncertified or Certified (student card), Staff Member, Alumni Member.
+// A Certified student who is also staff counts under both Certified and Staff Member, so the bars can add up to more
+// than the total. A person with no card at all is counted as Uncertified.
+function statusesOf(r) {
+  const k = idrules.idKinds(r);
+  const out = [];
+  if (k.student) out.push(k.student);
+  if (k.staff) out.push("Staff Member");
+  if (k.alumni) out.push("Alumni Member");
+  return out.length ? out : ["Uncertified"];
+}
+// The one main status of a person (student standing first, then alumni, then staff), shown on their list row.
 function statusOf(r) {
   const v = idrules.primaryStatus(r);
   return STATUS_ORDER.includes(v) ? v : "Uncertified";
@@ -59,11 +69,12 @@ function statusOf(r) {
 // The tiles count everyone who holds the card, however many cards they hold.
 const isGraduate = (r) => { const k = idrules.idKinds(r); return k.student === "Certified" || k.alumni; };
 const isStaff = (r) => idrules.idKinds(r).staff;
+const isAlumni = (r) => idrules.idKinds(r).alumni;
 
 function buildStats(rows, quizRows, todayISO) {
   const total = rows.length;
   const statusCounts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0]));
-  for (const r of rows) statusCounts[statusOf(r)] += 1;
+  for (const r of rows) for (const s of statusesOf(r)) statusCounts[s] += 1;
   const sum = (list) => list.reduce((n, s) => n + statusCounts[s], 0);
 
   // ---- joining dates ----
@@ -127,6 +138,7 @@ function buildStats(rows, quizRows, todayISO) {
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
     graduates: rows.filter(isGraduate).length, // Certified students + Alumni members
     uncertified: rows.filter((r) => idrules.idKinds(r).student === "Uncertified").length,
+    alumni: rows.filter(isAlumni).length, // everyone ticked as an Alumni Member
     staff: rows.filter(isStaff).length, // everyone ticked as a Staff Member, including students who are also staff
     byYear,
     months,
@@ -199,9 +211,10 @@ function drill(rows, quizRows, kind, value) {
     case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = isGraduate; break;
     case "uncertified": title = "Uncertified students"; pick = (r) => idrules.idKinds(r).student === "Uncertified"; break;
     case "staff": title = "Staff members"; pick = isStaff; break;
+    case "alumni": title = "Alumni members"; pick = isAlumni; break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
-      title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;
+      title = `Status: ${val}`; pick = (r) => statusesOf(r).includes(val); break;
     case "gender": case "country": case "state": case "programme": case "year": {
       if (!val) return null;
       const name = { gender: "Gender", country: "Country", state: "State", programme: "Programme", year: "Year joined" }[kind];
