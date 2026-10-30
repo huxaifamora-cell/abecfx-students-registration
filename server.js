@@ -13,6 +13,7 @@ const crypto = require("crypto");
 const quizToken = require("./quiztoken");
 const quizcodes = require("./quizcodes");
 const attendanceLib = require("./attendance");
+const signalsLib = require("./signals");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -1439,6 +1440,40 @@ app.post("/api/admin/quiz-codes/revoke", adminLimiter, quizCodesAuth, quizCodeRo
   res.json(await quizCodes.revoke((req.body || {}).code, req.admin));
 }));
 
+
+// ---- Alumni signals: the Boom / Crash setup monitor (rules and Deriv connection in signals.js) ----
+// Off unless SIGNALS=on. Only students who hold the Alumni ID card can read it.
+const SIGNALS_ON = /^(1|on|true|yes)$/i.test(process.env.SIGNALS || "");
+const signals = signalsLib.create({
+  enabled: SIGNALS_ON,
+  url: process.env.DERIV_WS_URL || undefined,
+  appId: process.env.DERIV_APP_ID || undefined,
+  reminderMinutes: process.env.SIGNAL_REMINDER_MINUTES,
+  telegramToken: process.env.TELEGRAM_SIGNAL_TOKEN,
+  telegramChat: process.env.TELEGRAM_SIGNAL_CHAT_ID,
+});
+if (SIGNALS_ON) signals.start();
+
+const signalsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a moment." },
+});
+app.get("/api/portal/signals", signalsLimiter, studentAuth, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
+    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+    if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: "Signals are for Alumni members." });
+    res.json(signals.snapshot());
+  } catch (err) {
+    console.error("Signals failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
 
 // ---- Live-class attendance (rules in attendance.js) ----
 const attendance = attendanceLib.create(store, { now: lagosTimestamp });
