@@ -193,7 +193,7 @@ function cardFromRow(r, kind) {
     fullName: r[4] || "",
     gender: r[7] || "",
     country: r[2] || "",
-    state: r[12] || "",
+    state: /^abuja federal capital territory$/i.test((r[12] || "").trim()) ? "FCT Abuja" : r[12] || "",
     countryCode: countryCodes[r[2]] || "",
     programme: programmeName(r[3]),
     admitted: Number.isNaN(yy) ? "" : 2000 + yy,

@@ -2,6 +2,8 @@
 // Students who registered before the rename have "Forex Mentorship" stored; they are shown as "Forex Course".
 const programmeName = (v) => (/^forex mentorship$/i.test(String(v || "").trim()) ? "Forex Course" : String(v || ""));
 // Student row columns: 0 reg, 1 registered at, 2 country, 3 programme, 4 name, 7 gender, 9 status, 12 state.
+// Rows saved before the rename still say "Abuja Federal Capital Territory"; everything shows and counts them as "FCT Abuja".
+const stateName = (v) => (/^abuja federal capital territory$/i.test(String(v).trim()) ? "FCT Abuja" : String(v));
 // Quiz row columns: 0 submitted at, 1 reg, 2 name, 3 score, 4 total, 5 percent, 6 grade, 7 attempt.
 const idrules = require("./idrules");
 const grading = require("./grading");
@@ -17,7 +19,7 @@ const KEYS = {
   gender: (r) => r[7],
   country: (r) => r[2],
   programme: (r) => programmeName(r[3]),
-  state: (r) => (r[12] ? `${r[12]}${r[2] ? ", " + r[2] : ""}` : ""),
+  state: (r) => (r[12] ? `${stateName(r[12])}${r[2] ? ", " + r[2] : ""}` : ""),
   year: (r) => {
     // year joined = the registration number's year, which is the admission year
     const yy = parseInt(String(r[0] || "").split("/")[1], 10);
@@ -170,7 +172,7 @@ function studentOut(r) {
     fullName: r[4] || "",
     gender: r[7] || "",
     country: r[2] || "",
-    state: r[12] || "",
+    state: stateName(r[12] || ""),
     programme: programmeName(r[3]),
     status: statusOf(r),
     joined: iso ? idrules.formatISO(iso) : "",
