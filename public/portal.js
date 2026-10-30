@@ -299,7 +299,7 @@
   function renderSignals(b) {
     sigLast = b;
     var st = document.getElementById("sigStatus");
-    if (!b.enabled) st.textContent = "Signals are not switched on yet. Please check back later.";
+    if (!b.enabled) st.textContent = "Signals are switched off on the server. Ask the admin to turn them on.";
     else if (!b.connected) st.textContent = "Cannot reach the market feed right now" + (b.error ? " (" + b.error + ")" : "") + ". Trying again...";
     else st.textContent = "Live. Watching " + b.watching.length + " indices. Updated " + new Date(b.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + ".";
 
@@ -320,7 +320,8 @@
     var g = b.groups.filter(function (x) { return x.key === sigGroup; })[0] || b.groups[0];
     var tracked = document.getElementById("sigTracked");
     tracked.replaceChildren();
-    if (!b.connected) tracked.appendChild(chip("Waiting for the market feed...", "sig-chip-off"));
+    if (!b.enabled) tracked.appendChild(chip("Signals are switched off on the server.", "sig-chip-off"));
+    else if (!b.connected) tracked.appendChild(chip("Waiting for the market feed...", "sig-chip-off"));
     else if (!g.watching.length) tracked.appendChild(chip("None of the " + g.title + " indices is available from the market feed.", "sig-chip-off"));
     g.watching.forEach(function (name) { tracked.appendChild(chip(name)); });
     document.getElementById("sigMissing").textContent = g.unavailable.length
