@@ -44,7 +44,7 @@ for (const n of ["5", "10", "15", "25", "30", "50", "75", "90", "100", "150", "2
 const norm = (v) => String(v || "").toLowerCase().replace(/\bindex\b/g, "").replace(/\s+/g, " ").trim();
 
 const TF = { M30: 1800, H1: 3600, H4: 14400, D1: 86400 };
-const LIVE_TFS = ["M30", "H1"]; // watched continuously
+const LIVE_TFS = ["M30", "H1"]; // checked continuously. Only M30 is streamed: H1 is built from it (see closesOf)
 const TREND_TFS = ["H4", "D1"]; // refreshed every few minutes
 const BB_PERIOD = 20;
 const SMA_PERIOD = 10;
@@ -144,6 +144,7 @@ function create(opts = {}) {
   const touched = new Map(); // "CODE:seconds" -> ms of the last update
   let watched = []; // markets Deriv has
   let missing = []; // markets Deriv does not have over WebSocket
+  const polled = new Set(); // markets that could not be streamed (subscription limit): asked for again every 15 seconds
   const state = new Map(); // "CODE:TF" -> { first, last }
   const events = []; // recent alerts, newest first
   let eventSeq = 0;
@@ -165,20 +166,27 @@ function create(opts = {}) {
     );
   }
 
-  // Ask for everything, a little apart so Deriv's request limit is never hit.
+  // Ask for everything, a little apart so Deriv's request limit is never hit. Deriv also limits how many live
+  // streams one connection may hold, so each market streams only its M30 candles (H1 is built from them) and
+  // H4 and D1 are asked for again every 5 minutes. A market Deriv will not stream is asked for every 15 seconds.
   function subscribeAll() {
     let delay = 0;
     for (const m of watched) {
-      for (const tf of LIVE_TFS) { later(() => askCandles(m, tf, true), delay); delay += 150; }
+      later(() => askCandles(m, "M30", true), delay); delay += 150;
       for (const tf of TREND_TFS) { later(() => askCandles(m, tf, false), delay); delay += 150; }
     }
-    // H4 and D1 move slowly: refresh them every 5 minutes instead of streaming them.
     later(function refresh() {
       if (!connected) return;
       let d = 0;
       for (const m of watched) for (const tf of TREND_TFS) { later(() => askCandles(m, tf, false), d); d += 150; }
       later(refresh, 5 * 60 * 1000);
     }, 5 * 60 * 1000);
+    later(function poll() {
+      if (!connected) return;
+      let d = 0;
+      for (const m of watched) if (polled.has(m.code)) { later(() => askCandles(m, "M30", false), d); d += 150; }
+      later(poll, 15000);
+    }, 15000);
   }
 
   function store(code, secs, list) {
@@ -218,6 +226,10 @@ function create(opts = {}) {
     if (d.error) {
       if (meta) {
         log("Deriv refused " + meta.code + " " + meta.tf + ": " + d.error.message);
+        if (meta.tf === "M30" && /subscription/i.test(d.error.message || "")) {
+          polled.add(meta.code); // too many streams: ask for this market again every 15 seconds instead
+          later(() => askCandles({ code: meta.code }, "M30", false), 200);
+        }
         if (d.error.code === "InvalidSymbol") {
           const watchedBefore = watched;
           watched = watched.filter((m) => m.code !== meta.code);
@@ -244,8 +256,19 @@ function create(opts = {}) {
     }
   }
 
-  const closesOf = (code, secs) => (candles.get(key(code, secs)) || []).map((x) => x.c);
-  const freshEnough = (code, secs) => now() - (touched.get(key(code, secs)) || 0) < FRESH_SECONDS * 1000;
+  // Closing prices, oldest first. H1 is built from the M30 candles: the close of an hour is the close of its last
+  // M30 candle (the forming hour closes at the latest price), so no separate H1 stream is needed.
+  function closesOf(code, secs) {
+    if (secs !== TF.H1) return (candles.get(key(code, secs)) || []).map((x) => x.c);
+    const out = [];
+    let hour = null;
+    for (const x of candles.get(key(code, TF.M30)) || []) {
+      const h = Math.floor(x.t / 3600);
+      if (h === hour) out[out.length - 1] = x.c; else { out.push(x.c); hour = h; }
+    }
+    return out;
+  }
+  const freshEnough = (code, secs) => now() - (touched.get(key(code, secs === TF.H1 ? TF.M30 : secs)) || 0) < FRESH_SECONDS * 1000;
   const trendFor = (code, tf) => trendOf(closesOf(code, TF[tf]));
 
   function sendTelegram(text) {
@@ -307,6 +330,7 @@ function create(opts = {}) {
       timers = [];
       pending.clear();
       state.clear();
+      polled.clear();
       if (why) lastError = why;
       log("Disconnected from Deriv" + (why ? ": " + why : ""));
       if (!gotData) urlIndex += 1; // never heard from this address: try the other one next time
