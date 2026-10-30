@@ -65,12 +65,22 @@ test("the main status is student first, then alumni, then staff", () => {
   assert.equal(idrules.primaryStatus(row("Not a student", "Yes")), "Staff Member");
 });
 
-test("the dashboard counts a Certified staff member as Certified in the bars and as staff in the Staff tile", () => {
-  const rows = [student(1, { 9: "Certified", 16: "Yes" }), student(2, { 9: "Not a student", 16: "Yes" }), student(3)];
+test("the dashboard counts a person under every status they hold, and has an Alumni tile", () => {
+  const rows = [
+    student(1, { 9: "Certified", 16: "Yes" }), // Certified student who is also staff
+    student(2, { 9: "Not a student", 16: "Yes" }), // staff only
+    student(3), // Uncertified
+    student(4, { 9: "Certified", 17: "Yes" }), // Certified student who is also alumni
+  ];
   const s = stats.buildStats(rows, [], "2026-10-26");
+  const bar = (label) => s.status.find((x) => x.label === label).count;
+  assert.equal(bar("Certified"), 2);
+  assert.equal(bar("Staff Member"), 2, "a Certified student who is also staff shows in the Staff bar too");
+  assert.equal(bar("Alumni Member"), 1);
+  assert.equal(bar("Uncertified"), 1);
   assert.equal(s.staff, 2);
-  assert.equal(s.graduates, 1);
-  assert.equal(s.uncertified, 1);
-  assert.equal(s.status.reduce((n, x) => n + x.count, 0), 3, "the bars still add up to the total");
+  assert.equal(s.alumni, 1);
   assert.equal(stats.drill(rows, [], "staff").count, 2, "the Staff tile and its list agree");
+  assert.equal(stats.drill(rows, [], "alumni").count, 1);
+  assert.equal(stats.drill(rows, [], "status", "Staff Member").count, 2, "the Staff bar and its list agree");
 });
