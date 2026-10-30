@@ -120,8 +120,15 @@ function create(opts = {}) {
   const WS = opts.WebSocketImpl || (() => { try { return require("ws"); } catch (e) { return null; } })();
   const now = opts.now || (() => Date.now());
   const log = opts.log || ((...a) => console.log("[signals]", ...a));
-  const base = opts.url || "wss://ws.derivws.com/websockets/v3";
-  const url = base + (base.includes("?") ? "&" : "?") + "app_id=" + encodeURIComponent(opts.appId || "1089");
+  // Deriv's current public endpoint needs no sign-in. The older one needs an app id. If one cannot be reached the
+  // other is tried (the connection alternates between them until one answers).
+  const withApp = (u, id) => u + (u.includes("?") ? "&" : "?") + "app_id=" + encodeURIComponent(id);
+  const urls = opts.url
+    ? [opts.appId ? withApp(opts.url, opts.appId) : opts.url]
+    : ["wss://api.derivws.com/trading/v1/options/ws/public", withApp("wss://ws.derivws.com/websockets/v3", opts.appId || "1089")];
+  let urlIndex = 0;
+  let gotData = false;
+  let lastError = "";
   const intervalMs = Math.max(1, Number(opts.reminderMinutes) || 2) * 60 * 1000;
   const fetchImpl = opts.fetchImpl || (typeof fetch === "function" ? fetch : null);
 
@@ -183,6 +190,8 @@ function create(opts = {}) {
   function onMessage(raw) {
     let d;
     try { d = JSON.parse(String(raw)); } catch (e) { return; }
+    gotData = true;
+    lastError = "";
     const meta = d.req_id ? pending.get(d.req_id) : null;
 
     if (d.msg_type === "active_symbols") {
@@ -191,6 +200,7 @@ function create(opts = {}) {
         watched = MARKETS.filter((m) => m.code);
         missing = MARKETS.filter((m) => !m.code);
       } else {
+        log("Deriv listed " + (d.active_symbols || []).length + " markets");
         const list = (d.active_symbols || []).map((x) => ({ code: x.symbol || x.underlying_symbol, name: norm(x.display_name || x.underlying_symbol_name) }));
         const byCode = new Map(list.map((x) => [x.code, x]));
         const byName = new Map(list.filter((x) => x.name).map((x) => [x.name, x]));
@@ -223,10 +233,10 @@ function create(opts = {}) {
     }
     if (d.msg_type === "ohlc" && d.ohlc) {
       const o = d.ohlc;
-      const k = key(o.symbol, Number(o.granularity));
+      const k = key(o.symbol || o.underlying_symbol, Number(o.granularity));
       const list = candles.get(k);
       if (!list) return;
-      const t = Number(o.open_time);
+      const t = Number(o.open_time || o.epoch);
       const last = list[list.length - 1];
       if (last && last.t === t) last.c = Number(o.close);
       else if (!last || t > last.t) { list.push({ t, c: Number(o.close) }); if (list.length > KEEP_CANDLES) list.shift(); }
@@ -278,7 +288,9 @@ function create(opts = {}) {
 
   function connect() {
     if (stopped || !WS) return;
-    ws = new WS(url);
+    gotData = false;
+    ws = new WS(urls[urlIndex % urls.length]);
+    log("Connecting to " + urls[urlIndex % urls.length].replace(/\?.*$/, ""));
     ws.on("open", () => {
       connected = true;
       retry = 0;
@@ -295,12 +307,15 @@ function create(opts = {}) {
       timers = [];
       pending.clear();
       state.clear();
+      if (why) lastError = why;
       log("Disconnected from Deriv" + (why ? ": " + why : ""));
+      if (!gotData) urlIndex += 1; // never heard from this address: try the other one next time
       if (stopped) return;
       retry = Math.min(retry + 1, 6);
       later(connect, Math.min(60000, 2000 * 2 ** retry));
     };
-    ws.on("close", () => down(""));
+    ws.on("close", (code) => down(""));
+    ws.on("unexpected-response", (req, res) => down("Deriv answered HTTP " + res.statusCode));
     ws.on("error", (e) => down(e && e.message));
   }
 
@@ -337,6 +352,7 @@ function create(opts = {}) {
     return {
       enabled: Boolean(opts.enabled),
       connected,
+      error: connected ? "" : lastError,
       watching: watched.map((m) => m.name),
       unavailable: missing.map((m) => m.name),
       // The same lists split by index type, in display order.
