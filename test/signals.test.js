@@ -35,7 +35,7 @@ test("the alert text has no lot size or margin, and shows a reminder only after 
 });
 
 // A fake Deriv: lists two markets, answers every candle request with the series given for that market.
-function fakeDeriv(series) {
+function fakeDeriv(series, listed) {
   const sockets = [];
   class FakeWS extends EventEmitter {
     constructor() { super(); this.sent = []; sockets.push(this); setImmediate(() => this.emit("open")); }
@@ -43,7 +43,7 @@ function fakeDeriv(series) {
       const r = JSON.parse(text);
       this.sent.push(r);
       if (r.active_symbols) {
-        return setImmediate(() => this.emit("message", JSON.stringify({ msg_type: "active_symbols", req_id: r.req_id, active_symbols: [{ symbol: "BOOM1000" }, { symbol: "CRASH1000" }] })));
+        return setImmediate(() => this.emit("message", JSON.stringify({ msg_type: "active_symbols", req_id: r.req_id, active_symbols: listed || [{ symbol: "BOOM1000" }, { symbol: "CRASH1000" }] })));
       }
       if (r.ticks_history) {
         const closes = series[r.ticks_history];
@@ -102,6 +102,52 @@ test("a Deriv error saying a market does not exist moves it to the unavailable l
   assert.ok(snap.unavailable.includes("Boom 1000"));
   assert.ok(!snap.watching.includes("Boom 1000"));
   mon.stop();
+});
+
+test("the five index types hold the full lists", () => {
+  const by = (g) => signals.MARKETS.filter((m) => m.group === g).map((m) => m.name);
+  assert.deepEqual(signals.GROUPS.map((g) => g.key), ["boom", "crash", "jump", "step", "volatility"]);
+  assert.deepEqual(by("boom"), ["Boom 1000", "Boom 900", "Boom 600", "Boom 500", "Boom 300", "Boom 200", "Boom 150", "Boom 100", "Boom 99", "Boom 50"]);
+  assert.deepEqual(by("crash"), by("boom").map((n) => n.replace("Boom", "Crash")));
+  assert.equal(by("volatility").length, 21);
+  assert.ok(by("volatility").includes("Volatility 5 (1s) Index") && by("volatility").includes("Volatility 250 Index") && by("volatility").includes("Volatility 150 (1s) Index"));
+  assert.equal(by("jump").length, 5);
+  assert.equal(by("step").length, 5);
+});
+
+test("Jump, Step and Volatility can give BUY or SELL; Boom only SELL; Crash only BUY", () => {
+  for (const g of ["jump", "step", "volatility"]) {
+    const m = signals.MARKETS.find((x) => x.group === g);
+    assert.equal(signals.setupOf(falling, m.mode), "SELL", g);
+    assert.equal(signals.setupOf(rising, m.mode), "BUY", g);
+  }
+  assert.equal(signals.setupOf(rising, signals.MARKETS.find((x) => x.group === "boom").mode), "");
+  assert.equal(signals.setupOf(falling, signals.MARKETS.find((x) => x.group === "crash").mode), "");
+});
+
+test("markets are matched to Deriv by code or by name, and the page data is split by index type", async () => {
+  const { FakeWS } = fakeDeriv(
+    { BOOM1000: flat, SOMETHING: flat, "1HZ10V": flat, R_75: flat },
+    [
+      { symbol: "BOOM1000", display_name: "Boom 1000 Index" },
+      { symbol: "SOMETHING", display_name: "Boom 600 Index" }, // a code we did not know: found by its name
+      { symbol: "1HZ10V", display_name: "Volatility 10 (1s) Index" },
+      { symbol: "R_75", display_name: "Volatility 75 Index" },
+      { symbol: "OTHER", display_name: "Gold" }, // not one of ours: ignored
+    ]
+  );
+  const mon = signals.create({ enabled: true, WebSocketImpl: FakeWS, now: () => 1, log: () => {} });
+  mon.start();
+  await new Promise((r) => setTimeout(r, 400));
+  const snap = mon.snapshot();
+  mon.stop();
+  const g = (k) => snap.groups.find((x) => x.key === k);
+  assert.deepEqual(snap.groups.map((x) => x.key), ["boom", "crash", "jump", "step", "volatility"]);
+  assert.deepEqual(g("boom").watching, ["Boom 1000", "Boom 600"]);
+  assert.equal(g("boom").unavailable.length, 8);
+  assert.deepEqual(g("crash").watching, []);
+  assert.deepEqual(g("volatility").watching, ["Volatility 75 Index", "Volatility 10 (1s) Index"]);
+  assert.equal(g("jump").watching.length, 0);
 });
 
 test("the signals page is for Alumni members only, and says so when it is switched off", async () => {
