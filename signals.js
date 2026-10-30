@@ -3,7 +3,8 @@
 // checks the same rules, shows live setups on the alumni "Signals" page of the portal, and (optionally) posts each
 // alert to a Telegram channel.
 //
-// The rules (unchanged from the expert advisor), on the M30 and H1 charts:
+// The rules (unchanged from the expert advisor), on the M30 and H1 charts. Boom, Crash, Jump, Step and Volatility
+// indices are all checked; Boom gives SELL setups only and Crash BUY only (as the advisor did), the others either way:
 //   Indicators: Bollinger Bands middle line (20 candles, same as a 20-candle moving average), SMA 10, EMA 10.
 //   Boom  = SELL setup when the Bollinger middle line slopes down, and the EMA is below both the middle line and the SMA.
 //   Crash = BUY setup when the Bollinger middle line slopes up, and the EMA is above both the middle line and the SMA.
@@ -18,21 +19,29 @@
 // DERIV_APP_ID (default 1089, Deriv's testing id: register your own at developers.deriv.com),
 // DERIV_WS_URL, SIGNAL_REMINDER_MINUTES (default 2).
 
-// Each market the expert advisor watched, and the code Deriv uses for it.
-const MARKETS = [
-  { name: "Boom 1000", code: "BOOM1000", boom: true },
-  { name: "Boom 900", code: "BOOM900", boom: true },
-  { name: "Boom 600", code: "BOOM600", boom: true },
-  { name: "Boom 500", code: "BOOM500", boom: true },
-  { name: "Boom 300", code: "BOOM300N", boom: true },
-  { name: "Boom 150", code: "BOOM150N", boom: true },
-  { name: "Crash 1000", code: "CRASH1000", boom: false },
-  { name: "Crash 900", code: "CRASH900", boom: false },
-  { name: "Crash 600", code: "CRASH600", boom: false },
-  { name: "Crash 500", code: "CRASH500", boom: false },
-  { name: "Crash 300", code: "CRASH300N", boom: false },
-  { name: "Crash 150", code: "CRASH150N", boom: false },
+// The index types shown on the Signals page, in this order.
+const GROUPS = [
+  { key: "boom", title: "Boom" },
+  { key: "crash", title: "Crash" },
+  { key: "jump", title: "Jump" },
+  { key: "step", title: "Step" },
+  { key: "volatility", title: "Volatility" },
 ];
+
+// Every market that is looked for, with the code Deriv uses for it. `mode` is which setups it can give:
+//   Boom: SELL only. Crash: BUY only. Jump, Step and Volatility: both, BUY or SELL, by the same rules.
+// A market is matched to Deriv by this code, or by its name (so a wrong code here does not hide a market).
+const MARKETS = [];
+const add = (group, mode, name, code) => MARKETS.push({ group, mode, name, code });
+for (const [n, c] of [["1000", "BOOM1000"], ["900", "BOOM900"], ["600", "BOOM600"], ["500", "BOOM500"], ["300", "BOOM300N"], ["200", "BOOM200"], ["150", "BOOM150N"], ["100", "BOOM100"], ["99", "BOOM99"], ["50", "BOOM50"]]) add("boom", "SELL", "Boom " + n, c);
+for (const [n, c] of [["1000", "CRASH1000"], ["900", "CRASH900"], ["600", "CRASH600"], ["500", "CRASH500"], ["300", "CRASH300N"], ["200", "CRASH200"], ["150", "CRASH150N"], ["100", "CRASH100"], ["99", "CRASH99"], ["50", "CRASH50"]]) add("crash", "BUY", "Crash " + n, c);
+for (const n of ["10", "25", "50", "75", "100"]) add("jump", "BOTH", "Jump " + n + " Index", "JD" + n);
+add("step", "BOTH", "Step Index", "stpRNG");
+for (const [n, c] of [["200", "stpRNG2"], ["300", "stpRNG3"], ["400", "stpRNG4"], ["500", "stpRNG5"]]) add("step", "BOTH", "Step " + n + " Index", c);
+for (const n of ["10", "15", "25", "30", "50", "75", "90", "100", "150", "250"]) add("volatility", "BOTH", "Volatility " + n + " Index", ["10", "25", "50", "75", "100"].includes(n) ? "R_" + n : "");
+for (const n of ["5", "10", "15", "25", "30", "50", "75", "90", "100", "150", "250"]) add("volatility", "BOTH", "Volatility " + n + " (1s) Index", "1HZ" + n + "V");
+// "Boom 1000" or "Boom 1000 Index", with any spacing, is the same name.
+const norm = (v) => String(v || "").toLowerCase().replace(/\bindex\b/g, "").replace(/\s+/g, " ").trim();
 
 const TF = { M30: 1800, H1: 3600, H4: 14400, D1: 86400 };
 const LIVE_TFS = ["M30", "H1"]; // watched continuously
@@ -72,12 +81,15 @@ function readings(closes) {
   };
 }
 
-// Is there a setup right now? Returns "SELL" (Boom), "BUY" (Crash) or "".
-function setupOf(closes, isBoom) {
+// Is there a setup right now? mode is "SELL" (Boom), "BUY" (Crash) or "BOTH". Returns "SELL", "BUY" or "".
+// (true / false still mean Boom / Crash.)
+function setupOf(closes, mode) {
+  const m = mode === true ? "SELL" : mode === false ? "BUY" : mode || "BOTH";
   const r = readings(closes);
   if (!r) return "";
-  if (isBoom) return r.bbNow < r.bbPrev && r.ema < r.bbNow && r.ema < r.sma ? "SELL" : "";
-  return r.bbNow > r.bbPrev && r.ema > r.bbNow && r.ema > r.sma ? "BUY" : "";
+  if (m !== "BUY" && r.bbNow < r.bbPrev && r.ema < r.bbNow && r.ema < r.sma) return "SELL";
+  if (m !== "SELL" && r.bbNow > r.bbPrev && r.ema > r.bbNow && r.ema > r.sma) return "BUY";
+  return "";
 }
 
 // "Strong Uptrend", "Weak Downtrend", ... from the Bollinger middle line direction and the EMA's distance from it.
@@ -94,7 +106,7 @@ function trendOf(closes) {
 
 function alertText(m, tf, type, h4, d1, first, elapsed) {
   let t = "🚨 TRADE ALERT 🚨\n\n";
-  t += m.name.replace(/\s+/g, "").toUpperCase() + " " + type + " SETUP CONFIRMED | TF: " + tf + "\n\n";
+  t += (/^(boom|crash)/i.test(m.name) ? m.name.replace(/\s+/g, "") : m.name.replace(/ Index$/i, "")).toUpperCase() + " " + type + " SETUP CONFIRMED | TF: " + tf + "\n\n";
   t += "📊 TOP-DOWN ANALYSIS:\n• H4 trend → " + h4 + "\n• D1 trend → " + d1;
   if (!first && elapsed > 0) t += "\n\n⏰ REMINDER: valid for the past " + elapsed + (elapsed === 1 ? " minute" : " minutes");
   return t;
@@ -175,15 +187,21 @@ function create(opts = {}) {
 
     if (d.msg_type === "active_symbols") {
       if (d.error) {
-        log("Could not list Deriv markets, trying all of them:", d.error.message);
-        watched = MARKETS.slice();
-        missing = [];
+        log("Could not list Deriv markets, trying all of them that have a code:", d.error.message);
+        watched = MARKETS.filter((m) => m.code);
+        missing = MARKETS.filter((m) => !m.code);
       } else {
-        const have = new Set((d.active_symbols || []).map((s) => s.symbol || s.underlying_symbol));
-        watched = MARKETS.filter((m) => have.has(m.code));
-        missing = MARKETS.filter((m) => !have.has(m.code));
+        const list = (d.active_symbols || []).map((x) => ({ code: x.symbol || x.underlying_symbol, name: norm(x.display_name || x.underlying_symbol_name) }));
+        const byCode = new Map(list.map((x) => [x.code, x]));
+        const byName = new Map(list.filter((x) => x.name).map((x) => [x.name, x]));
+        watched = [];
+        missing = [];
+        for (const m of MARKETS) {
+          const hit = (m.code && byCode.get(m.code)) || byName.get(norm(m.name));
+          if (hit) watched.push({ ...m, code: hit.code }); else missing.push(m);
+        }
       }
-      log("Watching " + watched.length + " markets" + (missing.length ? "; not on Deriv WebSocket: " + missing.map((m) => m.name).join(", ") : ""));
+      log("Watching " + watched.length + " markets: " + watched.map((m) => m.name).join(", ") + (missing.length ? ". Not on Deriv WebSocket: " + missing.map((m) => m.name).join(", ") : ""));
       subscribeAll();
       return;
     }
@@ -191,8 +209,9 @@ function create(opts = {}) {
       if (meta) {
         log("Deriv refused " + meta.code + " " + meta.tf + ": " + d.error.message);
         if (d.error.code === "InvalidSymbol") {
+          const watchedBefore = watched;
           watched = watched.filter((m) => m.code !== meta.code);
-          const gone = MARKETS.find((m) => m.code === meta.code);
+          const gone = MARKETS.find((m) => m.name === (watchedBefore.find((w) => w.code === meta.code) || {}).name);
           if (gone && !missing.includes(gone)) missing.push(gone);
         }
       }
@@ -236,7 +255,7 @@ function create(opts = {}) {
       for (const tf of LIVE_TFS) {
         const st = state.get(m.code + ":" + tf) || { first: 0, last: 0, type: "" };
         state.set(m.code + ":" + tf, st);
-        const type = freshEnough(m.code, TF[tf]) ? setupOf(closesOf(m.code, TF[tf]), m.boom) : "";
+        const type = freshEnough(m.code, TF[tf]) ? setupOf(closesOf(m.code, TF[tf]), m.mode) : "";
         if (!type) { st.first = 0; st.type = ""; continue; }
         if (!st.first) { st.first = t; st.last = 0; }
         st.type = type;
@@ -249,7 +268,7 @@ function create(opts = {}) {
         const h4 = trendFor(m.code, "H4");
         const d1 = trendFor(m.code, "D1");
         st.last = t;
-        events.unshift({ id: ++eventSeq, at: new Date(t).toISOString(), market: m.name, type, tf, h4, d1, first, elapsed });
+        events.unshift({ id: ++eventSeq, at: new Date(t).toISOString(), group: m.group, market: m.name, type, tf, h4, d1, first, elapsed });
         if (events.length > 100) events.pop();
         sendTelegram(alertText(m, tf, type, h4, d1, first, elapsed));
         log("Alert: " + m.name + " " + type + " " + tf + (first ? " (first)" : " (reminder " + elapsed + " min)"));
@@ -311,7 +330,7 @@ function create(opts = {}) {
       for (const tf of LIVE_TFS) {
         const st = state.get(m.code + ":" + tf);
         if (st && st.first && st.type) {
-          active.push({ market: m.name, type: st.type, tf, minutes: Math.floor((t - st.first) / 60000), h4: trendFor(m.code, "H4"), d1: trendFor(m.code, "D1") });
+          active.push({ group: m.group, market: m.name, type: st.type, tf, minutes: Math.floor((t - st.first) / 60000), h4: trendFor(m.code, "H4"), d1: trendFor(m.code, "D1") });
         }
       }
     }
@@ -320,6 +339,13 @@ function create(opts = {}) {
       connected,
       watching: watched.map((m) => m.name),
       unavailable: missing.map((m) => m.name),
+      // The same lists split by index type, in display order.
+      groups: GROUPS.map((g) => ({
+        key: g.key,
+        title: g.title,
+        watching: watched.filter((m) => m.group === g.key).map((m) => m.name),
+        unavailable: missing.filter((m) => m.group === g.key).map((m) => m.name),
+      })),
       active,
       recent: events.slice(0, 30),
       reminderMinutes: intervalMs / 60000,
@@ -330,4 +356,4 @@ function create(opts = {}) {
   return { start, stop, snapshot, check, _onMessage: onMessage };
 }
 
-module.exports = { create, setupOf, trendOf, readings, alertText, MARKETS, TF };
+module.exports = { create, setupOf, trendOf, readings, alertText, MARKETS, GROUPS, TF };
