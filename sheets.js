@@ -5,6 +5,7 @@ const videos = require("./videos");
 const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 const attendance = require("./attendance");
+const bot = require("./bot");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -81,6 +82,18 @@ const CLASS_LAST_COL = "H";
 const ATT_TAB = process.env.GOOGLE_ATTENDANCE_TAB || "Attendance";
 const ATT_HEADERS = attendance.ATT_HEADERS;
 const ATT_LAST_COL = "D";
+
+// Bot trading (see bot.js): each member's connection key hash and risk settings, every order, and every closed trade.
+// Managed from the portal's "Bot trading" page, never through the Database view.
+const BOTACC_TAB = process.env.GOOGLE_BOTACCOUNT_TAB || "Bot Accounts";
+const BOTACC_HEADERS = bot.ACCOUNT_HEADERS;
+const BOTACC_LAST_COL = "M";
+const BOTORD_TAB = process.env.GOOGLE_BOTORDER_TAB || "Bot Orders";
+const BOTORD_HEADERS = bot.ORDER_HEADERS;
+const BOTORD_LAST_COL = "L";
+const BOTTRD_TAB = process.env.GOOGLE_BOTTRADE_TAB || "Bot Trades";
+const BOTTRD_HEADERS = bot.TRADE_HEADERS;
+const BOTTRD_LAST_COL = "N";
 
 // Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
@@ -211,6 +224,13 @@ async function init() {
   await ensureHeaders(CLASS_TAB, CLASS_HEADERS, CLASS_LAST_COL);
   await ensureTab(ATT_TAB);
   await ensureHeaders(ATT_TAB, ATT_HEADERS, ATT_LAST_COL);
+
+  await ensureTab(BOTACC_TAB);
+  await ensureHeaders(BOTACC_TAB, BOTACC_HEADERS, BOTACC_LAST_COL);
+  await ensureTab(BOTORD_TAB);
+  await ensureHeaders(BOTORD_TAB, BOTORD_HEADERS, BOTORD_LAST_COL);
+  await ensureTab(BOTTRD_TAB);
+  await ensureHeaders(BOTTRD_TAB, BOTTRD_HEADERS, BOTTRD_LAST_COL);
 
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
@@ -616,6 +636,10 @@ const EDITOR_TABS = {
   dobchanges: { title: DOB_TAB, headers: DOB_HEADERS, lastCol: "D" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
+  // Internal only: bot trading settings, orders and trades. Managed through bot.js and the portal's "Bot trading" page.
+  botaccounts: { title: BOTACC_TAB, headers: BOTACC_HEADERS, lastCol: BOTACC_LAST_COL },
+  botorders: { title: BOTORD_TAB, headers: BOTORD_HEADERS, lastCol: BOTORD_LAST_COL },
+  bottrades: { title: BOTTRD_TAB, headers: BOTTRD_HEADERS, lastCol: BOTTRD_LAST_COL },
   // Internal only: live classes and who attended. Managed through attendance.js and the "Attendance" dashboard tab.
   classes: { title: CLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
   attendance: { title: ATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },

@@ -304,6 +304,7 @@ function create(opts = {}) {
         events.unshift({ id: ++eventSeq, at: new Date(t).toISOString(), group: m.group, market: m.name, type, tf, h4, d1, first, elapsed });
         if (events.length > 100) events.pop();
         sendTelegram(alertText(m, tf, type, h4, d1, first, elapsed));
+        if (opts.onAlert) Promise.resolve(opts.onAlert({ market: m.name, group: m.group, type, tf, first })).catch((e) => log("Bot hook failed:", e.message));
         log("Alert: " + m.name + " " + type + " " + tf + (first ? " (first)" : " (reminder " + elapsed + " min)"));
       }
     }

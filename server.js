@@ -14,6 +14,7 @@ const quizToken = require("./quiztoken");
 const quizcodes = require("./quizcodes");
 const attendanceLib = require("./attendance");
 const signalsLib = require("./signals");
+const botLib = require("./bot");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -1441,6 +1442,104 @@ app.post("/api/admin/quiz-codes/revoke", adminLimiter, quizCodesAuth, quizCodeRo
 }));
 
 
+// ---- Bot trading (rules in bot.js): alumni members' MT5 accounts trade the signals within their own risk limits ----
+// Off unless BOT_TRADING=on. A small connector inside the member's MT5 (downloaded from the portal) talks to /api/bot/report.
+const BOT_ON = /^(1|on|true|yes)$/i.test(process.env.BOT_TRADING || "");
+const botTrading = botLib.create(store, {
+  enabled: BOT_ON,
+  today: () => idrules.lagosToday(),
+  stamp: lagosTimestamp,
+  isAlumni: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return Boolean(row && idrules.idKinds(row).alumni);
+  },
+});
+
+async function alumniOnly(req, res, next) {
+  res.set("Cache-Control", "no-store");
+  try {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
+    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+    if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: "Bot trading is for Alumni members." });
+    next();
+  } catch (err) {
+    console.error("Alumni check failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+}
+const botPortalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a moment." },
+});
+function botRoute(handler) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof botLib.BotError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      console.error("Bot request failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+const botOffMessage = "Bot trading is switched off.";
+
+app.get("/api/portal/bot", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  res.json(await botTrading.view(req.studentReg));
+}));
+app.put("/api/portal/bot/settings", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  if (!BOT_ON) return res.status(403).json({ error: botOffMessage });
+  res.json(await botTrading.saveSettings(req.studentReg, req.body));
+}));
+app.post("/api/portal/bot/link", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  if (!BOT_ON) return res.status(403).json({ error: botOffMessage });
+  res.json(await botTrading.link(req.studentReg));
+}));
+app.post("/api/portal/bot/disconnect", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  res.json(await botTrading.disconnect(req.studentReg));
+}));
+// The MT5 connector, with this website's address filled in. Alumni members only.
+app.get("/api/portal/bot/connector", botPortalLimiter, studentAuth, alumniOnly, (req, res) => {
+  try {
+    const origin = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || req.protocol + "://" + req.get("host")).replace(/\/+$/, "");
+    const source = require("fs").readFileSync(path.join(__dirname, "private", "bot", "ABECFX_Bot_Connector.mq5"), "utf8").replace(/__SERVER_URL__/g, origin);
+    res.set({ "Content-Type": "text/plain; charset=utf-8", "Content-Disposition": 'attachment; filename="ABECFX_Bot_Connector.mq5"', "Cache-Control": "private, no-store" });
+    res.send(source);
+  } catch (err) {
+    console.error("Connector download failed:", err.message);
+    res.status(500).json({ error: "The connector file is not available right now." });
+  }
+});
+
+// The connector in the member's MT5. It signs in with the connection key, not with a student token.
+const botReportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 40,
+  keyGenerator: (req) => "k:" + String(req.get("x-bot-key") || "").slice(0, 12) + ":" + req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => res.status(429).type("text/plain").send("ERR|slow down"),
+});
+app.post("/api/bot/report", botReportLimiter, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    if (!BOT_ON) return res.status(503).type("text/plain").send("ERR|" + botOffMessage);
+    await botTrading.init();
+    const reg = botTrading.regOfKey(req.get("x-bot-key"));
+    if (!reg) return res.status(401).type("text/plain").send("ERR|This key is not valid. Link your account again in the portal.");
+    const lines = await botTrading.report(reg, req.body);
+    res.type("text/plain").send(["OK"].concat(lines).join("\n"));
+  } catch (err) {
+    if (err instanceof botLib.BotError) return res.status(err.status).type("text/plain").send("ERR|" + err.message);
+    console.error("Bot report failed:", err.message);
+    res.status(500).type("text/plain").send("ERR|server problem");
+  }
+});
+
 // ---- Alumni signals: the Boom / Crash setup monitor (rules and Deriv connection in signals.js) ----
 // Off unless SIGNALS=on. Only students who hold the Alumni ID card can read it.
 const SIGNALS_ON = /^(1|on|true|yes)$/i.test(process.env.SIGNALS || "");
@@ -1451,6 +1550,7 @@ const signals = signalsLib.create({
   reminderMinutes: process.env.SIGNAL_REMINDER_MINUTES,
   telegramToken: process.env.TELEGRAM_SIGNAL_TOKEN,
   telegramChat: process.env.TELEGRAM_SIGNAL_CHAT_ID,
+  onAlert: BOT_ON ? (alert) => botTrading.onAlert(alert) : undefined, // each first alert becomes orders for members with the bot on
 });
 if (SIGNALS_ON) signals.start();
 
