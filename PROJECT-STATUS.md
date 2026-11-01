@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 1 Nov 2026, 23:25 (Lagos time), after change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 1 Nov 2026, 23:51 (Lagos time), after change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -101,6 +101,8 @@
 | 2026-10-18 | **Guard rails.** (1) Nobody can give access they do not have themselves: not when creating or editing a role, and not when giving a role to a person (the role list shows only roles you may hand out). (2) Nobody can change or delete the role they hold. (3) A role that is still held by someone cannot be deleted (the editor is told how many people hold it). (4) Someone cannot change, disable, re-role, reset the password of or remove a person whose access is bigger than their own. (5) Unknown access names in the sheet are ignored, `view` is forced on, and a row in the Roles tab can never override a built-in role | Stops a person with the Staff switch from making themselves, or a friend, more powerful than they are. The owner has everything, so none of this limits the owner. |
 | 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
 | 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `staff.js`, `public/portal.*`, `public/admin.*`. |
+| 2026-11-01 | **Change 16: the same quota fix for every other tab.** Render log then showed "Fund request failed: Quota exceeded ... Read requests". The Fund, Bot trading, Copy trading, Attendance, Staff and Quiz-code code all read their tabs through `tabRows`, which went to Google on every call (an Alumni member's MT5 connector alone caused about 3 reads every 5 seconds). `tabRows` in `sheets.js` now keeps each tab for 15 seconds (`SHEETS_TAB_TTL_MS`), shares one read between simultaneous callers, and gives every caller its own copy of the rows. **Every write the site makes to a tab clears that tab's copy at once**, and a read that began before a write is never kept. If Google refuses, the last copy is served only if no write happened since it was read, so a fund balance or a code check never runs on data known to be out of date. `readCached`, `readQuiz` and `readProgress` still honour a request for a read that is fresh right now (0), which `saveProgress` uses | Edits made by hand in the Google Sheet show within 15 seconds on these tabs. Lower `SHEETS_TAB_TTL_MS` on Render if that matters more than quota. Assumed: the site runs as one instance on Render (as now); with two instances each would clear only its own copy. |
+| 2026-11-01 | **Change 15: Google Sheets read-quota fix.** Render log showed "Alumni check failed: Quota exceeded for quota metric 'Read requests' ... per minute per user". Cause: the student list was re-read from Google every 5 seconds (about 15 routes ask for it that way), nothing stopped a crowd of requests all reading at the same instant when the copy went stale, the Alumni members' MT5 connectors report every 5 seconds each, and one refusal from Google became a 500 for the student. Fix in `sheets.js`: (1) **no read is fresher than 20 seconds** (`SHEETS_MIN_TTL_MS`, default 20000); the site's own writes still refresh at once; (2) **one shared read at a time** per tab; (3) a **429 is retried** twice after a short pause; (4) if Google still refuses, the **last good copy is served** and a retry follows in about 10 seconds. Applies to Students, Quiz results and Handbook progress | Edits made by hand in the Google Sheet can take up to 20 seconds to show. Set `SHEETS_MIN_TTL_MS` lower on Render if that matters more than quota. If the error keeps appearing with many Alumni members linked, raise `InpPollSeconds` in the MT5 connector or ask Google for more read quota in Cloud Console. |
 | 2026-10-26 | **Change 12: the certificate uses the real design of the owner's approved certificate image.** (1) **Background:** the purple band and black block top left, the thin purple line and white stripe, the big purple panel, the bottom purple and black strips, the black bar under the title and the black CAC tag are drawn as vector shapes whose corners were **measured from the owner's image** (a pixel check against the image differs only on one-pixel edges). The canvas is now 1280 x 909, the size of that image (was 1280 x 905). (2) **Emblem:** the bull-horn logo is the real `logo-purple.png`, and the gold seal is the **real seal picture cut out of the owner's image** (laurels, stars, four ribbon tails), with its printed "2026" painted out so the page prints each certificate's own year on it. Both live in `public/certificate-art.js` as embedded pictures, so they also appear in the PNG and PDF downloads. (3) "Certificate", "OF COMPLETION", the organisation name under the logo, the stamp, the certificate number and the CAC tag moved to the places they have in the image. The wording of the certificate, the signature block and the dynamic fields are unchanged | Owner request ("use the actual designs of the background, and the emblem"). **Assumed:** "emblem" means both the bull-horn logo and the gold seal. The seal picture is only about 175 px wide in the owner's image, so it is a little soft when printed large; a separate high-resolution copy of the seal (PNG with transparent background) can replace the picture in `certificate-art.js` without any other change. The words "ADEBASS BASE / EDGE CONSULT" under the logo are drawn as text, not cut from the image (the image copy is too small to stay sharp). The PDF now keeps the picture's own proportions on the A4 page (centred, a thin white margin top and bottom). |
 | 2026-10-26 | **The "Find a student" page is renamed "Check ID"** (menu pill on portal, register and the page itself, page title and heading, the portal button, the check button, dashboard note and README). The address stays `/status`, so every printed QR code keeps working | Owner request, since the page now covers student, alumni and staff ID cards and certificates. |
 | 2026-10-26 | **Change 13: one person, up to three ID cards.** The Students sheet keeps **column J "Status"** for the Student ID: **Uncertified**, **Certified** or the new **Not a student** (no Student ID). Two new tick columns: **Q "Staff Member"** and **R "Alumni Member"** (dropdown: Yes or empty). Student ID card = Uncertified or Certified; Staff ID card = Q is Yes; Alumni ID card = R is Yes; **Certificate = Certified only** (unchanged rule, now independent of the other ticks, so a Certified student who is also a staff member keeps the certificate). Rules live in `idrules.js` (`idKinds`, `idCards`, `kindStatus`, `primaryStatus`) | Owner request ("a person can be a student whether certified or uncertified and still be a staff member ... a person can be a staff member without having a student ID ... this depends on the status ticked by admin"). **Assumed:** Alumni is also a tick that can sit beside a student standing (the owner described students and staff; alumni was handled the same way). A Certified student who is Alumni keeps their certificate. |
@@ -303,6 +305,8 @@
 | 2026-11-01 | **Central VPS for masters.** `docs/VPS-SETUP.md` (new); `copy.js`, `sheets.js` and both test memory stores (new column K "Hosted On ABEC-FX VPS (Yes/No)" on Copy Masters); `public/copytrading.js` (shows "(ABEC-FX VPS)"); `test/copy.test.js` (27 tests). |
 | 2026-11-01 | **Copy trading.** New `copy.js`; `server.js` (copy routes, the connector report now also carries copy orders, master keys `MK-`, `COPY_TRADING` switch, connector download for staff too); `sheets.js` (four new tabs); `public/copytrading.js`, `public/portal.html`, `public/portal.js` (Copy trading page); `private/bot/ABECFX_Bot_Connector.mq5` v1.10 (COPYOPEN / COPYMOD / COPYCLOSE and master mode); `env.example`; `test/copy.test.js` and both memory stores. |
 | (earlier, not logged at the time) | The code already had `signals.js` (Signals page and alerts), `bot.js` (Bot trading with the MT5 connector and its three sheet tabs) and `attendance.js` (live class attendance). They were never added to this file. |
+| 2026-11-01 | **Change 16: tab-read cache.** `sheets.js` (`tabRows` cached 15 s, shared, copies, cleared by every write; generation counters so a read begun before a write is never kept; `floorTtl` keeps 0 meaning fresh; signature, mentorship-code, links and videos writers now clear their tab); `test/sheets-quota.test.js` extended; `env.example`. Owner action: push `sheets.js`, `test/sheets-quota.test.js`, `env.example`. |
+| 2026-11-01 | **Change 15: Sheets read-quota fix.** `sheets.js` (`call` retries 429; `once` shares one in-flight read per tab; 20 s minimum cache age; last good copy served when Google refuses, for Students, Quiz and Progress); new `test/sheets-quota.test.js`. Owner action: push `sheets.js` and the new test file. |
 | 2026-10-26 | **Change 14: admin ID cards tab shows every card a person holds.** `server.js` (`/api/admin/id-cards` adds `allCards`, one card per Student / Alumni / Staff ID card the person holds); `public/admin.js` (clicking a name draws each card under the other with its own Download button; the list shows "2 ID cards" for people with several); `public/admin.html` (one mount box, old single Download button removed); `public/admin.css` (spacing between cards). Owner action: push those four files. |
 | 2026-10-26 | **Rename "Find a student" to "Check ID".** Text only in `public/status.html`, `public/status.js`, `public/certificate.html`, `public/register.html`, `public/portal.html`, `public/admin.html`, `public/card.js`, `public/lookup-kind.js`, `public/styles.css`, `server.js` (comments), `README.md` |
 | 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Staff ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
@@ -336,7 +340,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 1 Nov 2026, 23:25 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 1 Nov 2026, 23:51 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -2466,13 +2470,38 @@ function getClient() {
   return client;
 }
 
+// Google allows a limited number of Sheets reads per minute. A 429 means the request was refused (not run),
+// so it is safe to retry after a short pause, for reads and writes alike.
 async function call(path, options = {}) {
-  const res = await getClient().request({
-    url: `${API}/${SHEET_ID}${path}`,
-    ...options,
-  });
-  return res.data;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await getClient().request({
+        url: `${API}/${SHEET_ID}${path}`,
+        ...options,
+      });
+      return res.data;
+    } catch (err) {
+      const status = Number((err.response && err.response.status) || err.code);
+      if (status !== 429 || attempt >= 2) throw err;
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1) + Math.random() * 500));
+    }
+  }
 }
+
+// One shared read at a time per tab: if ten requests arrive while the cache is stale, only one goes to Google.
+const inflight = new Map();
+function once(key, fn) {
+  if (!inflight.has(key)) inflight.set(key, fn().finally(() => inflight.delete(key)));
+  return inflight.get(key);
+}
+// Never let a caller ask for fresher data than this. Our own writes still refresh at once (they reset the cache);
+// only edits made by hand in the Google Sheet take up to this long to show.
+const MIN_TTL_MS = Number(process.env.SHEETS_MIN_TTL_MS) || 20000;
+// A caller that asks for 0 wants a read that is fresh right now (a read-then-write that must not act on old data); that is honoured.
+const floorTtl = (ttlMs) => (ttlMs > 0 ? Math.max(ttlMs, MIN_TTL_MS) : 0);
+// Every write bumps its tab's generation, so a read that started before the write can never be kept or shared after it.
+const gens = new Map();
+const genOf = (k) => gens.get(k) || 0;
 
 const range = (r, tab = TAB) => encodeURIComponent(`${tab}!${r}`);
 
@@ -2667,10 +2696,21 @@ async function readAll() {
 }
 
 // Short cache for the public lookup page so heavy use can't exhaust Google's read quota.
-let cache = { at: 0, rows: [] };
+let cache = { at: 0, rows: [], ok: false };
 async function readCached(ttlMs = 15000) {
+  ttlMs = floorTtl(ttlMs);
   if (Date.now() - cache.at > ttlMs) {
-    cache = { rows: await readAll(), at: Date.now() };
+    const g = genOf("students");
+    try {
+      const rows = await once("students:" + g, readAll);
+      if (genOf("students") === g) cache = { rows, at: Date.now(), ok: true };
+      else return rows;
+    } catch (err) {
+      if (!cache.ok) throw err;
+      // Google refused or is down: keep serving the last good copy and try again in about 10 seconds.
+      console.error("Sheets read failed, serving the last copy:", err.message);
+      cache.at = Date.now() - ttlMs + 10000;
+    }
   }
   return cache.rows;
 }
@@ -2680,15 +2720,24 @@ async function appendRow(row) {
     `/values/${range(`A:${LAST_COL}`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: "POST", data: { values: [row] } }
   );
-  cache.at = 0;
+  invalidate("students");
 }
 
 // ---- Quiz results (one row per finished quiz attempt, written by the Telegram quiz bot) ----
-let quizCache = { at: 0, rows: [] };
+let quizCache = { at: 0, rows: [], ok: false };
 async function readQuiz(ttlMs = 15000) {
+  ttlMs = floorTtl(ttlMs);
   if (Date.now() - quizCache.at > ttlMs) {
-    const data = await call(`/values/${range(`A2:${QUIZ_LAST_COL}`, QUIZ_TAB)}`);
-    quizCache = { rows: data.values || [], at: Date.now() };
+    const g = genOf("quiz");
+    try {
+      const data = await once("quiz:" + g, () => call(`/values/${range(`A2:${QUIZ_LAST_COL}`, QUIZ_TAB)}`));
+      if (genOf("quiz") === g) quizCache = { rows: data.values || [], at: Date.now(), ok: true };
+      else return data.values || [];
+    } catch (err) {
+      if (!quizCache.ok) throw err;
+      console.error("Quiz read failed, serving the last copy:", err.message);
+      quizCache.at = Date.now() - ttlMs + 10000;
+    }
   }
   return quizCache.rows;
 }
@@ -2698,15 +2747,24 @@ async function appendQuiz(row) {
     `/values/${range(`A:${QUIZ_LAST_COL}`, QUIZ_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: "POST", data: { values: [row] } }
   );
-  quizCache.at = 0;
+  invalidate("quiz");
 }
 
 // ---- Handbook progress (one row per student; saved by the portal's "Mark as read" button) ----
-let progCache = { at: 0, rows: [] };
+let progCache = { at: 0, rows: [], ok: false };
 async function readProgress(ttlMs = 5000) {
+  ttlMs = floorTtl(ttlMs);
   if (Date.now() - progCache.at > ttlMs) {
-    const data = await call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`);
-    progCache = { rows: data.values || [], at: Date.now() };
+    const g = genOf("progress");
+    try {
+      const data = await once("progress:" + g, () => call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`));
+      if (genOf("progress") === g) progCache = { rows: data.values || [], at: Date.now(), ok: true };
+      else return data.values || [];
+    } catch (err) {
+      if (!progCache.ok) throw err;
+      console.error("Progress read failed, serving the last copy:", err.message);
+      progCache.at = Date.now() - ttlMs + 10000;
+    }
   }
   return progCache.rows;
 }
@@ -2734,7 +2792,7 @@ async function saveProgress(reg, fullName, readIds, total, percent, updatedAt) {
       { method: "POST", data: { values: [row] } }
     );
   }
-  progCache.at = 0;
+  invalidate("progress");
 }
 
 // ---- Mentorship codes (always read fresh: a code must never be accepted twice) ----
@@ -2760,6 +2818,7 @@ async function markCodeUsed(sheetRow, reg, usedAt) {
     method: "PUT",
     data: { values: [[reg, usedAt]] },
   });
+  invalidate("codes");
 }
 
 // ---- Site links ----
@@ -2787,6 +2846,7 @@ async function saveLinks(values) {
   }
   // The values are now in the sheet. Refresh from it so the site shows exactly what is stored.
   linksCache = { at: 0, values: null };
+  invalidate("links");
   try {
     const saved = await readLinks(0);
     for (const f of links.FIELDS) {
@@ -2814,6 +2874,8 @@ async function saveVideos(values) {
     method: "PUT",
     data: { values: videos.toRows(values) },
   });
+  videoCache = { at: Date.now(), values };
+  invalidate("videos");
   videoCache = { at: Date.now(), values };
 }
 
@@ -2946,9 +3008,11 @@ function setSignature(reg, base64) {
         `/values/${range("A:B", SIG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
         { method: "POST", data: { values: [[reg, base64]] } }
       );
+      invalidate("signatures");
       return;
     }
     await call(`/values/${range(`B${row}`, SIG_TAB)}?valueInputOption=RAW`, { method: "PUT", data: { values: [[base64]] } });
+    invalidate("signatures");
   });
 }
 
@@ -3008,6 +3072,9 @@ const quoteTab = (title) => "'" + title.replace(/'/g, "''") + "'";
 
 // Forget whatever the website has remembered about a tab, so the next read sees the change.
 function invalidate(key) {
+  gens.set(key, genOf(key) + 1);
+  const t = tabCache.get(key);
+  if (t) { t.at = 0; t.dirty = true; }
   if (key === "students") cache.at = 0;
   else if (key === "quiz") quizCache.at = 0;
   else if (key === "progress") progCache.at = 0;
@@ -3035,11 +3102,36 @@ async function healing(key, run) {
   }
 }
 
-// Every data row of a tab, always read fresh. `n` is the row number in the sheet (the header is row 1).
+// Every data row of a tab. `n` is the row number in the sheet (the header is row 1).
+// Kept for SHEETS_TAB_TTL_MS (default 15 s) and shared between simultaneous callers, because bot, copy-trading, fund,
+// attendance and staff checks all read tabs and together used up Google's per-minute read quota. Every write the site
+// makes to a tab clears that tab's copy, so the site always sees its own changes at once; only edits made by hand in
+// the Google Sheet can take up to the TTL to show. Callers get their own copy of the rows and may change it freely.
+// If Google refuses a read, the last copy is served only when no write has happened since it was read (so a ledger
+// or a code check never runs on data we know is out of date).
+const TAB_TTL_MS = Number(process.env.SHEETS_TAB_TTL_MS) || 15000;
+const tabCache = new Map(); // key -> { at, rows, dirty }
+const copyRows = (rows) => rows.map((r) => ({ n: r.n, cells: r.cells.slice() }));
 async function tabRows(key) {
   const t = editorTab(key);
-  const data = await healing(key, () => call(`/values/${range(`A2:${t.lastCol}`, t.title)}`));
-  return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
+  const hit = tabCache.get(key);
+  if (hit && Date.now() - hit.at < TAB_TTL_MS) return copyRows(hit.rows);
+  const g = genOf(key);
+  try {
+    const rows = await once("tab:" + key + ":" + g, async () => {
+      const data = await healing(key, () => call(`/values/${range(`A2:${t.lastCol}`, t.title)}`));
+      return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
+    });
+    if (genOf(key) === g) tabCache.set(key, { at: Date.now(), rows, dirty: false });
+    return copyRows(rows);
+  } catch (err) {
+    if (hit && !hit.dirty) {
+      console.error(`Sheets read of ${key} failed, serving the last copy:`, err.message);
+      hit.at = Date.now() - TAB_TTL_MS + 10000;
+      return copyRows(hit.rows);
+    }
+    throw err;
+  }
 }
 
 async function tabRow(key, n) {

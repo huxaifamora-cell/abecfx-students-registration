@@ -209,6 +209,11 @@ function once(key, fn) {
 // Never let a caller ask for fresher data than this. Our own writes still refresh at once (they reset the cache);
 // only edits made by hand in the Google Sheet take up to this long to show.
 const MIN_TTL_MS = Number(process.env.SHEETS_MIN_TTL_MS) || 20000;
+// A caller that asks for 0 wants a read that is fresh right now (a read-then-write that must not act on old data); that is honoured.
+const floorTtl = (ttlMs) => (ttlMs > 0 ? Math.max(ttlMs, MIN_TTL_MS) : 0);
+// Every write bumps its tab's generation, so a read that started before the write can never be kept or shared after it.
+const gens = new Map();
+const genOf = (k) => gens.get(k) || 0;
 
 const range = (r, tab = TAB) => encodeURIComponent(`${tab}!${r}`);
 
@@ -405,10 +410,13 @@ async function readAll() {
 // Short cache for the public lookup page so heavy use can't exhaust Google's read quota.
 let cache = { at: 0, rows: [], ok: false };
 async function readCached(ttlMs = 15000) {
-  ttlMs = Math.max(ttlMs, MIN_TTL_MS);
+  ttlMs = floorTtl(ttlMs);
   if (Date.now() - cache.at > ttlMs) {
+    const g = genOf("students");
     try {
-      cache = { rows: await once("students", readAll), at: Date.now(), ok: true };
+      const rows = await once("students:" + g, readAll);
+      if (genOf("students") === g) cache = { rows, at: Date.now(), ok: true };
+      else return rows;
     } catch (err) {
       if (!cache.ok) throw err;
       // Google refused or is down: keep serving the last good copy and try again in about 10 seconds.
@@ -424,17 +432,19 @@ async function appendRow(row) {
     `/values/${range(`A:${LAST_COL}`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: "POST", data: { values: [row] } }
   );
-  cache.at = 0;
+  invalidate("students");
 }
 
 // ---- Quiz results (one row per finished quiz attempt, written by the Telegram quiz bot) ----
 let quizCache = { at: 0, rows: [], ok: false };
 async function readQuiz(ttlMs = 15000) {
-  ttlMs = Math.max(ttlMs, MIN_TTL_MS);
+  ttlMs = floorTtl(ttlMs);
   if (Date.now() - quizCache.at > ttlMs) {
+    const g = genOf("quiz");
     try {
-      const data = await once("quiz", () => call(`/values/${range(`A2:${QUIZ_LAST_COL}`, QUIZ_TAB)}`));
-      quizCache = { rows: data.values || [], at: Date.now(), ok: true };
+      const data = await once("quiz:" + g, () => call(`/values/${range(`A2:${QUIZ_LAST_COL}`, QUIZ_TAB)}`));
+      if (genOf("quiz") === g) quizCache = { rows: data.values || [], at: Date.now(), ok: true };
+      else return data.values || [];
     } catch (err) {
       if (!quizCache.ok) throw err;
       console.error("Quiz read failed, serving the last copy:", err.message);
@@ -449,17 +459,19 @@ async function appendQuiz(row) {
     `/values/${range(`A:${QUIZ_LAST_COL}`, QUIZ_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: "POST", data: { values: [row] } }
   );
-  quizCache.at = 0;
+  invalidate("quiz");
 }
 
 // ---- Handbook progress (one row per student; saved by the portal's "Mark as read" button) ----
 let progCache = { at: 0, rows: [], ok: false };
 async function readProgress(ttlMs = 5000) {
-  ttlMs = Math.max(ttlMs, MIN_TTL_MS);
+  ttlMs = floorTtl(ttlMs);
   if (Date.now() - progCache.at > ttlMs) {
+    const g = genOf("progress");
     try {
-      const data = await once("progress", () => call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`));
-      progCache = { rows: data.values || [], at: Date.now(), ok: true };
+      const data = await once("progress:" + g, () => call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`));
+      if (genOf("progress") === g) progCache = { rows: data.values || [], at: Date.now(), ok: true };
+      else return data.values || [];
     } catch (err) {
       if (!progCache.ok) throw err;
       console.error("Progress read failed, serving the last copy:", err.message);
@@ -492,7 +504,7 @@ async function saveProgress(reg, fullName, readIds, total, percent, updatedAt) {
       { method: "POST", data: { values: [row] } }
     );
   }
-  progCache.at = 0;
+  invalidate("progress");
 }
 
 // ---- Mentorship codes (always read fresh: a code must never be accepted twice) ----
@@ -518,6 +530,7 @@ async function markCodeUsed(sheetRow, reg, usedAt) {
     method: "PUT",
     data: { values: [[reg, usedAt]] },
   });
+  invalidate("codes");
 }
 
 // ---- Site links ----
@@ -545,6 +558,7 @@ async function saveLinks(values) {
   }
   // The values are now in the sheet. Refresh from it so the site shows exactly what is stored.
   linksCache = { at: 0, values: null };
+  invalidate("links");
   try {
     const saved = await readLinks(0);
     for (const f of links.FIELDS) {
@@ -572,6 +586,8 @@ async function saveVideos(values) {
     method: "PUT",
     data: { values: videos.toRows(values) },
   });
+  videoCache = { at: Date.now(), values };
+  invalidate("videos");
   videoCache = { at: Date.now(), values };
 }
 
@@ -704,9 +720,11 @@ function setSignature(reg, base64) {
         `/values/${range("A:B", SIG_TAB)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
         { method: "POST", data: { values: [[reg, base64]] } }
       );
+      invalidate("signatures");
       return;
     }
     await call(`/values/${range(`B${row}`, SIG_TAB)}?valueInputOption=RAW`, { method: "PUT", data: { values: [[base64]] } });
+    invalidate("signatures");
   });
 }
 
@@ -766,6 +784,9 @@ const quoteTab = (title) => "'" + title.replace(/'/g, "''") + "'";
 
 // Forget whatever the website has remembered about a tab, so the next read sees the change.
 function invalidate(key) {
+  gens.set(key, genOf(key) + 1);
+  const t = tabCache.get(key);
+  if (t) { t.at = 0; t.dirty = true; }
   if (key === "students") cache.at = 0;
   else if (key === "quiz") quizCache.at = 0;
   else if (key === "progress") progCache.at = 0;
@@ -793,11 +814,36 @@ async function healing(key, run) {
   }
 }
 
-// Every data row of a tab, always read fresh. `n` is the row number in the sheet (the header is row 1).
+// Every data row of a tab. `n` is the row number in the sheet (the header is row 1).
+// Kept for SHEETS_TAB_TTL_MS (default 15 s) and shared between simultaneous callers, because bot, copy-trading, fund,
+// attendance and staff checks all read tabs and together used up Google's per-minute read quota. Every write the site
+// makes to a tab clears that tab's copy, so the site always sees its own changes at once; only edits made by hand in
+// the Google Sheet can take up to the TTL to show. Callers get their own copy of the rows and may change it freely.
+// If Google refuses a read, the last copy is served only when no write has happened since it was read (so a ledger
+// or a code check never runs on data we know is out of date).
+const TAB_TTL_MS = Number(process.env.SHEETS_TAB_TTL_MS) || 15000;
+const tabCache = new Map(); // key -> { at, rows, dirty }
+const copyRows = (rows) => rows.map((r) => ({ n: r.n, cells: r.cells.slice() }));
 async function tabRows(key) {
   const t = editorTab(key);
-  const data = await healing(key, () => call(`/values/${range(`A2:${t.lastCol}`, t.title)}`));
-  return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
+  const hit = tabCache.get(key);
+  if (hit && Date.now() - hit.at < TAB_TTL_MS) return copyRows(hit.rows);
+  const g = genOf(key);
+  try {
+    const rows = await once("tab:" + key + ":" + g, async () => {
+      const data = await healing(key, () => call(`/values/${range(`A2:${t.lastCol}`, t.title)}`));
+      return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
+    });
+    if (genOf(key) === g) tabCache.set(key, { at: Date.now(), rows, dirty: false });
+    return copyRows(rows);
+  } catch (err) {
+    if (hit && !hit.dirty) {
+      console.error(`Sheets read of ${key} failed, serving the last copy:`, err.message);
+      hit.at = Date.now() - TAB_TTL_MS + 10000;
+      return copyRows(hit.rows);
+    }
+    throw err;
+  }
 }
 
 async function tabRow(key, n) {
