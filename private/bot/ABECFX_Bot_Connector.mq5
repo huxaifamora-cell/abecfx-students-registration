@@ -5,8 +5,13 @@
 // What it does (and nothing else):
 //   * every few seconds it sends the website your account details, your bot's open trades and closed trades;
 //   * it opens the trades the website asks for, using the lot size, stop loss, take profit and number of
-//     positions you set in the portal's "Bot trading" page.
-// It never reads or sends your MT5 password. It only touches trades that carry its own magic number.
+//     positions you set in the portal's "Bot trading" page;
+//   * COPY TRADING (Alumni members): it opens, changes and closes copies of your chosen master's trades, using
+//     the fixed lot size you set on the portal's "Copy trading" page. A copy carries the comment C<master>-<ticket>.
+//   * MASTER MODE (staff and mentors): when the connection key starts with MK-, it only REPORTS all of your own
+//     open and closed trades so that followers can copy them. In this mode it never opens, changes or closes anything.
+// It never reads or sends your MT5 password. It only touches trades that carry its own magic number
+// (in master mode it only reads).
 //
 // Setup:
 //   1. Tools > Options > Expert Advisors > tick "Allow WebRequest for listed URL" and add the website address below.
@@ -15,7 +20,7 @@
 //   4. Keep MT5 open (a VPS is best). If MT5 is closed, the bot cannot trade.
 #property copyright "ABEC-FX"
 #property link      "__SERVER_URL__"
-#property version   "1.00"
+#property version   "1.10"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -30,6 +35,7 @@ string   gResults   = "";   // finished order results waiting to be sent: {"id":
 datetime gLastSync  = 0;    // closed trades older than this have already been sent
 string   gStatus    = "Starting...";
 bool     gBadKey    = false;
+bool     gMaster    = false;   // the key starts with MK-: report only, never trade
 
 //+------------------------------------------------------------------+
 string JsonEsc(string s)
@@ -78,6 +84,7 @@ int OnInit()
       return(INIT_PARAMETERS_INCORRECT);
    }
    if(GlobalVariableCheck(SyncKey())) gLastSync = (datetime)(long)GlobalVariableGet(SyncKey());
+   gMaster = (StringFind(InpBotKey, "MK-") == 0);
    gTrade.SetExpertMagicNumber(InpMagic);
    gTrade.SetDeviationInPoints(100);
    EventSetTimer(MathMax(2, InpPollSeconds));
@@ -101,7 +108,7 @@ string BuildPositions()
    {
       ulong ticket = PositionGetTicket(i);
       if(ticket == 0) continue;
-      if((long)PositionGetInteger(POSITION_MAGIC) != InpMagic) continue;
+      if(!gMaster && (long)PositionGetInteger(POSITION_MAGIC) != InpMagic) continue; // a master reports every trade
       if(items != "") items += ",";
       long type = PositionGetInteger(POSITION_TYPE);
       items += "{\"ticket\":\"" + IntegerToString((long)ticket) + "\""
@@ -143,7 +150,7 @@ string BuildClosed()
    {
       ulong d = HistoryDealGetTicket(i);
       if(d == 0) continue;
-      if((long)HistoryDealGetInteger(d, DEAL_MAGIC) != InpMagic) continue;
+      if(!gMaster && (long)HistoryDealGetInteger(d, DEAL_MAGIC) != InpMagic) continue;
       long entry = HistoryDealGetInteger(d, DEAL_ENTRY);
       if(entry != DEAL_ENTRY_OUT && entry != DEAL_ENTRY_OUT_BY && entry != DEAL_ENTRY_INOUT) continue;
       long dtype = HistoryDealGetInteger(d, DEAL_TYPE);
@@ -324,15 +331,160 @@ void AddResult(string id, int opened, string error)
    gResults += "{\"id\":\"" + JsonEsc(id) + "\",\"opened\":" + IntegerToString(opened) + ",\"error\":\"" + JsonEsc(error) + "\"}";
 }
 
-// One line from the website: ORDER|id|symbol|side|lots|stopLoss|takeProfit|count|ttl
+
+//+------------------------------------------------------------------+
+// COPY TRADING. A copy is found again by its comment (the tag): C<master>-<master ticket>.
+bool FindTagged(string tag, ulong &ticket)
+{
+   for(int i = 0; i < PositionsTotal(); i++)
+   {
+      ulong t = PositionGetTicket(i);
+      if(t == 0) continue;
+      if((long)PositionGetInteger(POSITION_MAGIC) != InpMagic) continue;
+      if(PositionGetString(POSITION_COMMENT) == tag) { ticket = t; return true; }
+   }
+   return false;
+}
+
+// Open one copy with the follower's lot size and the master's stop loss and take profit (prices). Returns 1 when
+// the copy is open (also when it already was, so a repeated order never opens a second one), otherwise 0.
+int CopyOpen(string symbol, string side, double lots, double sl, double tp, int ttlSeconds, string tag, string &error)
+{
+   error = "";
+   ulong existing = 0;
+   if(FindTagged(tag, existing)) return 1;
+   ulong deadline = GetTickCount64() + (ulong)ttlSeconds * 1000;
+   if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED) || !AccountInfoInteger(ACCOUNT_TRADE_ALLOWED))
+   {
+      error = "Algo trading is switched off in MT5. Press the Algo Trading button so it is green.";
+      return 0;
+   }
+   if(!SymbolSelect(symbol, true))
+   {
+      error = "Your account has no market called " + symbol + ".";
+      return 0;
+   }
+   double step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   double vmin = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+   double vmax = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
+   if(step <= 0) step = 0.01;
+   double lot = NormalizeDouble(MathFloor(lots / step + 0.0000001) * step, 2);
+   if(lot < vmin)
+   {
+      error = "Lot size " + DoubleToString(lots, 2) + " is below the smallest allowed for " + symbol + " (" + DoubleToString(vmin, 2) + ").";
+      return 0;
+   }
+   if(lot > vmax)
+   {
+      error = "Lot size " + DoubleToString(lots, 2) + " is above the largest allowed for " + symbol + " (" + DoubleToString(vmax, 2) + ").";
+      return 0;
+   }
+   bool isBuy = (side == "BUY");
+   int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double minDist = (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL) * point;
+   ENUM_ORDER_TYPE otype = isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+   double price = SymbolInfoDouble(symbol, isBuy ? SYMBOL_ASK : SYMBOL_BID);
+   sl = (sl > 0) ? NormalizeDouble(sl, digits) : 0;
+   tp = (tp > 0) ? NormalizeDouble(tp, digits) : 0;
+   if(sl > 0 && (isBuy ? price - sl : sl - price) < minDist)
+   {
+      error = "The master's stop loss is on the wrong side of the price, or too tight, for you right now.";
+      return 0;
+   }
+   if(tp > 0 && (isBuy ? tp - price : price - tp) < minDist)
+   {
+      error = "The master's take profit is on the wrong side of the price, or too tight, for you right now.";
+      return 0;
+   }
+   double margin = 0;
+   if(OrderCalcMargin(otype, symbol, lot, price, margin) && margin > AccountInfoDouble(ACCOUNT_MARGIN_FREE))
+   {
+      error = "Not enough free margin to open " + DoubleToString(lot, 2) + " lots.";
+      return 0;
+   }
+   if(GetTickCount64() > deadline)
+   {
+      error = "The copy was too old to open.";
+      return 0;
+   }
+   gTrade.SetTypeFillingBySymbol(symbol);
+   bool ok = gTrade.PositionOpen(symbol, otype, lot, price, sl, tp, tag);
+   uint rc = gTrade.ResultRetcode();
+   if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED || rc == TRADE_RETCODE_DONE_PARTIAL)) return 1;
+   error = "MT5 refused the trade: " + gTrade.ResultRetcodeDescription();
+   return 0;
+}
+
+// The master moved the stop loss or take profit: do the same on the copy.
+int CopyModify(string tag, double sl, double tp, string &error)
+{
+   error = "";
+   ulong t = 0;
+   if(!FindTagged(tag, t)) { error = "The copy is not open any more."; return 1; }
+   if(!PositionSelectByTicket(t)) { error = "The copy could not be selected."; return 0; }
+   string symbol = PositionGetString(POSITION_SYMBOL);
+   int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   sl = (sl > 0) ? NormalizeDouble(sl, digits) : 0;
+   tp = (tp > 0) ? NormalizeDouble(tp, digits) : 0;
+   if(MathAbs(sl - PositionGetDouble(POSITION_SL)) < point / 2 && MathAbs(tp - PositionGetDouble(POSITION_TP)) < point / 2) return 1;
+   bool ok = gTrade.PositionModify(t, sl, tp);
+   uint rc = gTrade.ResultRetcode();
+   if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED || rc == TRADE_RETCODE_NO_CHANGES)) return 1;
+   if(rc == TRADE_RETCODE_NO_CHANGES) return 1;
+   error = "MT5 refused the change: " + gTrade.ResultRetcodeDescription();
+   return 0;
+}
+
+// The master closed the trade: close the copy.
+int CopyClose(string tag, string &error)
+{
+   error = "";
+   ulong t = 0;
+   if(!FindTagged(tag, t)) { error = "The copy was already closed."; return 1; }
+   bool ok = gTrade.PositionClose(t);
+   uint rc = gTrade.ResultRetcode();
+   if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED || rc == TRADE_RETCODE_DONE_PARTIAL)) return 1;
+   error = "MT5 refused to close the trade: " + gTrade.ResultRetcodeDescription();
+   return 0;
+}
+
+// One line from the website:
+//   ORDER|id|symbol|side|lots|stopLoss|takeProfit|count|ttl      (Bot trading: stop loss and take profit are amounts of money)
+//   COPYOPEN|id|symbol|side|lots|slPrice|tpPrice|ttl|tag         (Copy trading: prices)
+//   COPYMOD|id|tag|slPrice|tpPrice
+//   COPYCLOSE|id|tag
 void HandleLine(string line)
 {
+   if(gMaster) return; // a master only reports
    StringTrimLeft(line);
    StringTrimRight(line);
    if(StringLen(line) == 0) return;
    string p[];
    int n = StringSplit(line, '|', p);
-   if(n >= 9 && p[0] == "ORDER")
+   if(n >= 9 && p[0] == "COPYOPEN")
+   {
+      string error = "";
+      int ok = CopyOpen(p[2], p[3], StringToDouble(p[4]), StringToDouble(p[5]), StringToDouble(p[6]), (int)StringToInteger(p[7]), p[8], error);
+      AddResult(p[1], ok, error);
+      Print("ABEC-FX copy ", p[8], " ", p[2], " ", p[3], ": ", ok == 1 ? "open" : "not opened", error != "" ? " | " + error : "");
+   }
+   else if(n >= 5 && p[0] == "COPYMOD")
+   {
+      string error = "";
+      int ok = CopyModify(p[2], StringToDouble(p[3]), StringToDouble(p[4]), error);
+      AddResult(p[1], ok, error);
+      Print("ABEC-FX copy change ", p[2], ": ", ok == 1 ? "done" : "failed", error != "" ? " | " + error : "");
+   }
+   else if(n >= 3 && p[0] == "COPYCLOSE")
+   {
+      string error = "";
+      int ok = CopyClose(p[2], error);
+      AddResult(p[1], ok, error);
+      Print("ABEC-FX copy close ", p[2], ": ", ok == 1 ? "done" : "failed", error != "" ? " | " + error : "");
+   }
+   else if(n >= 9 && p[0] == "ORDER")
    {
       string error = "";
       int opened = RunOrder(p[2], p[3], StringToDouble(p[4]), StringToDouble(p[5]), StringToDouble(p[6]), (int)StringToInteger(p[7]), (int)StringToInteger(p[8]), p[1], error);
@@ -384,6 +536,6 @@ void OnTimer()
    string lines[];
    int count = StringSplit(body, '\n', lines);
    for(int i = 1; i < count; i++) HandleLine(lines[i]);
-   ShowStatus("Connected. Last report " + TimeToString(TimeLocal(), TIME_SECONDS) + ".");
+   ShowStatus((gMaster ? "Master mode: reporting your trades. " : "Connected. ") + "Last report " + TimeToString(TimeLocal(), TIME_SECONDS) + ".");
 }
 //+------------------------------------------------------------------+
