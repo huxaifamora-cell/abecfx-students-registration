@@ -53,7 +53,6 @@
     $("shTable").replaceChildren();
     $("shSearch").value = "";
     me = null;
-    window.abecAdminFunds.clear();
     setDashTitle();
     staffData = null;
     if ($("tmDlg").open) $("tmDlg").close();
@@ -90,9 +89,8 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", funds: "funds" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", hosting: "hosting" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
-  window.abecAdminFunds.setup({ api: api, onAuth: function (m) { showLogin(m); } });
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
     var name = me && me.roleLabel ? me.roleLabel + " dashboard" : "Dashboard";
@@ -535,6 +533,69 @@
 
   // ---------- Site links ----------
   var linkFields = [];
+  // ---------- VPS hosting: requests from Alumni members to have their connector run on the VPS ----------
+  var hs = { requests: [], statuses: [], editing: null };
+  function openHosting() {
+    $("hostNote").textContent = "Loading...";
+    $("hostKeyBox").hidden = true;
+    loadHosting().catch(function (err) { if (err.auth) showLogin(err.message); else $("hostNote").textContent = err.message; });
+  }
+  function loadHosting() {
+    return api("/api/admin/hosting").then(function (r) { applyHosting(r); });
+  }
+  function applyHosting(r) {
+    hs.requests = r.requests; hs.statuses = r.statuses;
+    $("hostOff").hidden = !!r.enabled;
+    $("hostNote").textContent = hs.requests.length ? "" : "No hosting requests yet.";
+    table($("hostTable"), [
+      { t: "Request" }, { t: "Member" }, { t: "MT5 account" }, { t: "Server" }, { t: "Type" }, { t: "Status" }, { t: "Slot" }, { t: "Asked" }, { t: "" },
+    ], hs.requests.map(function (q) {
+      var b = el("button", "btn ghost sh-rowbtn", "Open");
+      b.type = "button";
+      b.addEventListener("click", function () { editHosting(q); });
+      return [q.id, (q.name || "") + " (" + q.reg + ")", q.account, q.server, q.type, q.status, q.slot, q.requestedAt, { node: b }];
+    }));
+    if (hs.editing) {
+      var again = hs.requests.filter(function (q) { return q.id === hs.editing; })[0];
+      if (again) editHosting(again, true);
+    }
+  }
+  function editHosting(q, keepMsg) {
+    hs.editing = q.id;
+    $("hostEditCard").hidden = false;
+    $("hostEditTitle").textContent = q.id + " - " + (q.name || q.reg);
+    var sel = $("hostEdit-status");
+    sel.replaceChildren();
+    hs.statuses.forEach(function (st) { var o = el("option", "", st); o.value = st; sel.appendChild(o); });
+    sel.value = q.status;
+    $("hostEdit-slot").value = q.slot || "";
+    $("hostEdit-note").value = q.note || "";
+    ["status", "slot"].forEach(function (k) { $("hostEdit-e-" + k).textContent = ""; });
+    if (!keepMsg) { $("hostEditMsg").textContent = ""; $("hostKeyBox").hidden = true; }
+  }
+  $("hostReload").addEventListener("click", openHosting);
+  $("hostEditForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    ["status", "slot"].forEach(function (k) { $("hostEdit-e-" + k).textContent = ""; });
+    $("hostEditMsg").textContent = "";
+    api("/api/admin/hosting/update", "POST", { id: hs.editing, status: $("hostEdit-status").value, slot: $("hostEdit-slot").value, note: $("hostEdit-note").value })
+      .then(function (r) { applyHosting(r); $("hostEditMsg").textContent = "Saved."; })
+      .catch(function (err) {
+        if (err.auth) return showLogin(err.message);
+        var f = err.fields || {};
+        ["status", "slot"].forEach(function (k) { $("hostEdit-e-" + k).textContent = f[k] || ""; });
+        $("hostEditMsg").textContent = err.fields ? "Please fix the highlighted fields." : err.message;
+      });
+  });
+  $("hostKey").addEventListener("click", function () {
+    if (!window.confirm("Make a connector key for this member? It replaces the key they have now, so their own connector stops working.")) return;
+    $("hostEditMsg").textContent = "";
+    api("/api/admin/hosting/key", "POST", { id: hs.editing }).then(function (r) {
+      $("hostKeyText").textContent = r.key;
+      $("hostKeyBox").hidden = false;
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("hostEditMsg").textContent = err.message; });
+  });
+
   // ---------- Attendance: start and end a live class, and see who was present ----------
   var at = { classes: [], report: null, threshold: 50 };
   function openAttendance() {
@@ -1556,14 +1617,14 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "funds", "database", "staff", "idcards", "certificates"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "database", "staff", "idcards", "certificates", "hosting"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "funds";
-    if (name === "funds") window.abecAdminFunds.open();
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "hosting";
     if (name === "quizcodes") openQuizCodes();
     if (name === "attendance") openAttendance();
+    if (name === "hosting") openHosting();
     if (name === "database") openSheets();
     if (name === "staff") openStaff();
     if (name === "idcards") openIdCards();
@@ -1588,11 +1649,11 @@
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
-  $("tab-funds").addEventListener("click", function () { setTab("funds"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-staff").addEventListener("click", function () { setTab("staff"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
   $("tab-certificates").addEventListener("click", function () { setTab("certificates"); });
+  $("tab-hosting").addEventListener("click", function () { setTab("hosting"); });
 
   // ---------- ID cards (admin) ----------
   var idTimer = null, idSeq = 0, idCurrent = null, sigSeq = 0;

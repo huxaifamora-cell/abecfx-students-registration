@@ -59,30 +59,17 @@
 
         <!-- Signed in -->
         <section id="home" hidden>
-          <!-- Portal menu: ID Card, Trading and Mentorship (the last two open a dropdown) -->
+          <!-- My portal submenu -->
           <nav class="subnav" id="subnav" aria-label="My portal">
-            <a href="#/card" class="sub-top" data-group="card" data-view="card" aria-current="page">ID Card</a>
-
-            <div class="sub-group" data-group="trading">
-              <button type="button" class="sub-top sub-toggle" id="tradingToggle" aria-haspopup="true" aria-expanded="false" aria-controls="tradingMenu">Trading <span class="sub-caret" aria-hidden="true"></span></button>
-              <div class="sub-menu" id="tradingMenu" hidden>
-                <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
-                <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
-                <a href="#/funds" data-view="funds" id="fundsLink" hidden>Funds</a>
-                <a href="#/traders" data-view="traders">Traders community</a>
-              </div>
-            </div>
-
-            <div class="sub-group sub-end" data-group="mentorship">
-              <button type="button" class="sub-top sub-toggle" id="mentorshipToggle" aria-haspopup="true" aria-expanded="false" aria-controls="mentorshipMenu">Mentorship <span class="sub-caret" aria-hidden="true"></span></button>
-              <div class="sub-menu" id="mentorshipMenu" hidden>
-                <a href="#/handbook" data-view="handbook">Handbook</a>
-                <a href="#/workbook" data-view="workbook">Workbook</a>
-                <a href="#/community" data-view="community">Community</a>
-                <a href="#/class" data-view="class">Live class</a>
-                <a href="#/quiz" data-view="quiz">Quiz</a>
-              </div>
-            </div>
+            <a href="#/card" data-view="card" aria-current="page">ID card</a>
+            <a href="#/class" data-view="class">Live class</a>
+            <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
+            <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
+            <a href="#/copy" data-view="copy" id="copyLink" hidden>Copy trading</a>
+            <a href="#/community" data-view="community">Community</a>
+            <a href="#/handbook" data-view="handbook">Handbook</a>
+            <a href="#/workbook" data-view="workbook">Workbook</a>
+            <a href="#/quiz" data-view="quiz">Quiz</a>
           </nav>
 
           <!-- View: ID card -->
@@ -277,32 +264,101 @@
             <p class="cert-note">The bot follows fixed rules, not advice, and losses are possible. Only risk money you can afford to lose.</p>
           </div>
 
-          <!-- View: Mentorship community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
+          <!-- View: Copy trading (Alumni members follow a master; staff and mentors can be a master) -->
+          <div id="viewCopy" class="view" hidden>
+            <h2>Copy trading</h2>
+            <p class="lead">Copy the trades of a ABEC-FX mentor on your own MetaTrader 5 account, using your own lot size.</p>
+
+            <section id="copyFollowSection" aria-label="Follow a master" hidden>
+              <p class="live" id="copyStatus" role="status">Loading...</p>
+              <div class="bot-steps">
+                <p><b>How it works.</b> You choose one master. When they open a trade, your MT5 opens the same trade with <b>your</b> lot size and <b>their</b> stop loss and take profit. When they move the stop loss or take profit, or close the trade, your copy does the same.</p>
+                <p><b>Good to know.</b> Only trades the master opens after you start following are copied, and only while their MT5 is online. A copy is only opened within a minute of the master's trade, and only once it has a stop loss. Your MT5 must be open and linked (Bot trading, Account link).</p>
+              </div>
+              <h3 class="cls-h">Choose a master</h3>
+              <div class="hb-tablewrap"><table class="cls-table" id="copyMasters"></table></div>
+              <p class="cert-note" id="copyChosen"></p>
+              <p class="cert-note">A master's results are on their own account and in their own currency. They show the past and do not promise anything about the future.</p>
+              <form id="copyForm" class="bot-form" novalidate>
+                <div class="field"><label for="cp-lot">Your lot size (for every copied trade)</label><input id="cp-lot" type="number" step="0.01" min="0.01" inputmode="decimal" /><span class="hint">The master's own lot size is never used.</span><p class="formErr" id="cp-e-lot" role="alert"></p></div>
+                <div class="field"><label for="cp-open">Most copied trades open at once</label><input id="cp-open" type="number" step="1" min="1" inputmode="numeric" /><p class="formErr" id="cp-e-maxOpen" role="alert"></p></div>
+                <div class="field"><label for="cp-daily">Most copied trades a day</label><input id="cp-daily" type="number" step="1" min="1" inputmode="numeric" /><span class="hint">Counted in Lagos time.</span><p class="formErr" id="cp-e-maxDaily" role="alert"></p></div>
+                <p class="formErr" id="cp-e-master" role="alert"></p>
+                <p class="formErr" id="cp-e-connection" role="alert"></p>
+                <label class="bot-accept" id="cpAcceptRow"><input type="checkbox" id="cp-accept" /> I understand that copying trades on Boom, Crash and other synthetic indices is high risk, that I can lose money, including on a real account, and that I am responsible for every trade copied on my account.</label>
+                <p class="formErr" id="cp-e-acceptRisk" role="alert"></p>
+                <div class="pass-actions">
+                  <button type="submit" class="btn primary" id="copyStart">Start copying</button>
+                  <button type="button" class="btn ghost" id="copyStop" hidden>Stop copying</button>
+                  <button type="button" class="btn ghost" id="copyBotPage">Link my MT5 account</button>
+                </div>
+                <p class="formErr" id="copyMsg" role="status"></p>
+              </form>
+              <h3 class="cls-h">Copied trades open now</h3>
+              <div class="hb-tablewrap"><table class="cls-table" id="copyOpen"></table></div>
+              <h3 class="cls-h">Copy activity</h3>
+              <ul class="bot-activity" id="copyActivity"></ul>
+              <h3 class="cls-h">Run your connector on the ABEC-FX VPS</h3>
+              <p class="live" id="hostStatus" role="status"></p>
+              <div class="bot-steps" id="hostInfo">
+                <p>Instead of keeping your own computer on, you can ask for your MT5 connector to run on the ABEC-FX VPS. <b>The website never asks for a password.</b> If your request is approved, someone from ABEC-FX will contact you to arrange access privately, and your trading password goes only into the terminal on the VPS. Hosting is your own decision, you can end it at any time, and changing your password in MT5 cuts off any access.</p>
+              </div>
+              <form id="hostForm" class="bot-form" novalidate hidden>
+                <div class="field"><label for="host-account">MT5 account number</label><input id="host-account" type="text" inputmode="numeric" maxlength="12" autocomplete="off" /><p class="formErr" id="host-e-account" role="alert"></p></div>
+                <div class="field"><label for="host-server">Broker server shown in MT5</label><input id="host-server" type="text" maxlength="60" autocomplete="off" placeholder="Deriv-Demo" /><p class="formErr" id="host-e-server" role="alert"></p></div>
+                <div class="field"><label for="host-type">Account type</label><select id="host-type"><option value="">Choose...</option><option value="demo">Demo</option><option value="real">Real</option></select><p class="formErr" id="host-e-type" role="alert"></p></div>
+                <label class="bot-accept"><input type="checkbox" id="host-consent" /> I understand that I will give my trading password only to ABEC-FX staff, privately and never on this website, that the connector will trade my account on my settings, and that I can end hosting and change my password at any time.</label>
+                <p class="formErr" id="host-e-consent" role="alert"></p>
+                <button type="submit" class="btn primary wide" id="hostSend">Request hosting</button>
+              </form>
+              <div class="pass-actions"><button type="button" class="btn ghost" id="hostEnd" hidden>Cancel request</button></div>
+              <p class="formErr" id="hostMsg" role="status"></p>
+              <p class="cert-note">Copy trading follows someone else's decisions, not advice from ABEC-FX, and losses are possible. If you also use the signals bot on the same account, both can open trades. Only risk money you can afford to lose.</p>
+            </section>
+
+            <section id="copyMasterSection" aria-label="Be a master" hidden>
+              <h3 class="cls-h">Be a master (staff and mentors)</h3>
+              <p class="live" id="masterStatus" role="status">Loading...</p>
+              <p class="cert-note">Link your own MetaTrader 5 account. Your open and closed trades are then shared with the members who follow you. Share only an account you are happy for followers to copy.</p>
+              <form id="masterForm" class="bot-form" novalidate>
+                <div class="field"><label for="master-name">Name followers see</label><input id="master-name" type="text" maxlength="40" /><p class="formErr" id="master-e-name" role="alert"></p></div>
+                <div class="field"><label for="master-about">About your trading (optional)</label><textarea id="master-about" rows="2" maxlength="200"></textarea></div>
+                <label class="bot-switch"><input type="checkbox" id="master-listed" /> <b>Listed</b> (members can see and follow me)</label>
+                <p class="formErr" id="master-e-listed" role="alert"></p>
+                <button type="submit" class="btn primary wide">Save master profile</button>
+                <p class="formErr" id="masterMsg" role="status"></p>
+              </form>
+              <div class="bot-steps">
+                <p><b>1.</b> Press <b>Link account</b> to make your master key (it starts with MK-).</p>
+                <p><b>2.</b> Press <b>Download connector</b> and put the file in MT5 (File &gt; Open Data Folder &gt; MQL5 &gt; Experts), then compile it in MetaEditor (F7).</p>
+                <p><b>3.</b> In MT5, go to Tools &gt; Options &gt; Expert Advisors, tick <b>Allow WebRequest</b> and add <b id="masterSiteUrl"></b>.</p>
+                <p><b>4.</b> Drag <b>ABECFX_Bot_Connector</b> onto any chart and paste your key into <b>InpBotKey</b>. With a master key the connector only reports your trades: it never opens, changes or closes anything. Keep MT5 open (a VPS is best).</p>
+              </div>
+              <div class="pass-actions">
+                <button type="button" class="btn primary" id="masterLinkBtn">Link account</button>
+                <button type="button" class="btn ghost" id="masterDownload">Download connector</button>
+                <button type="button" class="btn ghost" id="masterDisconnect">Disconnect account</button>
+              </div>
+              <div class="bot-key" id="masterKeyBox" hidden>
+                <p class="cert-note">Your master key. It is shown only now. Copy it and paste it into the connector.</p>
+                <code id="masterKey"></code>
+                <button type="button" class="btn ghost" id="masterKeyCopy">Copy key</button>
+              </div>
+              <p class="formErr" id="masterLinkMsg" role="status"></p>
+              <p class="bot-total" id="masterStats"></p>
+              <h3 class="cls-h">Your open trades (as followers see them)</h3>
+              <div class="hb-tablewrap"><table class="cls-table" id="masterOpen"></table></div>
+            </section>
+          </div>
+
+          <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
           <div id="viewCommunity" class="view" hidden>
-            <h2>Mentorship community</h2>
-            <p class="lead">Open the ABEC-FX mentorship community to learn alongside other students and get updates from your mentors.</p>
+            <h2>Community</h2>
+            <p class="lead">Open the ABEC-FX community to learn alongside other students and get updates from your mentors.</p>
             <section class="quizcard communitycard" aria-label="Community links">
               <p class="live" id="communityMsg" role="status">Loading...</p>
               <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp community</a>
               <a id="communityTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram community</a>
-            </section>
-          </div>
-
-          <!-- View: Funds (Alumni members only): the Palliative Fund and any later fund -->
-          <div id="viewFunds" class="view" hidden>
-            <h2>Funds</h2>
-            <p class="lead">Money pools that grow through the ABEC-FX trading system. See how much is in a fund, and the share and amount that are yours.</p>
-            <div id="fundsMount" aria-live="polite"></div>
-          </div>
-
-          <!-- View: Traders community (its own WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
-          <div id="viewTraders" class="view" hidden>
-            <h2>Traders community</h2>
-            <p class="lead">Join the ABEC-FX traders community to share setups and trade alongside other traders.</p>
-            <section class="quizcard communitycard" aria-label="Traders community links">
-              <p class="live" id="tradersMsg" role="status">Loading...</p>
-              <a id="tradersWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp traders community</a>
-              <a id="tradersTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram traders community</a>
             </section>
           </div>
 
@@ -386,7 +442,7 @@
   <script src="/certificate.js"></script>
   <script src="/handbook.js"></script>
   <script src="/workbook.js"></script>
-  <script src="/funds.js"></script>
+  <script src="/copytrading.js"></script>
   <script src="/photo.js"></script>
   <script src="/signature.js"></script>
   <script src="/portal.js"></script>

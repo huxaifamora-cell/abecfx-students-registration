@@ -27,7 +27,7 @@
     currentReg = d.regNumber;
     if (sel && !explicit) sel.value = kindOfStatus(d.status); // main card of a person found without choosing a kind
     labelFor();
-    mount.replaceChildren(window.renderStudentCard(d, { viewOnly: true }));
+    mount.replaceChildren(window.renderStudentCard(d));
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     liveLine.textContent = note ? note.text : "Live record, checked at " + t;

@@ -226,11 +226,3 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .cert-signer img { max-width: 100%; max-height: 90px; justify-self: start; margin-top: 4px; }
 .cert-signer .warn { color: #8a5a00; font-weight: 600; }
 @media (max-width: 760px) { .idc-admin { grid-template-columns: 1fr; } .idc-list { max-height: 260px; } }
-
-/* Funds tab */
-.fn-head-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.fn-head-tools .btn { height: 40px; padding: 0 16px; }
-.fn-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.fn-pay { display: block; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
-.fn-problems { margin-top: 10px; padding: 10px 14px; border: 1px solid #e8b64c; background: #fff8e6; border-radius: 12px; font-size: .88rem; display: grid; gap: 4px; }
-.fn-problems[hidden] { display: none; }
