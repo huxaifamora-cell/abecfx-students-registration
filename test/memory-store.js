@@ -12,6 +12,11 @@ const HEADERS = {
   botaccounts: ["Reg Number", "Key Hash (do not edit)", "Linked At (Lagos)", "Bot On", "Lot Size", "Stop Loss (account currency)", "Take Profit (account currency, 0 = none)", "Positions Per Trade", "Max Daily Trades", "Index Types", "Risk Accepted At (Lagos)", "Updated At (Lagos)", "Last Account Details (do not edit)"],
   botorders: ["Reg Number", "Order ID", "Created At (UTC)", "Lagos Date", "Signal", "Symbol", "Side", "Lot Size", "Positions Asked", "Positions Opened", "Result", "Detail"],
   bottrades: ["Reg Number", "Position", "Deal", "Symbol", "Type", "Lots", "Open Time (UTC)", "Open Price", "Close Time (UTC)", "Close Price", "Profit", "Swap", "Order", "Recorded At (Lagos)"],
+  copymasters: ["Master Code", "Reg Number", "Key Hash (do not edit)", "Linked At (Lagos)", "Display Name", "About", "Listed (Yes/No)", "Active (No blocks this master)", "Last Account Details (do not edit)", "Updated At (Lagos)", "Hosted On ABEC-FX VPS (Yes/No)"],
+  copyfollows: ["Reg Number", "Master Code", "Following (Yes/No)", "Lot Size", "Max Open Copied Trades", "Max Daily Copied Trades", "Followed At (UTC)", "Risk Accepted At (Lagos)", "Updated At (Lagos)"],
+  copytrades: ["Master Code", "Ticket", "Symbol", "Side", "Lots", "Open Time (UTC)", "Open Price", "Stop Loss", "Take Profit", "Status", "Close Time (UTC)", "Close Price", "Profit", "Recorded At (Lagos)", "Closing Deals (do not edit)"],
+  copyorders: ["Reg Number", "Order ID", "Created At (UTC)", "Lagos Date", "Master Code", "Master Ticket", "Action", "Symbol", "Side", "Lot Size", "Stop Loss", "Take Profit", "Result", "Detail"],
+  hostingrequests: ["Request ID", "Reg Number", "Requested At (Lagos)", "Status", "MT5 Account Number", "Broker Server", "Account Type", "Consent Given At (Lagos)", "VPS Slot (admin)", "Admin Note", "Updated At (Lagos)", "Updated By"],
   quiz: ["Submitted At (Lagos)", "Reg Number", "Full Name", "Score", "Total Questions", "Percent", "Grade", "Attempt", "Telegram ID", "Breakdown (JSON)", "Submitted (UTC)"],
   progress: ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"],
   links: ["Key (do not edit)", "What it is", "Value"],
@@ -33,7 +38,7 @@ function student(n, over = {}) {
 
 function createMemoryStore(seed = {}) {
   const fit = (row, w) => { const r = (row || []).map((c) => (c == null ? "" : String(c))); while (r.length < w) r.push(""); return r.slice(0, w); };
-  const data = { students: [], codes: [], quizcodes: [], classes: [], attendance: [], botaccounts: [], botorders: [], bottrades: [], quiz: [], progress: [], links: [], videos: [], photos: [], signatures: [], dobchanges: [], staff: [], roles: [] };
+  const data = { students: [], codes: [], quizcodes: [], classes: [], attendance: [], botaccounts: [], botorders: [], bottrades: [], copymasters: [], copyfollows: [], copytrades: [], copyorders: [], hostingrequests: [], quiz: [], progress: [], links: [], videos: [], photos: [], signatures: [], dobchanges: [], staff: [], roles: [] };
   for (const k of Object.keys(seed)) data[k] = seed[k].map((r) => r.slice());
   const width = (key) => HEADERS[key].length;
   const calls = []; // what was written, for the tests to look at
