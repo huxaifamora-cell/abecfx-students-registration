@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 1 Nov 2026, 23:06 (Lagos time), after the **copy trading** change (alumni members copy a master's trades; any mentor or staff member can be a master; everything is kept in new Google Sheet tabs). Before it came change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 1 Nov 2026, 23:25 (Lagos time), after change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -35,7 +35,11 @@
 
 16. **Change 13 (owner, 26 Oct 2026): the "Find a student" dropdown offers Student ID card, Alumni ID card, Staff ID card and Certificate.** A person can be a student (certified or uncertified) and also a staff member; a person can be a staff member with no Student ID; what each person has depends on what the admin ticked; the certificate is only for Certified students [DONE, awaiting live check].
 
-17. **Copy trading (owner, 1 Nov 2026): the primary feature for Alumni members, everything through the Google Sheet database.** Owner's choices: any mentor or staff member can be a master and alumni choose who to follow; each alumnus sets their own fixed lot size; followers mirror the master's close and any stop loss / take profit change [BUILT, awaiting live check, see section 3].
+17. **Change 14 (owner, 26 Oct 2026): in the admin dashboard, if a person has more than one ID card, clicking their name under the ID cards tab shows all of them** [DONE, awaiting live check].
+
+18. **Change 15 (owner, 1 Nov 2026): Funds under Trading. The first fund is the Palliative Fund, a fund that sponsors new Alumni members to start trading.** It is meant to connect to the trading bot and, later, the copy-trading system, which will be used to grow the fund. Alumni members can see how much is in the fund and the percentage and amount that is theirs through compounding, and they can request a withdrawal [DONE, awaiting live check. The copy-trading connection is not built yet; the fund is ready for it].
+
+19. **Change 16 (owner, 1 Nov 2026): copy trading, the primary feature for Alumni members, everything through the Google Sheet database.** Owner's choices: any mentor or staff member can be a master and alumni choose who to follow; each alumnus sets their own fixed lot size; followers mirror the master's close and any stop loss / take profit change [BUILT, awaiting live check, see section 3].
 
 ## 2. Decisions
 
@@ -103,6 +107,13 @@
 | 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Staff Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old staff member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
 | 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Staff ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|staff`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Staff ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then staff) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Staff ID card's QR opens the Staff ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
 | 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Staff Member, Alumni Member) beside Status; the role box shows only while Staff Member is ticked; **Not a student** is refused unless Staff Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then staff), so they add up to the total; the **Staff** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
+| 2026-11-01 | **Change 15: a new Funds page under Trading (Alumni members only), first fund = Palliative Fund.** Menu: Trading > Funds (hidden for anyone without the Alumni ID card; a non-Alumni who opens `#/funds` is told it is for Alumni members). The page shows the fund's total, its growth since the start (with a small chart), the member's own share in percent, their amount, what was put in for them, what they withdrew and their gain, a table of the fund's recent results, their own activity and their withdrawal requests. More funds can be added later in one place (`FUNDS` in `fund.js`); the page lists them and opens one | Owner request. **Assumed:** only Alumni members see Funds (as for Signals and Bot trading); a member sees the fund as a whole and **only their own** share, never another member's. The Palliative Fund description on the page is a **draft I wrote**; replace it in `fund.js`. |
+| 2026-11-01 | **How a member's share and amount compound: units, like a unit trust.** The fund is cut into units. Money paid in buys units at the current unit value (it starts at 1.0000). A trading result changes the unit value, never anyone's units, so every member's amount moves by the same percentage and the profit already made keeps compounding. Someone who joins later pays today's unit value and does not take earlier profit; a loss is shared in proportion. A member's percentage = their units / all units | Owner asked for "the percentage and amount that is theirs through compounding". This is the standard fair way to share a pool that members join and leave at different times; a simple "percent of money put in" would be wrong as soon as anyone joins or withdraws after the first result. |
+| 2026-11-01 | **The fund keeps one append-only ledger** on a new sheet tab **Fund Ledger** (deposit, sponsorship, result, withdrawal). Every balance is worked out by replaying it from the top, so the sheet is the single source of truth. A second new tab, **Fund Withdrawals**, holds the requests. Neither tab appears in the Database view (hand edits would corrupt the balances). A ledger row typed wrongly by hand is skipped and listed under the fund in the dashboard | Keeps the numbers auditable and impossible to drift. |
+| 2026-11-01 | **Money in: RESERVE and sponsorship.** The admin records money paid into the fund (**Add money**). With no registration number it goes into the **Fund reserve**, a holder like any member, so percentages always add to 100%. **Sponsor an Alumni member** moves part of the reserve to that member at the current unit value, which becomes their share. Money can also be added straight to one Alumni member. Only Alumni members can hold a share. A person who holds or has withdrawn money in a fund **cannot be deleted** from the Database (it would leave the ledger pointing at nobody); changing their registration number carries their fund records with them | **Assumed:** the fund's own money is paid in by ABEC-FX, and a sponsorship is a share the member owns (and can withdraw), not a loan. |
+| 2026-11-01 | **Trading results.** The admin records a result (**Record a trading result**) as a profit or loss amount, or as the fund's new total value. This is also the one place the **copy-trading system will call later** (`fundService.performance(fundId, { amount, source: "copytrading", ref })`); a `ref` such as a day or batch id makes sending the same result twice record it once. Nothing in the bot trading or copy trading code is connected yet | Owner: the copy-trading system "will come later and will be used to grow the fund". |
+| 2026-11-01 | **Withdrawals: the member asks, the admin pays.** A member asks for an amount (up to their share) or "withdraw everything", and says where to send the money. One request at a time per fund; the member can cancel while it waits. Nothing leaves the fund until the admin has sent the money and presses **Mark paid**: only then the member's units are removed at that day's unit value, and the request shows Paid. The admin may pay less than asked but never more than the share is worth; **Reject** needs a reason the member sees | Owner: "they can request for withdrawal". **Assumed:** payment is made by hand outside the site (no payment service connected), and there is no lock-in period or minimum. |
+| 2026-11-01 | **A new dashboard access, "Funds"** (staff.js). Owner and Admin have it; Editor and Moderator do not; a custom role can be given it. The new **Funds** tab shows the fund's value, growth, reserve, forms to add money, sponsor and record a result, the withdrawal requests (Mark paid / Reject), who holds what, and the latest 60 ledger entries. Amounts are in **USD** unless the Render variable `FUND_CURRENCY` is set; `FUNDS=off` switches the feature off | **Assumed:** USD, like the MT5 bot accounts. |
 | 2026-11-01 | Copy trading: any mentor or staff member (Staff ID card) can be a master; an alumnus follows ONE master at a time | Owner's choice. One master keeps the limits and the copies easy to understand. |
 | 2026-11-01 | Copy trading: the follower's lot size is their own fixed number; the master's stop loss and take profit prices are copied; the master's close and SL/TP changes are mirrored | Owner's choice. |
 | 2026-11-01 | Copy trading safety: only trades opened after the member started following, within 60 seconds of the website seeing them, and only once they have a stop loss; nothing changes while the master is offline; the first report after a restart copies nothing | Late entries are bad entries, and a silent connector must never close anybody's trades by mistake. Built into `copy.js` and covered by tests. |
@@ -172,9 +183,11 @@
 **Change 9 (Database tab) checks:** `npm test` runs 30 unit checks on `admin-database.js` against an in-memory sheet (`test/`): locked columns, every field rule, duplicate email, country and state, stale records (409), adding and deleting students (number never reused, cascade removes photo, quiz results and progress), quiz score recalculation, progress chapters, code adding and refusing, links and video checks, fixed tables refuse add and delete, formulas kept as plain text. The real `server.js` and the dashboard were then run with an in-memory sheet and a stand-in for Express (the build sandbox cannot reach npm): 11 checks over HTTP and **44 checks in a headless browser** (login, paging, search, add, edit, delete with confirmation, errors on the right fields, state list following the country, stale edit refused, quiz and progress add and edit, student delete cascade, unsafe link refused, sign-out clears the table, no console errors, no sideways scroll on a phone). A bug found and fixed in that run: the fifth tab made the page wider than a phone, so the tab bar now wraps. **Not tested:** real Google Sheets (the exact calls `values:batchUpdate`, `deleteDimension` and append were written from the Google Sheets API but never sent, including deleting several rows in one request for the cascade), `npm install`, Render.
 **Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
+**New (change 15, Funds):** `fund.js` (rules), a Funds page in the portal (`public/funds.js`) and a Funds tab in the dashboard (`public/admin-funds.js`). **Checked:** 17 unit tests in `test/fund.test.js` (units and compounding, a later joiner not taking earlier profit, sponsorship from the reserve, results by amount or new value, the copy-trading hook not double-counting, the withdrawal flow end to end including a half-finished payment being completed rather than repeated, a member never seeing another member's share, hand-typed bad rows skipped, two actions at once, the delete guard) and 1 test over HTTP in `test/fund-http.test.js` (Alumni only, dashboard access, the full flow through the real `server.js`). The two new pages were also run in a simulated browser against the real server: the member page drew the totals, share, chart and form; a withdrawal was requested through the form; the dashboard showed it, marked it paid and refused to sponsor a non-Alumni. **Not seen in a real browser** (no screenshots or phone check) and **not seen on live Render or against the real Google Sheet**. The copy-trading connection does not exist yet. **Existing tests:** 9 tests in the older suites (e.g. the Database "meta" list, locked columns, add-a-student defaults, community links, under-age date of birth, photo redo, certificate dashboard) already failed on the uploaded project before this change, for reasons unrelated to Funds, and still fail; `test/team.test.js` is a stale copy that cannot run. The change did not add a failure.
+
 ### Copy trading (built 1 Nov 2026, awaiting live check)
 
-- **Code:** `copy.js` (all the rules), routes in `server.js`, page `public/copytrading.js` plus the Copy trading view in `public/portal.html`, MT5 connector `private/bot/ABECFX_Bot_Connector.mq5` v1.10, tests in `test/copy.test.js` (26 tests, 25 pass, 1 skipped only because `google-auth-library` is not installed in the sandbox).
+- **Code:** `copy.js` (all the rules), routes in `server.js`, page `public/copytrading.js` plus the Copy trading view in `public/portal.html`, MT5 connector `private/bot/ABECFX_Bot_Connector.mq5` v1.10, tests in `test/copy.test.js` (29) and `test/hosting.test.js` (8); all pass except one check skipped only because `google-auth-library` is not installed in the sandbox. Deleting a student in the Database view now also removes their copy trading and hosting rows (`admin-database.js`).
 - **Sheet tabs (made by the website on start):** `Copy Masters`, `Copy Follows`, `Copy Master Trades`, `Copy Orders`. An admin can set **Active** to **No** on a master's row to block that master. They are not shown in the Database view.
 - **Masters:** a Staff ID card holder opens Copy trading, sets a name and a line about themselves, makes a master key (starts with `MK-`) and puts it in the same connector file. With an `MK-` key the connector only REPORTS the master's open and closed trades. It never trades.
 - **Followers:** an Alumni member links their MT5 on the Bot trading page (the same connector), then picks a master on the Copy trading page, sets lot size, most trades open and most trades a day, and accepts the risk once. Copies are tagged in MT5 with the comment `C<masterCode>-<masterTicket>`.
@@ -186,8 +199,13 @@
 
 ## 4. Next steps
 
+0c. **Funds and copy trading are not connected yet.** The Funds notes say copy trading should report its results to the Palliative Fund through `fundService.performance(...)`. That is NOT built: it needs your answers to the open Funds questions first (which trades count, whose account, how results are totalled).
 0b. **Hosting and the Deriv API question.** Before switching `VPS_HOSTING` on, settle custody, broker terms, licensing and payment. A Deriv API version of copy trading would be a separate build: it needs a Deriv API app and a demo token to test against.
 0. **Copy trading: test on demo accounts, then on a small real one.** Set `COPY_TRADING=on`, make a master key for a Staff ID holder, run the connector on a demo master and a demo follower, and watch one trade open, change and close. Then decide: an admin screen for masters (list, block, see followers) and the master's performance chart.
+
+**Owner action for change 15 (Funds):** push the new `fund.js`, `public/funds.js`, `public/admin-funds.js`, `test/fund.test.js`, `test/fund-http.test.js`, and the changed `server.js`, `sheets.js`, `staff.js`, `admin-database.js`, `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `test/staff.test.js`, `test/support/memory-store.js`, `status/STATUS-SOURCE.md`, `status/build.js`, `PROJECT-STATUS.md` and `README.md`. No new package and no required variable (optional: `FUND_CURRENCY`, `FUNDS=off`). On start the site adds two tabs, **Fund Ledger** and **Fund Withdrawals**. Owner and Admin get the Funds tab automatically; give anyone else the **Funds** access on the Staff tab. Then try it with a test member: in `/admin` > Funds, **Add money** (no number) to fill the reserve, **Sponsor** an Alumni member, **Record a trading result**; sign in as that member, open **Trading > Funds**, check the amount and percentage, ask for a withdrawal, and **Mark paid** it. Use small test amounts first.
+
+**Next for Funds (not built):** connect the copy-trading system so it calls `fundService.performance(...)` with its results; decide the answers to questions 18 to 22 below.
 
 **Owner action for change 13:** push the changed `idrules.js`, `sheets.js`, `server.js`, `stats.js`, `admin-database.js`, `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js`, `public/admin.js`, the `test/` folder, `status/STATUS-SOURCE.md` and `PROJECT-STATUS.md`. No new Render variable and no new package. On start the site adds the two headers (Staff Member, Alumni Member) to the Students tab and refreshes the Status dropdown. Then in `/admin` > Database > Students (or in the sheet) tick **Staff Member** and/or **Alumni Member** for the right people, and set **Status** to **Not a student** for anyone who is staff only. Check on `/status`: pick each of the four choices for a student who is also a staff member; a Certified student shows a certificate, an Uncertified one does not.
 
@@ -270,19 +288,27 @@
 13. The handbook PDF is private (10-minute links). Is that right, or should it be a normal public download?
 16. A student added in the Database tab has no photo. Should there be a way to upload a photo there?
 17. Deleting a student also deletes their quiz results and progress. Would you rather keep the quiz results?
+18. **Funds: who pays the money into the Palliative Fund, and is a sponsorship a gift the member can fully withdraw?** As built, ABEC-FX adds the money, the sponsored member owns that share and may withdraw all of it. Should there be a lock-in period, a minimum before withdrawal, or part of the profit kept by the fund?
+19. **Funds: are amounts in USD?** Set by `FUND_CURRENCY` (default USD). Say if the fund is in naira or another currency.
+20. **Funds: how are withdrawals paid?** Built as a request the admin pays by hand (bank or wallet details typed by the member, shown to the admin). Do you want a different payout method or a fee?
+21. **Funds: should members see how many members are in the fund and the fund's total?** Built: yes, both. Nobody ever sees another member's share. Say if the total or member count should be hidden.
+22. **Funds and copy trading: how will the fund's money be linked to the copy-trading accounts, and how often will results be reported (daily, per trade)?** The fund only needs a profit or loss number and a reference per report.
 
 ## 6. Change log (newest first)
 
 | Date | Change |
 | --- | --- |
+| 2026-11-01 | **Change 15: Funds under Trading, first fund the Palliative Fund.** New `fund.js` (units ledger, sponsorship from a reserve, results, withdrawals), `public/funds.js` (portal page), `public/admin-funds.js` (dashboard tab); `sheets.js` (new **Fund Ledger** and **Fund Withdrawals** tabs); `server.js` (`/api/portal/funds...` for Alumni, `/api/admin/funds...` for the new access, shared Alumni gate); `staff.js` (new **Funds** access); `admin-database.js` (a person with fund records cannot be deleted; registration-number changes follow); `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`; tests `test/fund.test.js`, `test/fund-http.test.js`, `test/staff.test.js`; test helper `test/support/memory-store.js` (also repaired: it lacked the signatures, DOB changes and photo-change columns, which made 4 existing tests fail). 18 new tests. |
 | 2026-11-01 | **Member hosting requests.** `hosting.js` (new); `server.js` (member and admin routes, `VPS_HOSTING`, `hosting` access); `sheets.js` (tab `Hosting Requests`); `staff.js` (new access key `hosting`); `public/admin.html`, `public/admin.js` (VPS hosting tab); `public/portal.html`, `public/copytrading.js` (member request form); `docs/VPS-SETUP.md`; `env.example`; `test/hosting.test.js`, `test/staff.test.js`, both memory stores. |
 | 2026-11-01 | **Central VPS for masters.** `docs/VPS-SETUP.md` (new); `copy.js`, `sheets.js` and both test memory stores (new column K "Hosted On ABEC-FX VPS (Yes/No)" on Copy Masters); `public/copytrading.js` (shows "(ABEC-FX VPS)"); `test/copy.test.js` (27 tests). |
 | 2026-11-01 | **Copy trading.** New `copy.js`; `server.js` (copy routes, the connector report now also carries copy orders, master keys `MK-`, `COPY_TRADING` switch, connector download for staff too); `sheets.js` (four new tabs); `public/copytrading.js`, `public/portal.html`, `public/portal.js` (Copy trading page); `private/bot/ABECFX_Bot_Connector.mq5` v1.10 (COPYOPEN / COPYMOD / COPYCLOSE and master mode); `env.example`; `test/copy.test.js` and both memory stores. |
 | (earlier, not logged at the time) | The code already had `signals.js` (Signals page and alerts), `bot.js` (Bot trading with the MT5 connector and its three sheet tabs) and `attendance.js` (live class attendance). They were never added to this file. |
+| 2026-10-26 | **Change 14: admin ID cards tab shows every card a person holds.** `server.js` (`/api/admin/id-cards` adds `allCards`, one card per Student / Alumni / Staff ID card the person holds); `public/admin.js` (clicking a name draws each card under the other with its own Download button; the list shows "2 ID cards" for people with several); `public/admin.html` (one mount box, old single Download button removed); `public/admin.css` (spacing between cards). Owner action: push those four files. |
 | 2026-10-26 | **Rename "Find a student" to "Check ID".** Text only in `public/status.html`, `public/status.js`, `public/certificate.html`, `public/register.html`, `public/portal.html`, `public/admin.html`, `public/card.js`, `public/lookup-kind.js`, `public/styles.css`, `server.js` (comments), `README.md` |
 | 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Staff ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
 | 2026-10-26 | **Change 12: certificate design.** New `public/certificate-art.js` (the real bull-horn logo and the gold seal as embedded pictures); `public/certificate.js` rewritten around the measured background shapes of the owner's design, canvas 1280 x 909, new title, logo, seal, stamp, certificate number and CAC-tag positions, PDF keeps proportions; `portal.html`, `admin.html` and `certificate.html` load `certificate-art.js` before `certificate.js`; `status/build.js` now also embeds the certificate files in the latest-code section. |
 | 2026-10-18 | **Community page in the student portal.** New **Community** item in the portal's My portal menu (`#/community`) with a "Join on WhatsApp" and a "Join on Telegram" button that open the official group in a new tab. The addresses are two new fields on the dashboard's **Site links** tab (`communityWhatsapp`, `communityTelegram`, https only); when one is empty the page uses the official WhatsApp / Telegram already on Site links, and if nothing is set it says the link is coming soon. The community links are served only to signed-in students (`GET /api/community`) and are left out of the public `/api/links`. On startup the site adds the two missing rows to the Site Links tab. Files: `links.js`, `server.js`, `sheets.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `test/community.test.js`, `test/support/boot-server.js`, `test/support/fake-sheets.js`, `test/quiz-gate.test.js`. 3 new tests. |
+| 2026-11-01 | **Portal menu regrouped into ID Card, Trading and Mentorship.** The flat 8-tab portal submenu is now 3 primary items: **ID Card** (direct), **Trading** dropdown (Signals, Bot trading, Traders community) and **Mentorship** dropdown (Handbook, Workbook, Community, Live class, Quiz). Existing page addresses are unchanged; new `#/traders` page. Signals and Bot trading still show for Alumni only. The Traders community has its own two group links (`tradersWhatsapp`, `tradersTelegram`, set on the dashboard's **Community** tab with the same access as the Mentorship ones; `GET /api/traders-community`, students only, kept off the public `/api/links`). On startup the site adds the two missing rows to the Site Links tab. Files: `links.js`, `server.js`, `public/portal.html`, `public/portal.js`, `public/styles.css`, `public/admin.html`, `README.md`, `test/community.test.js`. 1 new test. |
 | 2026-10-26 | **Find a student now has an ID card / Certificate dropdown.** "Check a certificate" is removed from the main menu (and the phone tab bar); "Find a student" is the one entry. Its page opens with a dropdown, **ID card** or **Certificate**, and choosing one opens that lookup (the certificate page keeps "Find a student" highlighted). New `public/lookup-kind.js`; changed `public/status.html`, `public/certificate.html`, `public/styles.css`. Owner action: push those four files. |
 | 2026-10-18 | **Menu tweak (after change 11): "Register" is hidden from the main menu once someone is registered or signed in on the device.** New `public/nav.js` (loaded by the portal, register and find-a-student pages) hides the link while the portal sign-in is saved; signing out brings it back, and it is never hidden on the register page itself. A signed-out visitor still sees it, and the portal sign-in screen still has "Register as a new student". On phones the bottom tab bar now splits its width between however many tabs show (`public/styles.css`), so "My portal" and "Find a student" fill the space Register leaves. Owner action: push `public/nav.js`, `public/portal.js`, `public/portal.html`, `public/register.html`, `public/status.html`, `public/styles.css`. |
 | 2026-10-18 | **Change 11: one-time quiz codes.** New `quizcodes.js` (code rules: make, enter, finish, cancel); `sheets.js` (new **Quiz Codes** tab with a Status dropdown); `staff.js` (new **Quiz codes** access); `server.js` (`POST /api/quiz/unlock`, lock on `/api/quiz/session` and `/api/quiz/result`, `unlocked` in `/api/results`, `/api/admin/quiz-codes` routes, optional `QUIZ_CODE_FOR_TELEGRAM`); portal Quiz page (code box, locked and unlocked states); **Quiz codes** dashboard tab; 31 new tests (23 for the code rules, 7 that run the real server over HTTP on a fake sheet, one updated access test). |
@@ -310,7 +336,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 1 Nov 2026, 23:06 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 1 Nov 2026, 23:25 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -336,6 +362,7 @@ const quizcodes = require("./quizcodes");
 const attendanceLib = require("./attendance");
 const signalsLib = require("./signals");
 const botLib = require("./bot");
+const fundLib = require("./fund");
 const copyLib = require("./copy");
 const hostingLib = require("./hosting");
 const session = require("./session");
@@ -1245,6 +1272,18 @@ app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
   }
 });
 
+// Student portal: the Traders community groups (Trading menu). Same rules as the Mentorship community above:
+// signed-in students only, and only the groups set on the dashboard's Community tab are offered.
+app.get("/api/traders-community", linksLimiter, studentAuth, async (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    res.json(links.tradersFor(await store.readLinks()));
+  } catch (err) {
+    console.error("Traders community links read failed:", err.message);
+    res.json(links.tradersFor({}));
+  }
+});
+
 // ---- One-time quiz codes ----
 // The quiz is locked until a student enters a code made by an admin (or a role with the "quizcodes" access).
 // A code opens the quiz for that student until their result is saved; then the quiz locks again and the next
@@ -1778,18 +1817,22 @@ const botTrading = botLib.create(store, {
   },
 });
 
-async function alumniOnly(req, res, next) {
-  res.set("Cache-Control", "no-store");
-  try {
-    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
-    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
-    if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: "Bot trading is for Alumni members." });
-    next();
-  } catch (err) {
-    console.error("Alumni check failed:", err.message);
-    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
-  }
+// Alumni-only gate for the portal pages under Trading. `message` is what a non-Alumni student is told.
+function alumniOnlyWith(message) {
+  return async function (req, res, next) {
+    res.set("Cache-Control", "no-store");
+    try {
+      const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
+      if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+      if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: message });
+      next();
+    } catch (err) {
+      console.error("Alumni check failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
 }
+const alumniOnly = alumniOnlyWith("Bot trading is for Alumni members.");
 const botPortalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
@@ -1980,6 +2023,86 @@ app.post("/api/bot/report", botReportLimiter, async (req, res) => {
   }
 });
 
+// ---- Funds (rules in fund.js): money pools Alumni members share in. The first is the Palliative Fund, which sponsors new
+// Alumni members to start trading. The copy-trading system will later report the fund's trading results through
+// fundService.performance(...), which is the one place a result enters the fund. Switch the whole feature off with FUNDS=off.
+const FUNDS_ON = !/^(0|off|false|no)$/i.test(process.env.FUNDS || "");
+const fundService = fundLib.create(store, {
+  currency: (process.env.FUND_CURRENCY || "USD").toUpperCase().slice(0, 5),
+  stamp: lagosTimestamp,
+  nameOf: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return row ? row[4] || "" : "";
+  },
+  isAlumni: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return Boolean(row && idrules.idKinds(row).alumni);
+  },
+});
+const fundAlumniOnly = alumniOnlyWith("The Funds are for Alumni members.");
+const fundPortalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a moment." },
+});
+function fundRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      if (!FUNDS_ON) return res.status(503).json({ error: "The Funds are switched off for now." });
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof fundLib.FundError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      console.error("Fund request failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+
+app.get("/api/portal/funds", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  res.json({ funds: await fundService.memberList(req.studentReg), currency: fundService.currency });
+}));
+app.get("/api/portal/funds/:id", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+app.post("/api/portal/funds/:id/withdrawals", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  await fundService.requestWithdrawal(req.params.id, req.studentReg, req.body);
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+app.post("/api/portal/funds/:id/withdrawals/:rid/cancel", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  await fundService.cancelWithdrawal(req.params.id, req.studentReg, req.params.rid);
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+
+// Dashboard: any role given the "funds" access (admins and the owner have it). Each action answers with the fund's fresh view.
+const fundsAuth = requirePerm("funds");
+const adminFundView = async (id, res, extra) => res.json({ ...(await fundService.adminView(id)), ...(extra || {}) });
+app.get("/api/admin/funds", adminLimiter, fundsAuth, fundRoute(async (_req, res) => res.json({ funds: fundService.list(), currency: fundService.currency })));
+app.get("/api/admin/funds/:id", adminLimiter, fundsAuth, fundRoute(async (req, res) => adminFundView(req.params.id, res)));
+app.post("/api/admin/funds/:id/deposit", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.deposit(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/allocate", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.allocate(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/performance", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.performance(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/withdrawals/:rid/pay", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.payWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/withdrawals/:rid/reject", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.rejectWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+
 // ---- Alumni signals: the Boom / Crash setup monitor (rules and Deriv connection in signals.js) ----
 // Off unless SIGNALS=on. Only students who hold the Alumni ID card can read it.
 const SIGNALS_ON = /^(1|on|true|yes)$/i.test(process.env.SIGNALS || "");
@@ -2167,6 +2290,7 @@ const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 const attendance = require("./attendance");
 const bot = require("./bot");
+const fund = require("./fund");
 const copy = require("./copy");
 const hosting = require("./hosting");
 
@@ -2258,6 +2382,15 @@ const BOTTRD_TAB = process.env.GOOGLE_BOTTRADE_TAB || "Bot Trades";
 const BOTTRD_HEADERS = bot.TRADE_HEADERS;
 const BOTTRD_LAST_COL = "N";
 
+// Funds (see fund.js): the ledger of every deposit, sponsorship, trading result and withdrawal, and the members'
+// withdrawal requests. Managed from the portal's "Funds" page and the dashboard's "Funds" tab, never the Database view,
+// because the ledger is replayed from the top to work out every balance.
+const FUNDLED_TAB = process.env.GOOGLE_FUNDLEDGER_TAB || "Fund Ledger";
+const FUNDLED_HEADERS = fund.LEDGER_HEADERS;
+const FUNDLED_LAST_COL = "N";
+const FUNDWD_TAB = process.env.GOOGLE_FUNDWITHDRAWAL_TAB || "Fund Withdrawals";
+const FUNDWD_HEADERS = fund.WITHDRAWAL_HEADERS;
+const FUNDWD_LAST_COL = "N";
 // Copy trading (see copy.js): the masters (staff and mentors), who follows whom with what settings, every trade of every
 // master, and every copy order sent to a follower. Managed from the portal's "Copy trading" page, never through the Database view.
 // An admin can set Active to No on a master row to block that master, or edit a follower's row by hand.
@@ -2426,6 +2559,11 @@ async function init() {
   await ensureHeaders(COPYORDER_TAB, COPYORDER_HEADERS, COPYORDER_LAST_COL);
   await ensureTab(HOSTREQ_TAB);
   await ensureHeaders(HOSTREQ_TAB, HOSTREQ_HEADERS, HOSTREQ_LAST_COL);
+
+  await ensureTab(FUNDLED_TAB);
+  await ensureHeaders(FUNDLED_TAB, FUNDLED_HEADERS, FUNDLED_LAST_COL);
+  await ensureTab(FUNDWD_TAB);
+  await ensureHeaders(FUNDWD_TAB, FUNDWD_HEADERS, FUNDWD_LAST_COL);
 
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
@@ -2835,6 +2973,9 @@ const EDITOR_TABS = {
   botaccounts: { title: BOTACC_TAB, headers: BOTACC_HEADERS, lastCol: BOTACC_LAST_COL },
   botorders: { title: BOTORD_TAB, headers: BOTORD_HEADERS, lastCol: BOTORD_LAST_COL },
   bottrades: { title: BOTTRD_TAB, headers: BOTTRD_HEADERS, lastCol: BOTTRD_LAST_COL },
+  // Internal only: the funds' ledger and withdrawal requests. Managed through fund.js, the portal's "Funds" page and the "Funds" dashboard tab.
+  fundledger: { title: FUNDLED_TAB, headers: FUNDLED_HEADERS, lastCol: FUNDLED_LAST_COL },
+  fundwithdrawals: { title: FUNDWD_TAB, headers: FUNDWD_HEADERS, lastCol: FUNDWD_LAST_COL },
   // Internal only: copy trading masters, follows, master trades and copy orders. Managed through copy.js and the portal's "Copy trading" page.
   copymasters: { title: COPYMASTER_TAB, headers: COPYMASTER_HEADERS, lastCol: COPYMASTER_LAST_COL },
   copyfollows: { title: COPYFOLLOW_TAB, headers: COPYFOLLOW_HEADERS, lastCol: COPYFOLLOW_LAST_COL },
@@ -3036,6 +3177,7 @@ const PERMS = [
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
   { key: "attendance", label: "Attendance", help: "Start and end live classes and see who attended (present for at least half of the class)." },
   { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
+  { key: "funds", label: "Funds", help: "Record money paid into a fund, give sponsorships to Alumni members, record the fund's trading results and pay or reject withdrawal requests." },
   { key: "hosting", label: "VPS hosting", help: "See members' requests to have their connector hosted on the ABEC-FX VPS, approve or decline them, track the VPS slot and make their connector key." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "staff", label: "Staff and roles", help: "Add staff members, create roles and choose their access." },
@@ -3518,6 +3660,496 @@ module.exports = {
 };
 ```
 
+#### `fund.js`
+
+```js
+// Funds: money pools that Alumni members can share in. The first one is the Palliative Fund, which sponsors new
+// Alumni members so they can start trading. Later the copy-trading system will trade the pool and report its
+// results here (see recordPerformance), so the pool grows and every member's share grows with it.
+//
+// HOW THE MONEY IS COUNTED (units, like a unit trust)
+//   The fund is cut into UNITS. Whoever puts money in receives units at the current unit value. Nobody's units
+//   change when the fund makes or loses money; the unit value does. So a member's share (units / all units) stays
+//   the same until money moves in or out, and their amount (units x unit value) compounds with every result
+//   the fund records. That is what lets a member see "how much is in the fund, and the percentage and amount
+//   that is mine", and lets a member who joins later come in at a fair price instead of taking old profit.
+//
+//   RESERVE is a holder too: money paid into the fund that no member owns yet. The admin gives (allocates) part of
+//   the reserve to a member as a sponsorship. Because the reserve holds units, the percentages always add to 100%.
+//
+// Everything is one append-only LEDGER (sheet tab "Fund Ledger"). The state of a fund is always worked out by
+// replaying the ledger from the top, so the sheet is the single source of truth and nothing can drift. Only the
+// Type, Holder and Amount columns are read back; the other columns (units, value after ...) are for human eyes.
+//
+//   deposit      money paid into the fund for a holder (a member or RESERVE); the holder gets units
+//   allocate     a sponsorship: units move from RESERVE to a member
+//   performance  the fund made (+) or lost (-) money; changes the value, not the units
+//   withdrawal   money paid out to a member; their units are removed
+//
+// Withdrawals are asked for by the member (tab "Fund Withdrawals") and paid by the admin, who then marks them paid;
+// only then does the ledger record the withdrawal, at the unit value of that moment.
+const crypto = require("crypto");
+
+// The funds that exist. To add another fund, add it here (the pages and the sheet follow).
+const FUNDS = [
+  {
+    id: "palliative",
+    name: "Palliative Fund",
+    tagline: "Sponsorship for new Alumni members starting to trade",
+    description:
+      "The Palliative Fund sponsors new Alumni members so they can start trading with real capital behind them. The fund is grown by the ABEC-FX copy-trading system, and every member's share grows with it.",
+  },
+];
+
+const RESERVE = "RESERVE";
+const TYPES = ["deposit", "allocate", "performance", "withdrawal"];
+const LEDGER_HEADERS = [
+  "Entry ID", "Fund", "Date (Lagos)", "Type", "Holder (Reg Number or RESERVE)", "Amount", "Units",
+  "Fund Value After", "Total Units After", "Unit Value After", "Source", "Ref", "Note", "By",
+];
+const L = { id: 0, fund: 1, date: 2, type: 3, holder: 4, amount: 5, units: 6, valueAfter: 7, unitsAfter: 8, unitValue: 9, source: 10, ref: 11, note: 12, by: 13 };
+
+const WITHDRAWAL_HEADERS = [
+  "Request ID", "Fund", "Reg Number", "Requested At (Lagos)", "Amount", "Withdraw Everything", "Payout Details",
+  "Status", "Decided At (Lagos)", "Decided By", "Note", "Amount Paid", "Units Removed", "Ledger Entry",
+];
+const W = { id: 0, fund: 1, reg: 2, at: 3, amount: 4, all: 5, details: 6, status: 7, decidedAt: 8, decidedBy: 9, note: 10, paid: 11, units: 12, entry: 13 };
+const STATUSES = ["Pending", "Paid", "Rejected", "Cancelled"];
+
+const MIN_MONEY = 0.01;
+const MAX_MONEY = 100000000;
+const CACHE_MS = 8000;
+const HISTORY_POINTS = 120;
+
+class FundError extends Error {
+  constructor(status, message, fields) {
+    super(message);
+    this.status = status;
+    if (fields) this.fields = fields;
+  }
+}
+
+const r2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const r6 = (n) => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+const normReg = (v) => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+const oneLine = (v, max) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+const newId = (prefix) => prefix + "-" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
+
+function fundById(id) {
+  return FUNDS.find((f) => f.id === String(id || "").trim().toLowerCase()) || null;
+}
+
+// Read an amount of money someone typed. Returns a number rounded to 2 places, or throws a FundError for `field`.
+function money(v, field, { allowNegative = false, label = "Amount" } = {}) {
+  const s = typeof v === "string" ? v.replace(/[,\s]/g, "") : v;
+  const n = Number(s);
+  if (s === "" || s == null || !Number.isFinite(n)) throw new FundError(400, "Please fix the highlighted field.", { [field]: label + " must be a number." });
+  const x = r2(n);
+  if (allowNegative) {
+    if (x === 0 || Math.abs(x) > MAX_MONEY) throw new FundError(400, "Please fix the highlighted field.", { [field]: label + " must not be 0, and must be under " + MAX_MONEY.toLocaleString("en-US") + "." });
+  } else if (x < MIN_MONEY || x > MAX_MONEY) {
+    throw new FundError(400, "Please fix the highlighted field.", { [field]: label + " must be from " + MIN_MONEY + " to " + MAX_MONEY.toLocaleString("en-US") + "." });
+  }
+  return x;
+}
+
+// ---------- The state of one fund, worked out from its ledger entries ----------
+function emptyState() {
+  return { value: 0, units: 0, holders: new Map(), history: [], applied: 0, problems: [], refs: new Set() };
+}
+const unitValueOf = (s) => (s.units > 0 ? s.value / s.units : 1);
+function holderOf(s, h) {
+  if (!s.holders.has(h)) s.holders.set(h, { units: 0, in: 0, out: 0 });
+  return s.holders.get(h);
+}
+const holderValue = (s, h) => (s.holders.has(h) ? r2(s.holders.get(h).units * unitValueOf(s)) : 0);
+
+// Apply one entry to the state. Returns what it did ({ amount, units }) or throws a FundError saying why it cannot be.
+// Used both to replay the ledger and to check a new entry before it is written, so the two can never disagree.
+function apply(s, e) {
+  const nav = unitValueOf(s);
+  if (e.type === "deposit") {
+    if (!e.holder) throw new FundError(400, "Choose who the money is for.");
+    if (s.units > 0 && s.value <= 0) throw new FundError(409, "The fund has no value left, so money cannot be added until that is sorted out.");
+    const units = r6(e.amount / nav);
+    if (units <= 0) throw new FundError(400, "That amount is too small.");
+    const h = holderOf(s, e.holder);
+    h.units = r6(h.units + units); h.in = r2(h.in + e.amount);
+    s.units = r6(s.units + units); s.value = r2(s.value + e.amount);
+    return { amount: e.amount, units };
+  }
+  if (e.type === "allocate") {
+    if (!e.holder || e.holder === RESERVE) throw new FundError(400, "Choose the member to sponsor.");
+    const res = holderOf(s, RESERVE);
+    const worth = r2(res.units * nav);
+    if (e.amount > worth + 0.005) throw new FundError(409, "The reserve only holds " + worth.toFixed(2) + ". Add money to the reserve first.");
+    let units = r6(e.amount / nav);
+    if (units > res.units || Math.abs(worth - e.amount) <= 0.005) units = res.units;
+    if (units <= 0) throw new FundError(400, "That amount is too small.");
+    const h = holderOf(s, e.holder);
+    res.units = r6(res.units - units); res.out = r2(res.out + e.amount);
+    h.units = r6(h.units + units); h.in = r2(h.in + e.amount);
+    return { amount: e.amount, units };
+  }
+  if (e.type === "performance") {
+    if (s.units <= 0) throw new FundError(409, "There is no money in the fund yet, so there is nothing to grow.");
+    const value = r2(s.value + e.amount);
+    if (value < 0) throw new FundError(409, "That loss is bigger than the fund (" + s.value.toFixed(2) + ").");
+    s.value = value;
+    return { amount: e.amount, units: 0 };
+  }
+  if (e.type === "withdrawal") {
+    if (!e.holder || e.holder === RESERVE) throw new FundError(400, "Choose the member.");
+    const h = holderOf(s, e.holder);
+    const worth = r2(h.units * nav);
+    if (e.amount > worth + 0.005) throw new FundError(409, "That is more than the member's share, which is worth " + worth.toFixed(2) + ".");
+    let units = r6(e.amount / nav);
+    let amount = e.amount;
+    if (units >= h.units || Math.abs(worth - e.amount) <= 0.005) { units = h.units; amount = worth; }
+    if (units <= 0) throw new FundError(400, "That amount is too small.");
+    h.units = r6(h.units - units); h.out = r2(h.out + amount);
+    s.units = r6(s.units - units); s.value = r2(Math.max(0, s.value - amount));
+    if (s.units <= 0) { s.units = 0; s.value = 0; }
+    return { amount, units };
+  }
+  throw new FundError(400, "Unknown entry type.");
+}
+
+function parseEntry(cells) {
+  const type = String(cells[L.type] || "").trim().toLowerCase();
+  const amount = Number(String(cells[L.amount] || "").replace(/,/g, ""));
+  return {
+    id: String(cells[L.id] || "").trim(), type, holder: normReg(cells[L.holder]), amount: Number.isFinite(amount) ? amount : NaN,
+    date: String(cells[L.date] || ""), source: String(cells[L.source] || ""), ref: String(cells[L.ref] || ""),
+    note: String(cells[L.note] || ""), by: String(cells[L.by] || ""),
+  };
+}
+
+// Replay every entry of one fund, in sheet order. A row that cannot be applied (typed wrongly by hand) is skipped and
+// listed in `problems` so the admin can see it, instead of breaking the whole fund.
+function replay(rows, fundId) {
+  const s = emptyState();
+  const entries = [];
+  for (const { n, cells } of rows) {
+    if (String(cells[L.fund] || "").trim().toLowerCase() !== fundId) continue;
+    const e = parseEntry(cells);
+    e.n = n;
+    if (!TYPES.includes(e.type) || !Number.isFinite(e.amount) || e.amount === 0 || (e.type !== "performance" && e.amount < 0)) {
+      s.problems.push("Row " + n + ": the type or amount is not valid, so it was skipped.");
+      continue;
+    }
+    try {
+      const out = apply(s, e);
+      e.units = out.units;
+      e.amount = out.amount;
+    } catch (err) {
+      s.problems.push("Row " + n + ": " + err.message + " It was skipped.");
+      continue;
+    }
+    e.valueAfter = s.value; e.unitsAfter = s.units; e.unitValue = r6(unitValueOf(s));
+    if (e.ref) s.refs.add(e.source + "|" + e.ref);
+    s.applied++;
+    entries.push(e);
+    if (e.type === "performance" || s.history.length === 0) s.history.push({ date: e.date, unitValue: e.unitValue, value: s.value });
+  }
+  s.entries = entries;
+  return s;
+}
+
+// ---------- The service ----------
+// opts: stamp() Lagos time text, now() ms, currency, nameOf(reg) async -> full name, isAlumni(reg) async -> bool
+function create(store, opts = {}) {
+  const now = opts.now || (() => Date.now());
+  const stamp = opts.stamp || (() => new Date(now()).toISOString());
+  const currency = opts.currency || "USD";
+  const nameOf = opts.nameOf || (async () => "");
+  const isAlumni = opts.isAlumni || (async () => true);
+  const log = opts.log || ((...a) => console.log("[fund]", ...a));
+
+  let chain = Promise.resolve();
+  const queued = (task) => { const run = chain.then(task, task); chain = run.catch(() => {}); return run; };
+  let cache = { at: 0, rows: null };
+  const invalidate = () => { cache = { at: 0, rows: null }; };
+
+  async function ledgerRows(fresh) {
+    if (!fresh && cache.rows && now() - cache.at < CACHE_MS) return cache.rows;
+    const rows = await store.tabRows("fundledger");
+    cache = { at: now(), rows };
+    return rows;
+  }
+  const withdrawalRows = async () => (await store.tabRows("fundwithdrawals")).map(({ n, cells }) => ({ n, ...parseRequest(cells) }));
+
+  function parseRequest(c) {
+    return {
+      id: String(c[W.id] || "").trim(), fund: String(c[W.fund] || "").trim().toLowerCase(), reg: normReg(c[W.reg]), at: String(c[W.at] || ""),
+      amount: Number(c[W.amount]) || 0, all: /^yes$/i.test(String(c[W.all] || "")), details: String(c[W.details] || ""),
+      status: STATUSES.includes(String(c[W.status] || "").trim()) ? String(c[W.status]).trim() : "Pending",
+      decidedAt: String(c[W.decidedAt] || ""), decidedBy: String(c[W.decidedBy] || ""), note: String(c[W.note] || ""),
+      paid: Number(c[W.paid]) || 0, units: Number(c[W.units]) || 0, entry: String(c[W.entry] || ""),
+    };
+  }
+
+  function need(fundId) {
+    const f = fundById(fundId);
+    if (!f) throw new FundError(404, "That fund does not exist.");
+    return f;
+  }
+
+  const fundCard = (f) => ({ id: f.id, name: f.name, tagline: f.tagline, description: f.description });
+
+  // Write one ledger entry (inside the queue). Checks it against the freshly replayed state first.
+  async function post(fundId, entry, by) {
+    const rows = await ledgerRows(true);
+    const s = replay(rows, fundId);
+    if (entry.ref && s.refs.has((entry.source || "") + "|" + entry.ref)) return { duplicate: true };
+    const out = apply(s, entry); // throws a FundError if it cannot be done
+    const id = newId("FL");
+    const unitValue = r6(unitValueOf(s));
+    await store.appendTabRows("fundledger", [[
+      id, fundId, stamp(), entry.type, entry.holder || "", out.amount, out.units, s.value, s.units, unitValue,
+      entry.source || "manual", entry.ref || "", oneLine(entry.note, 200), oneLine(by, 60),
+    ]]);
+    invalidate();
+    return { id, amount: out.amount, units: out.units, fundValue: s.value, unitValue };
+  }
+
+  // ---- One member's numbers inside a replayed fund ----
+  function holdingOf(s, reg, pending) {
+    const nav = unitValueOf(s);
+    const h = s.holders.get(reg) || { units: 0, in: 0, out: 0 };
+    const value = r2(h.units * nav);
+    const gain = r2(value + h.out - h.in);
+    return {
+      units: h.units, sharePct: s.units > 0 ? Math.round((h.units / s.units) * 1e6) / 1e4 : 0, value,
+      putIn: h.in, withdrawn: h.out, gain, gainPct: h.in > 0 ? Math.round((gain / h.in) * 1e4) / 100 : 0,
+      pending: r2(pending), available: r2(Math.max(0, value - pending)),
+    };
+  }
+
+  const totalsOf = (s) => {
+    const members = Array.from(s.holders.entries()).filter(([k, h]) => k !== RESERVE && h.units > 0).length;
+    const nav = unitValueOf(s);
+    return {
+      value: s.value, units: s.units, unitValue: r6(nav), growthPct: Math.round((nav - 1) * 1e4) / 100, members,
+      reserve: holderValue(s, RESERVE), reservePct: s.units > 0 ? Math.round(((s.holders.get(RESERVE) || { units: 0 }).units / s.units) * 1e4) / 100 : 0,
+    };
+  };
+
+  const historyOf = (s) => {
+    const h = s.history.length ? s.history : [];
+    const start = h.length > HISTORY_POINTS ? h.slice(h.length - HISTORY_POINTS) : h;
+    return start.map((p) => ({ date: p.date, unitValue: p.unitValue }));
+  };
+
+  return {
+    FUNDS, RESERVE, currency,
+
+    list() { return FUNDS.map(fundCard); },
+
+    // What an Alumni member sees: the fund as a whole and their own share. Never anyone else's share.
+    async memberView(fundId, reg) {
+      const f = need(fundId);
+      reg = normReg(reg);
+      const [rows, wds] = await Promise.all([ledgerRows(false), withdrawalRows()]);
+      const s = replay(rows, f.id);
+      const mine = wds.filter((w) => w.fund === f.id && w.reg === reg);
+      const pending = mine.filter((w) => w.status === "Pending");
+      const pendingSum = pending.reduce((a, w) => a + (w.all ? holderValue(s, reg) : w.amount), 0);
+      return {
+        fund: fundCard(f), currency,
+        totals: (({ value, unitValue, growthPct, members }) => ({ value, unitValue, growthPct, members }))(totalsOf(s)),
+        me: holdingOf(s, reg, Math.min(pendingSum, holderValue(s, reg))),
+        history: historyOf(s),
+        activity: s.entries.filter((e) => e.holder === reg).slice(-40).reverse().map((e) => ({
+          id: e.id, date: e.date, type: e.type, amount: e.amount, units: e.units, unitValue: e.unitValue, note: e.note,
+        })),
+        results: s.entries.filter((e) => e.type === "performance").slice(-20).reverse().map((e) => ({ date: e.date, amount: e.amount, unitValue: e.unitValue, source: e.source })),
+        withdrawals: mine.slice().reverse().slice(0, 20).map((w) => ({
+          id: w.id, at: w.at, amount: w.all && w.status === "Pending" ? holderValue(s, reg) : (w.status === "Paid" ? w.paid : w.amount), all: w.all,
+          status: w.status, decidedAt: w.decidedAt, note: w.status === "Paid" || w.status === "Rejected" ? w.note : "",
+        })),
+        canWithdraw: holderValue(s, reg) > 0 && pending.length === 0,
+      };
+    },
+
+    // Every fund with its headline numbers and this member's share (for the list on the portal page).
+    async memberList(reg) {
+      reg = normReg(reg);
+      const rows = await ledgerRows(false);
+      return FUNDS.map((f) => {
+        const s = replay(rows, f.id);
+        const t = totalsOf(s);
+        return { ...fundCard(f), currency, value: t.value, growthPct: t.growthPct, myValue: holderValue(s, reg), mySharePct: holdingOf(s, reg, 0).sharePct };
+      });
+    },
+
+    // The admin's view: every holder with their share, pending withdrawals and the latest ledger entries.
+    async adminView(fundId) {
+      const f = need(fundId);
+      const [rows, wds] = await Promise.all([ledgerRows(true), withdrawalRows()]);
+      const s = replay(rows, f.id);
+      const holders = [];
+      for (const [reg, h] of s.holders.entries()) {
+        if (h.units <= 0 && h.in === 0 && h.out === 0) continue;
+        const hold = holdingOf(s, reg, 0);
+        holders.push({ reg, name: reg === RESERVE ? "Fund reserve (not yet given to a member)" : await nameOf(reg), ...hold });
+      }
+      holders.sort((a, b) => (a.reg === RESERVE ? -1 : b.reg === RESERVE ? 1 : b.value - a.value));
+      const requests = [];
+      for (const w of wds.filter((x) => x.fund === f.id).reverse().slice(0, 60)) {
+        const worth = holderValue(s, w.reg);
+        requests.push({ ...w, name: await nameOf(w.reg), worth, amountNow: w.all && w.status === "Pending" ? worth : w.amount });
+      }
+      return {
+        fund: fundCard(f), currency, totals: totalsOf(s), holders, requests, problems: s.problems,
+        history: historyOf(s),
+        ledger: s.entries.slice(-60).reverse().map((e) => ({ id: e.id, date: e.date, type: e.type, holder: e.holder, amount: e.amount, units: e.units, valueAfter: e.valueAfter, unitValue: e.unitValue, source: e.source, note: e.note, by: e.by })),
+      };
+    },
+
+    // ---- Admin actions. Each one goes through the queue so two admins can never work on stale numbers. ----
+    deposit(fundId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const b = body || {};
+        const amount = money(b.amount, "amount");
+        const holder = normReg(b.holder) || RESERVE;
+        if (holder !== RESERVE && !(await isAlumni(holder))) throw new FundError(400, "Please fix the highlighted field.", { holder: "That registration number is not an Alumni member." });
+        return post(fundId, { type: "deposit", holder, amount, note: b.note, source: "manual" }, by);
+      });
+    },
+
+    allocate(fundId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const b = body || {};
+        const amount = money(b.amount, "amount");
+        const holder = normReg(b.holder);
+        if (!holder || holder === RESERVE || !(await isAlumni(holder))) throw new FundError(400, "Please fix the highlighted field.", { holder: "Enter the registration number of an Alumni member." });
+        return post(fundId, { type: "allocate", holder, amount, note: b.note, source: "manual" }, by);
+      });
+    },
+
+    // The fund made or lost money. Give `amount` (+ profit, - loss), or `newValue` (what the fund is worth now).
+    // The copy-trading system will call this too, with source "copytrading" and a ref (e.g. a day or a batch id) so
+    // that sending the same result twice records it once.
+    performance(fundId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const b = body || {};
+        let amount;
+        if (b.newValue !== undefined && b.newValue !== "" && b.newValue !== null) {
+          const target = money(b.newValue, "newValue", { label: "The fund's value" });
+          const s = replay(await ledgerRows(true), fundId);
+          amount = r2(target - s.value);
+          if (amount === 0) throw new FundError(400, "Please fix the highlighted field.", { newValue: "That is what the fund is already worth." });
+        } else {
+          amount = money(b.amount, "amount", { allowNegative: true, label: "The result" });
+        }
+        return post(fundId, { type: "performance", amount, note: b.note, source: oneLine(b.source, 30) || "manual", ref: oneLine(b.ref, 60) }, by);
+      });
+    },
+
+    // The member asks to take money out. Nothing moves yet: the admin pays and then marks it paid.
+    requestWithdrawal(fundId, reg, body) {
+      return queued(async () => {
+        need(fundId);
+        reg = normReg(reg);
+        const b = body || {};
+        const all = b.all === true;
+        const details = oneLine(b.details, 300);
+        const errors = {};
+        if (details.length < 5) errors.details = "Tell us where to send the money (bank account or wallet details).";
+        const [rows, wds] = await Promise.all([ledgerRows(true), withdrawalRows()]);
+        const s = replay(rows, fundId);
+        const worth = holderValue(s, reg);
+        if (worth <= 0) throw new FundError(409, "You have no money in this fund to withdraw.");
+        if (wds.some((w) => w.fund === fundId && w.reg === reg && w.status === "Pending")) throw new FundError(409, "You already have a withdrawal waiting. Cancel it first if you want to change it.");
+        let amount = worth;
+        if (!all) {
+          try { amount = money(b.amount, "amount"); } catch (e) { Object.assign(errors, e.fields || {}); }
+          if (!errors.amount && amount > worth + 0.005) errors.amount = "You can withdraw up to " + worth.toFixed(2) + " " + currency + ".";
+        }
+        if (Object.keys(errors).length) throw new FundError(400, "Please fix the highlighted fields.", errors);
+        const id = newId("WD");
+        await store.appendTabRows("fundwithdrawals", [[id, fundId, reg, stamp(), amount, all ? "Yes" : "", details, "Pending", "", "", "", "", "", ""]]);
+        return { id, amount, all };
+      });
+    },
+
+    cancelWithdrawal(fundId, reg, requestId) {
+      return queued(async () => {
+        reg = normReg(reg);
+        const w = (await withdrawalRows()).find((x) => x.id === String(requestId || "") && x.fund === fundId && x.reg === reg);
+        if (!w) throw new FundError(404, "That withdrawal request was not found.");
+        if (w.status !== "Pending") throw new FundError(409, "That request is already " + w.status.toLowerCase() + ".");
+        await store.writeTabCells("fundwithdrawals", w.n, { [W.status]: "Cancelled", [W.decidedAt]: stamp(), [W.decidedBy]: reg });
+        return { ok: true };
+      });
+    },
+
+    // The admin has sent the money: take it out of the fund at today's unit value and mark the request Paid.
+    // `body.amount` may be lower than asked (never higher than the member's share).
+    payWithdrawal(fundId, requestId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const w = (await withdrawalRows()).find((x) => x.id === String(requestId || "") && x.fund === fundId);
+        if (!w) throw new FundError(404, "That withdrawal request was not found.");
+        if (w.status !== "Pending") throw new FundError(409, "That request is already " + w.status.toLowerCase() + ".");
+        const s = replay(await ledgerRows(true), fundId);
+        const worth = holderValue(s, w.reg);
+        const already = s.entries.some((e) => e.type === "withdrawal" && e.note.indexOf("Withdrawal " + w.id) === 0);
+        if (worth <= 0 && !already) throw new FundError(409, "This member has no money left in the fund. Reject the request.");
+        let amount = w.all ? worth : Math.min(w.amount, worth);
+        if (body && body.amount !== undefined && body.amount !== "") {
+          amount = money(body.amount, "amount");
+          if (amount > worth + 0.005) throw new FundError(400, "Please fix the highlighted field.", { amount: "The member's share is only worth " + worth.toFixed(2) + " now." });
+        }
+        const note = oneLine(body && body.note, 200);
+        // If an earlier attempt already took the money out of the fund but could not mark the request (a sheet hiccup),
+        // finish that one instead of taking the money out twice.
+        const earlier = s.entries.find((e) => e.type === "withdrawal" && e.note.indexOf("Withdrawal " + w.id) === 0);
+        const done = earlier
+          ? { id: earlier.id, amount: earlier.amount, units: earlier.units }
+          : await post(fundId, { type: "withdrawal", holder: w.reg, amount, note: "Withdrawal " + w.id + (note ? " - " + note : "") }, by);
+        await store.writeTabCells("fundwithdrawals", w.n, {
+          [W.status]: "Paid", [W.decidedAt]: stamp(), [W.decidedBy]: oneLine(by, 60), [W.note]: note, [W.paid]: done.amount, [W.units]: done.units, [W.entry]: done.id,
+        });
+        return { ok: true, paid: done.amount, units: done.units, entry: done.id };
+      });
+    },
+
+    rejectWithdrawal(fundId, requestId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const w = (await withdrawalRows()).find((x) => x.id === String(requestId || "") && x.fund === fundId);
+        if (!w) throw new FundError(404, "That withdrawal request was not found.");
+        if (w.status !== "Pending") throw new FundError(409, "That request is already " + w.status.toLowerCase() + ".");
+        const note = oneLine(body && body.note, 200);
+        if (note.length < 3) throw new FundError(400, "Please fix the highlighted field.", { note: "Say why, so the member knows." });
+        await store.writeTabCells("fundwithdrawals", w.n, { [W.status]: "Rejected", [W.decidedAt]: stamp(), [W.decidedBy]: oneLine(by, 60), [W.note]: note });
+        return { ok: true };
+      });
+    },
+
+    // True when this registration number holds money in any fund or has any fund record. A person like that must not be
+    // deleted from the Database, or the ledger would point at nobody.
+    async hasRecords(reg) {
+      reg = normReg(reg);
+      const rows = await store.tabRows("fundledger");
+      if (rows.some((r) => normReg(r.cells[L.holder]) === reg)) return true;
+      return (await store.tabRows("fundwithdrawals")).some((r) => normReg(r.cells[W.reg]) === reg);
+    },
+  };
+}
+
+module.exports = {
+  create, FundError, FUNDS, RESERVE, TYPES, STATUSES, LEDGER_HEADERS, WITHDRAWAL_HEADERS, L, W,
+  // exposed for the tests
+  replay, apply, money, unitValueOf,
+};
+```
+
 #### `quizcodes.js`
 
 ```js
@@ -3976,6 +4608,11 @@ function create(store) {
       async cascade(row) {
         const reg = (row[0] || "").trim().toUpperCase();
         if (!reg) return;
+        // Money in a fund is recorded against this registration number in an append-only ledger. Deleting the person
+        // would leave that money pointing at nobody, so it is refused until the fund records are settled.
+        const heldInFund = (await store.tabRows("fundledger")).some((r) => String(r.cells[4] || "").trim().toUpperCase() === reg)
+          || (await store.tabRows("fundwithdrawals")).some((r) => String(r.cells[2] || "").trim().toUpperCase() === reg);
+        if (heldInFund) throw new AdminError(409, "This person has records in a Fund (money paid in, a sponsorship or a withdrawal), so they cannot be deleted. Change their status instead.");
         await store.deleteTabRowsByReg("photos", reg, 0);
         await store.deleteTabRowsByReg("signatures", reg, 0);
         await store.deleteTabRowsByReg("dobchanges", reg, 0);
@@ -3985,6 +4622,11 @@ function create(store) {
         await store.deleteTabRowsByReg("botaccounts", reg, 0);
         await store.deleteTabRowsByReg("botorders", reg, 0);
         await store.deleteTabRowsByReg("bottrades", reg, 0);
+        // copy trading and hosting: the person's follow settings, copy orders, master profile and hosting requests
+        await store.deleteTabRowsByReg("copyfollows", reg, 0);
+        await store.deleteTabRowsByReg("copyorders", reg, 0);
+        await store.deleteTabRowsByReg("copymasters", reg, 1);
+        await store.deleteTabRowsByReg("hostingrequests", reg, 1);
       },
     },
 
@@ -4182,7 +4824,7 @@ function create(store) {
   }
 
   // Every place a registration number is stored besides the Students tab: [tab, column index].
-  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1], ["botaccounts", 0], ["botorders", 0], ["bottrades", 0]];
+  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1], ["botaccounts", 0], ["botorders", 0], ["bottrades", 0], ["copyfollows", 0], ["copyorders", 0], ["copymasters", 1], ["hostingrequests", 1], ["fundledger", 4], ["fundwithdrawals", 2]];
 
   // A new number must not already appear anywhere as someone else's (including a deleted student's records).
   async function regConflict(newReg) {
@@ -5850,17 +6492,31 @@ _missing_
 
         <!-- Signed in -->
         <section id="home" hidden>
-          <!-- My portal submenu -->
+          <!-- Portal menu: ID Card, Trading and Mentorship (the last two open a dropdown) -->
           <nav class="subnav" id="subnav" aria-label="My portal">
-            <a href="#/card" data-view="card" aria-current="page">ID card</a>
-            <a href="#/class" data-view="class">Live class</a>
-            <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
-            <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
-            <a href="#/copy" data-view="copy" id="copyLink" hidden>Copy trading</a>
-            <a href="#/community" data-view="community">Community</a>
-            <a href="#/handbook" data-view="handbook">Handbook</a>
-            <a href="#/workbook" data-view="workbook">Workbook</a>
-            <a href="#/quiz" data-view="quiz">Quiz</a>
+            <a href="#/card" class="sub-top" data-group="card" data-view="card" aria-current="page">ID Card</a>
+
+            <div class="sub-group" data-group="trading">
+              <button type="button" class="sub-top sub-toggle" id="tradingToggle" aria-haspopup="true" aria-expanded="false" aria-controls="tradingMenu">Trading <span class="sub-caret" aria-hidden="true"></span></button>
+              <div class="sub-menu" id="tradingMenu" hidden>
+                <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
+                <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
+                <a href="#/funds" data-view="funds" id="fundsLink" hidden>Funds</a>
+                <a href="#/copy" data-view="copy" id="copyLink" hidden>Copy trading</a>
+                <a href="#/traders" data-view="traders">Traders community</a>
+              </div>
+            </div>
+
+            <div class="sub-group sub-end" data-group="mentorship">
+              <button type="button" class="sub-top sub-toggle" id="mentorshipToggle" aria-haspopup="true" aria-expanded="false" aria-controls="mentorshipMenu">Mentorship <span class="sub-caret" aria-hidden="true"></span></button>
+              <div class="sub-menu" id="mentorshipMenu" hidden>
+                <a href="#/handbook" data-view="handbook">Handbook</a>
+                <a href="#/workbook" data-view="workbook">Workbook</a>
+                <a href="#/community" data-view="community">Community</a>
+                <a href="#/class" data-view="class">Live class</a>
+                <a href="#/quiz" data-view="quiz">Quiz</a>
+              </div>
+            </div>
           </nav>
 
           <!-- View: ID card -->
@@ -6142,14 +6798,32 @@ _missing_
             </section>
           </div>
 
-          <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
+          <!-- View: Mentorship community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
           <div id="viewCommunity" class="view" hidden>
-            <h2>Community</h2>
-            <p class="lead">Open the ABEC-FX community to learn alongside other students and get updates from your mentors.</p>
+            <h2>Mentorship community</h2>
+            <p class="lead">Open the ABEC-FX mentorship community to learn alongside other students and get updates from your mentors.</p>
             <section class="quizcard communitycard" aria-label="Community links">
               <p class="live" id="communityMsg" role="status">Loading...</p>
               <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp community</a>
               <a id="communityTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram community</a>
+            </section>
+          </div>
+
+          <!-- View: Funds (Alumni members only): the Palliative Fund and any later fund -->
+          <div id="viewFunds" class="view" hidden>
+            <h2>Funds</h2>
+            <p class="lead">Money pools that grow through the ABEC-FX trading system. See how much is in a fund, and the share and amount that are yours.</p>
+            <div id="fundsMount" aria-live="polite"></div>
+          </div>
+
+          <!-- View: Traders community (its own WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
+          <div id="viewTraders" class="view" hidden>
+            <h2>Traders community</h2>
+            <p class="lead">Join the ABEC-FX traders community to share setups and trade alongside other traders.</p>
+            <section class="quizcard communitycard" aria-label="Traders community links">
+              <p class="live" id="tradersMsg" role="status">Loading...</p>
+              <a id="tradersWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp traders community</a>
+              <a id="tradersTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram traders community</a>
             </section>
           </div>
 
@@ -6233,6 +6907,7 @@ _missing_
   <script src="/certificate.js"></script>
   <script src="/handbook.js"></script>
   <script src="/workbook.js"></script>
+  <script src="/funds.js"></script>
   <script src="/copytrading.js"></script>
   <script src="/photo.js"></script>
   <script src="/signature.js"></script>
@@ -6307,7 +6982,7 @@ _missing_
     if (typeof stopSignals === "function") stopSignals();
     if (typeof stopBot === "function") stopBot();
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -6403,6 +7078,7 @@ _missing_
     sigAllowed = isAlumni;
     botAllowed = isAlumni;
     document.getElementById("botLink").hidden = !isAlumni;
+    document.getElementById("fundsLink").hidden = !isAlumni;
     // Copy trading: Alumni members follow a master; Staff ID card holders (mentors, staff) can be a master.
     var isStaffCard = (d.cards || []).indexOf("staff") >= 0;
     copyFollow = isAlumni;
@@ -6426,18 +7102,52 @@ _missing_
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentView = "";
     route();
   }
 
-  // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "class", "signals", "bot", "copy"];
+  // ---- Portal menu: ID Card, Trading (Signals, Bot trading, Traders community) and Mentorship (Handbook, Workbook,
+  // Community, Live class, Quiz). Pages keep their addresses: #/card, #/quiz, #/handbook/03, #/traders ... ----
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds", "copy"];
   var copyFollow = false, copyMaster = false;
   var currentView = "";
 
+  // Dropdowns: tap or click Trading / Mentorship to open its list; one open at a time. They close when you pick a
+  // page, tap elsewhere, press Escape, or move the keyboard focus out of the menu.
+  function closeMenus(except) {
+    var groups = document.querySelectorAll("#subnav .sub-group");
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i] === except) continue;
+      groups[i].querySelector(".sub-menu").hidden = true;
+      groups[i].querySelector(".sub-toggle").setAttribute("aria-expanded", "false");
+    }
+  }
+  (function setupMenus() {
+    var nav = document.getElementById("subnav");
+    var groups = nav.querySelectorAll(".sub-group");
+    Array.prototype.forEach.call(groups, function (g) {
+      var btn = g.querySelector(".sub-toggle"), menu = g.querySelector(".sub-menu");
+      btn.addEventListener("click", function () {
+        var open = menu.hidden;
+        closeMenus(g);
+        menu.hidden = !open;
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      g.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || menu.hidden) return;
+        closeMenus();
+        btn.focus();
+      });
+      g.addEventListener("focusout", function (e) {
+        if (e.relatedTarget && !g.contains(e.relatedTarget)) closeMenus();
+      });
+    });
+    document.addEventListener("click", function (e) { if (!nav.contains(e.target)) closeMenus(); });
+  })();
+
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|workbook|community|class|signals|bot|copy)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community|traders|class|signals|bot|funds|copy)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -6447,18 +7157,26 @@ _missing_
     VIEWS.forEach(function (v) {
       document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== r.view;
     });
-    var links = document.querySelectorAll("#subnav a");
+    var links = document.querySelectorAll("#subnav a[data-view]");
     for (var i = 0; i < links.length; i++) {
       if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
       else links[i].removeAttribute("aria-current");
     }
+    // a dropdown button is lit while the page you are on sits under it
+    var toggles = document.querySelectorAll("#subnav .sub-toggle");
+    for (var t = 0; t < toggles.length; t++) {
+      toggles[t].classList.toggle("is-current", !!toggles[t].parentNode.querySelector('.sub-menu a[aria-current="page"]'));
+    }
+    closeMenus();
     document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
+    if (r.view === "traders" && currentView !== "traders") showTraders();
     if (r.view === "class" && currentView !== "class") showClass();
     if (r.view === "signals" && currentView !== "signals") showSignals();
     if (r.view === "bot" && currentView !== "bot") showBot();
+    if (r.view === "funds" && currentView !== "funds") window.abecFunds.show();
     if (r.view !== "signals") stopSignals();
     if (r.view !== "bot") stopBot();
     if (r.view === "copy" && currentView !== "copy") window.abecCopy.show(copyFollow, copyMaster);
@@ -6471,6 +7189,7 @@ _missing_
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecFunds.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecCopy.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Live class: join Google Meet in its own window; time with that window open counts towards attendance ----
@@ -6817,15 +7536,16 @@ _missing_
   function safeHttps(u) {
     try { var x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
   }
-  function showCommunity() {
-    var msg = document.getElementById("communityMsg");
-    var wa = document.getElementById("communityWhatsapp");
-    var tg = document.getElementById("communityTelegram");
+  // One page for each community: the same two buttons, filled from its own address and element ids.
+  function loadGroups(url, ids) {
+    var msg = document.getElementById(ids.msg);
+    var wa = document.getElementById(ids.wa);
+    var tg = document.getElementById(ids.tg);
     msg.textContent = "Loading...";
     msg.hidden = false;
     wa.hidden = true;
     tg.hidden = true;
-    authFetch("/api/community")
+    authFetch(url)
       .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (c) {
         var w = safeHttps(c.whatsapp), t = safeHttps(c.telegram);
@@ -6842,6 +7562,8 @@ _missing_
         msg.textContent = "We could not load the community links just now. Refresh to try again.";
       });
   }
+  function showCommunity() { loadGroups("/api/community", { msg: "communityMsg", wa: "communityWhatsapp", tg: "communityTelegram" }); }
+  function showTraders() { loadGroups("/api/traders-community", { msg: "tradersMsg", wa: "tradersWhatsapp", tg: "tradersTelegram" }); }
 
   // ---- Quiz results (taken in the ABEC-FX Telegram quiz bot) ----
   function el(tag, cls, text) {
@@ -7750,6 +8472,552 @@ _missing_
 })();
 ```
 
+#### `public/funds.js`
+
+```js
+// Funds inside the student portal (Trading > Funds, Alumni members only).
+// Shows the fund as a whole, the signed-in member's own share and amount, how the fund has grown, and lets the member
+// ask to withdraw. All numbers come from the website (fund.js); this file only draws them.
+// portal.js calls setup() once with its sign-in helpers, show() when the page opens and reset() on sign-out.
+(function () {
+  var api = null; // { authFetch(url, opts), signedOut(msg) } from portal.js
+  var mount = null;
+  var openId = null; // fund being looked at, or null for the list
+  var data = null;   // the open fund's view from the server
+  var busy = false;
+  var NS = "http://www.w3.org/2000/svg";
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function money(n, cur) {
+    var v = Number(n) || 0;
+    return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? " " + cur : "");
+  }
+  function pct(n) { return (Number(n) || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + "%"; }
+  function signed(n, cur) { var v = Number(n) || 0; return (v > 0 ? "+" : v < 0 ? "-" : "") + money(Math.abs(v), cur); }
+  function signedPct(n) { var v = Number(n) || 0; return (v > 0 ? "+" : v < 0 ? "-" : "") + pct(Math.abs(v)); }
+  function tone(n) { return n > 0 ? "fd-up" : n < 0 ? "fd-down" : ""; }
+
+  function readJson(r) {
+    return r.json().then(function (b) {
+      if (r.status === 401) { api.signedOut(b.error); throw new Error("signed out"); }
+      if (!r.ok) { var e = new Error(b.error || "Something went wrong. Please try again."); e.fields = b.errors; throw e; }
+      return b;
+    });
+  }
+  function get(url) { return api.authFetch(url).then(readJson); }
+  function post(url, body) {
+    return api.authFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).then(readJson);
+  }
+
+  // ---- A small line chart of the unit value (what one unit of the fund is worth), drawn with SVG ----
+  function chart(points) {
+    var wrap = el("div", "fd-chart");
+    if (!points || points.length < 2) {
+      wrap.appendChild(el("p", "cert-note", "The growth chart appears after the fund has recorded its first result."));
+      return wrap;
+    }
+    var W = 560, H = 160, padL = 8, padR = 8, padT = 12, padB = 12;
+    var vals = points.map(function (p) { return p.unitValue; });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (hi - lo < 1e-9) { lo -= 0.01; hi += 0.01; }
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Fund growth: one unit started at 1.00 and is now worth " + vals[vals.length - 1].toFixed(4));
+    svg.setAttribute("class", "fd-svg");
+    var x = function (i) { return padL + (i * (W - padL - padR)) / (points.length - 1); };
+    var y = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB); };
+    var line = points.map(function (p, i) { return x(i).toFixed(1) + "," + y(p.unitValue).toFixed(1); }).join(" ");
+    var area = document.createElementNS(NS, "polygon");
+    area.setAttribute("points", padL + "," + (H - padB) + " " + line + " " + x(points.length - 1).toFixed(1) + "," + (H - padB));
+    area.setAttribute("class", "fd-area");
+    var path = document.createElementNS(NS, "polyline");
+    path.setAttribute("points", line);
+    path.setAttribute("class", "fd-line");
+    var dot = document.createElementNS(NS, "circle");
+    dot.setAttribute("cx", x(points.length - 1).toFixed(1));
+    dot.setAttribute("cy", y(vals[vals.length - 1]).toFixed(1));
+    dot.setAttribute("r", "4");
+    dot.setAttribute("class", "fd-dot");
+    svg.appendChild(area); svg.appendChild(path); svg.appendChild(dot);
+    wrap.appendChild(svg);
+    wrap.appendChild(el("p", "cert-note", "Value of one unit of the fund, from " + points[0].date + " to " + points[points.length - 1].date + "."));
+    return wrap;
+  }
+
+  function stat(label, value, cls, sub) {
+    var d = el("div", "fd-stat");
+    d.appendChild(el("span", "fd-label", label));
+    d.appendChild(el("b", "fd-value" + (cls ? " " + cls : ""), value));
+    if (sub) d.appendChild(el("span", "fd-sub", sub));
+    return d;
+  }
+
+  function table(headers, rows, caption) {
+    var wrap = el("div", "hb-tablewrap");
+    var t = el("table", "cls-table");
+    if (caption) t.appendChild(el("caption", null, caption));
+    var thead = el("tr");
+    headers.forEach(function (h) { thead.appendChild(el("th", null, h)); });
+    var head = el("thead"); head.appendChild(thead); t.appendChild(head);
+    var body = el("tbody");
+    rows.forEach(function (r) {
+      var tr = el("tr");
+      r.forEach(function (c) {
+        var td = el("td");
+        if (c && typeof c === "object" && c.nodeType) td.appendChild(c); else td.textContent = c == null ? "" : String(c);
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    t.appendChild(body); wrap.appendChild(t);
+    return wrap;
+  }
+
+  var TYPE_NAME = { deposit: "Money added", allocate: "Sponsorship", withdrawal: "Withdrawal", performance: "Result" };
+
+  // ---- The list of funds ----
+  function renderList(list, currency) {
+    mount.replaceChildren();
+    if (!list.length) { mount.appendChild(el("p", "live", "There are no funds yet.")); return; }
+    list.forEach(function (f) {
+      var card = el("section", "quizcard fd-listcard");
+      card.appendChild(el("h3", null, f.name));
+      card.appendChild(el("p", "cert-note", f.tagline));
+      var row = el("div", "fd-stats");
+      row.appendChild(stat("In the fund", money(f.value, currency)));
+      row.appendChild(stat("Growth", signedPct(f.growthPct), tone(f.growthPct)));
+      row.appendChild(stat("Your amount", money(f.myValue, currency), null, f.myValue > 0 ? pct(f.mySharePct) + " of the fund" : "No share yet"));
+      card.appendChild(row);
+      var open = el("button", "btn primary wide", "Open " + f.name);
+      open.type = "button";
+      open.addEventListener("click", function () { openFund(f.id); });
+      card.appendChild(open);
+      mount.appendChild(card);
+    });
+  }
+
+  // ---- One fund ----
+  function renderFund(d, flash) {
+    mount.replaceChildren();
+    var cur = d.currency;
+    var me = d.me;
+
+    if (listCount > 1) {
+      var back = el("button", "btn ghost fd-back", "All funds");
+      back.type = "button";
+      back.addEventListener("click", function () { openId = null; load(); });
+      mount.appendChild(back);
+    }
+
+    var head = el("section", "quizcard fd-head");
+    head.appendChild(el("h3", null, d.fund.name));
+    head.appendChild(el("p", "cert-note", d.fund.description));
+    var top = el("div", "fd-stats");
+    top.appendChild(stat("In the fund", money(d.totals.value, cur)));
+    top.appendChild(stat("Growth since the start", signedPct(d.totals.growthPct), tone(d.totals.growthPct), "Value of one unit: " + d.totals.unitValue.toFixed(4)));
+    top.appendChild(stat("Members", String(d.totals.members)));
+    head.appendChild(top);
+    head.appendChild(chart(d.history));
+    mount.appendChild(head);
+
+    // your share
+    var mine = el("section", "quizcard fd-mine");
+    mine.appendChild(el("h3", null, "Your share"));
+    if (me.units > 0 || me.putIn > 0 || me.withdrawn > 0) {
+      var big = el("p", "fd-bigamount", money(me.value, cur));
+      mine.appendChild(big);
+      mine.appendChild(el("p", "cert-note", "That is " + pct(me.sharePct) + " of the fund. Your amount grows (or falls) with every result the fund records, and the profit you have already made keeps working for you."));
+      var grid = el("div", "fd-stats");
+      grid.appendChild(stat("Your share", pct(me.sharePct)));
+      grid.appendChild(stat("Put in for you", money(me.putIn, cur)));
+      grid.appendChild(stat("Withdrawn", money(me.withdrawn, cur)));
+      grid.appendChild(stat("Gain so far", signed(me.gain, cur), tone(me.gain), me.putIn > 0 ? signedPct(me.gainPct) : ""));
+      mine.appendChild(grid);
+    } else {
+      mine.appendChild(el("p", "cert-note", "You do not have a share in this fund yet. When ABEC-FX sponsors you, your amount and your percentage will show here."));
+    }
+    mount.appendChild(mine);
+
+    // withdraw
+    var wd = el("section", "quizcard fd-withdraw");
+    wd.appendChild(el("h3", null, "Withdraw"));
+    var pendingReq = (d.withdrawals || []).filter(function (w) { return w.status === "Pending"; })[0];
+    if (pendingReq) {
+      wd.appendChild(el("p", "live live-soon", "Waiting for ABEC-FX to pay: " + (pendingReq.all ? "everything (" + money(pendingReq.amount, cur) + " at today's value)" : money(pendingReq.amount, cur)) + ". Asked on " + pendingReq.at + "."));
+      var cancel = el("button", "btn ghost", "Cancel this request");
+      cancel.type = "button";
+      cancel.addEventListener("click", function () {
+        if (busy) return;
+        busy = true; cancel.disabled = true;
+        post("/api/portal/funds/" + encodeURIComponent(openId) + "/withdrawals/" + encodeURIComponent(pendingReq.id) + "/cancel")
+          .then(function (v) { data = v; renderFund(v, "Request cancelled."); })
+          .catch(function (err) { if (err.message !== "signed out") { cancel.disabled = false; flashMsg(err.message, true); } })
+          .then(function () { busy = false; });
+      });
+      wd.appendChild(cancel);
+    } else if (me.value > 0) {
+      wd.appendChild(el("p", "cert-note", "You can withdraw up to " + money(me.available, cur) + ". Your request goes to ABEC-FX, who send you the money and then take it out of the fund at the value of that day."));
+      wd.appendChild(withdrawForm(me, cur));
+    } else {
+      wd.appendChild(el("p", "cert-note", "There is nothing to withdraw yet."));
+    }
+    var msg = el("p", "formErr");
+    msg.id = "fdMsg";
+    msg.setAttribute("role", "status");
+    wd.appendChild(msg);
+    mount.appendChild(wd);
+    if (flash) flashMsg(flash, false);
+
+    // history
+    if ((d.results || []).length) {
+      var sec = el("section", "quizcard");
+      sec.appendChild(el("h3", null, "Recent results of the fund"));
+      sec.appendChild(table(["Date", "Result", "Unit value"], d.results.map(function (r) {
+        return [r.date, colored(signed(r.amount, cur), tone(r.amount)), Number(r.unitValue).toFixed(4)];
+      })));
+      mount.appendChild(sec);
+    }
+    if ((d.activity || []).length) {
+      var act = el("section", "quizcard");
+      act.appendChild(el("h3", null, "Your activity"));
+      act.appendChild(table(["Date", "What", "Amount", "Note"], d.activity.map(function (a) {
+        return [a.date, TYPE_NAME[a.type] || a.type, a.type === "withdrawal" ? "-" + money(a.amount, cur) : money(a.amount, cur), a.note || ""];
+      })));
+      mount.appendChild(act);
+    }
+    if ((d.withdrawals || []).length) {
+      var wl = el("section", "quizcard");
+      wl.appendChild(el("h3", null, "Your withdrawal requests"));
+      wl.appendChild(table(["Asked", "Amount", "Status", "Note"], d.withdrawals.map(function (w) {
+        return [w.at, money(w.amount, cur) + (w.all && w.status === "Pending" ? " (everything)" : ""), w.status, w.note || ""];
+      })));
+      mount.appendChild(wl);
+    }
+    mount.appendChild(el("p", "cert-note", "Trading carries risk. The value of a fund can go down as well as up, and no profit is promised. Sponsorship and withdrawals are managed by ABEC-FX."));
+  }
+
+  function colored(text, cls) { var s = el("span", cls, text); return s; }
+
+  function flashMsg(text, bad) {
+    var m = document.getElementById("fdMsg");
+    if (!m) return;
+    m.textContent = text || "";
+    m.style.color = bad ? "" : "#1e8449";
+  }
+
+  function withdrawForm(me, cur) {
+    var form = el("form", "bot-form fd-form");
+    form.noValidate = true;
+
+    var f1 = el("div", "field");
+    var l1 = el("label", null, "Amount (" + cur + ")"); l1.setAttribute("for", "fd-amount");
+    var amount = el("input"); amount.id = "fd-amount"; amount.type = "number"; amount.step = "0.01"; amount.min = "0.01"; amount.max = String(me.available); amount.inputMode = "decimal";
+    var e1 = el("p", "formErr"); e1.id = "fd-e-amount"; e1.setAttribute("role", "alert");
+    f1.appendChild(l1); f1.appendChild(amount); f1.appendChild(e1);
+
+    var all = el("label", "bot-switch");
+    var allBox = el("input"); allBox.type = "checkbox"; allBox.id = "fd-all";
+    all.appendChild(allBox);
+    all.appendChild(document.createTextNode(" Withdraw everything (my whole share, at the value on the day it is paid)"));
+    allBox.addEventListener("change", function () { amount.disabled = allBox.checked; if (allBox.checked) amount.value = ""; });
+
+    var f2 = el("div", "field");
+    var l2 = el("label", null, "Where should we send the money?"); l2.setAttribute("for", "fd-details");
+    var details = el("textarea"); details.id = "fd-details"; details.rows = 3; details.maxLength = 300;
+    details.placeholder = "Bank name, account number and account name, or your wallet address and network";
+    var e2 = el("p", "formErr"); e2.id = "fd-e-details"; e2.setAttribute("role", "alert");
+    f2.appendChild(l2); f2.appendChild(details); f2.appendChild(e2);
+
+    var go = el("button", "btn primary wide", "Request withdrawal"); go.type = "submit";
+    form.appendChild(f1); form.appendChild(all); form.appendChild(f2); form.appendChild(go);
+
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      if (busy) return;
+      e1.textContent = ""; e2.textContent = ""; flashMsg("");
+      var body = { details: details.value };
+      if (allBox.checked) body.all = true; else body.amount = amount.value;
+      var ask = allBox.checked ? "Withdraw your whole share" : "Withdraw " + money(amount.value, cur);
+      if (!window.confirm(ask + "? This sends a request to ABEC-FX. Nothing leaves the fund until it is paid.")) return;
+      busy = true; go.disabled = true;
+      post("/api/portal/funds/" + encodeURIComponent(openId) + "/withdrawals", body)
+        .then(function (v) { data = v; renderFund(v, "Request sent. ABEC-FX will pay you and mark it done."); })
+        .catch(function (err) {
+          if (err.message === "signed out") return;
+          go.disabled = false;
+          if (err.fields) { e1.textContent = err.fields.amount || ""; e2.textContent = err.fields.details || ""; }
+          else flashMsg(err.message, true);
+        })
+        .then(function () { busy = false; });
+    });
+    return form;
+  }
+
+  // ---- Loading ----
+  var listCount = 0;
+  function load() {
+    mount.replaceChildren(el("p", "live", "Loading the funds..."));
+    var seq = ++loadSeq;
+    var p = openId
+      ? get("/api/portal/funds/" + encodeURIComponent(openId)).then(function (d) { if (seq === loadSeq) { data = d; renderFund(d); } })
+      : get("/api/portal/funds").then(function (d) {
+          if (seq !== loadSeq) return;
+          listCount = d.funds.length;
+          if (d.funds.length === 1) { openId = d.funds[0].id; return get("/api/portal/funds/" + encodeURIComponent(openId)).then(function (v) { if (seq === loadSeq) { data = v; renderFund(v); } }); }
+          renderList(d.funds, d.currency);
+        });
+    return p.catch(function (err) {
+      if (err.message === "signed out" || seq !== loadSeq) return;
+      mount.replaceChildren(el("p", "live live-bad", err.message));
+    });
+  }
+  var loadSeq = 0;
+  function openFund(id) { openId = id; load(); }
+
+  window.abecFunds = {
+    setup: function (a) { api = a; mount = document.getElementById("fundsMount"); },
+    show: function () { if (!mount) return; openId = null; load(); },
+    reset: function () { loadSeq++; openId = null; data = null; listCount = 0; if (mount) mount.replaceChildren(); },
+  };
+})();
+```
+
+#### `public/admin-funds.js`
+
+```js
+// Dashboard > Funds: run the money of a fund. Add money, sponsor an Alumni member, record the fund's trading result,
+// pay or reject withdrawal requests, and see every member's share and the ledger.
+// admin.js calls setup() once with its api helper, open() when the tab opens and clear() on sign-out.
+(function () {
+  var api = null;       // admin.js: api(path, method, body) -> Promise
+  var onAuth = null;    // admin.js: showLogin(message)
+  var view = null;      // the open fund's data from the server
+  var fundId = "";
+  var busy = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function money(n, cur) {
+    return (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? " " + cur : "");
+  }
+  function signed(n, cur) { var v = Number(n) || 0; return (v > 0 ? "+" : v < 0 ? "-" : "") + money(Math.abs(v), cur); }
+  function pct(n) { return (Number(n) || 0).toLocaleString("en-US", { maximumFractionDigits: 4 }) + "%"; }
+
+  function table(mount, heads, rows) {
+    mount.replaceChildren();
+    var thead = el("thead"), tr = el("tr");
+    heads.forEach(function (h) { tr.appendChild(el("th", null, h)); });
+    thead.appendChild(tr); mount.appendChild(thead);
+    var body = el("tbody");
+    rows.forEach(function (r) {
+      var row = el("tr");
+      r.forEach(function (c) {
+        var td = el("td");
+        if (c && typeof c === "object" && c.nodeType) td.appendChild(c); else td.textContent = c == null ? "" : String(c);
+        row.appendChild(td);
+      });
+      body.appendChild(row);
+    });
+    mount.appendChild(body);
+  }
+
+  function fail(err, msgId) {
+    if (err && err.auth) { onAuth(err.message); return; }
+    $(msgId || "fnMsg").textContent = (err && err.message) || "Something went wrong.";
+  }
+
+  function showErrors(prefix, fields) {
+    ["holder", "amount", "newValue", "note"].forEach(function (k) {
+      var e = $(prefix + "-e-" + k);
+      if (e) e.textContent = (fields && fields[k]) || "";
+    });
+  }
+
+  // ---- Drawing ----
+  function tile(label, value, sub) {
+    var d = el("div", "kpi");
+    d.appendChild(el("b", null, value));
+    d.appendChild(el("span", null, label));
+    if (sub) { d.appendChild(document.createElement("br")); d.appendChild(el("span", null, sub)); }
+    return d;
+  }
+
+  function render(v, flash) {
+    view = v;
+    var cur = v.currency;
+    $("fnTitle").textContent = v.fund.name;
+    $("fnAbout").textContent = v.fund.description;
+    $("fnCur").textContent = cur;
+    $("fnCur2").textContent = cur;
+    $("fnCur3").textContent = cur;
+    var t = v.totals;
+    var tiles = $("fnTiles");
+    tiles.replaceChildren(
+      tile("In the fund", money(t.value, cur)),
+      tile("Growth since the start", (t.growthPct > 0 ? "+" : "") + t.growthPct + "%", "Unit value " + t.unitValue.toFixed(4)),
+      tile("Members with a share", String(t.members)),
+      tile("In the reserve (not given out yet)", money(t.reserve, cur), pct(t.reservePct) + " of the fund")
+    );
+
+    // problems typed into the sheet by hand
+    var pr = $("fnProblems");
+    pr.replaceChildren();
+    pr.hidden = !(v.problems && v.problems.length);
+    if (!pr.hidden) {
+      pr.appendChild(el("b", null, "Some rows of the Fund Ledger sheet could not be used, so they are ignored:"));
+      v.problems.slice(0, 10).forEach(function (p) { pr.appendChild(el("div", null, p)); });
+    }
+
+    // withdrawal requests
+    var pending = v.requests.filter(function (r) { return r.status === "Pending"; });
+    $("fnReqNote").textContent = pending.length
+      ? pending.length + " waiting. Send the money first, then press \"Mark paid\". Only then does it leave the fund."
+      : "No withdrawal is waiting.";
+    table($("fnReqTable"), ["Asked", "Member", "Amount", "Pay to", "Status", ""], v.requests.map(function (r) {
+      var amount = money(r.amountNow, cur) + (r.all && r.status === "Pending" ? " (everything)" : "");
+      var status = r.status + (r.decidedBy ? " by " + r.decidedBy : "") + (r.note ? ": " + r.note : "");
+      var actions = "";
+      if (r.status === "Pending") {
+        var box = el("div", "fn-actions");
+        var pay = el("button", "btn ghost sh-rowbtn", "Mark paid");
+        pay.type = "button";
+        pay.addEventListener("click", function () { payRequest(r, pay); });
+        var rej = el("button", "btn ghost sh-rowbtn sh-del", "Reject");
+        rej.type = "button";
+        rej.addEventListener("click", function () { rejectRequest(r, rej); });
+        box.appendChild(pay); box.appendChild(rej);
+        actions = box;
+      }
+      var who = r.name ? r.name + " (" + r.reg + ")" : r.reg;
+      var worth = r.status === "Pending" ? " Share now worth " + money(r.worth, cur) + "." : "";
+      var payTo = el("span", "fn-pay", r.details);
+      return [r.at, who, amount + worth, payTo, status, actions];
+    }));
+
+    // holders
+    table($("fnHolders"), ["Member", "Share", "Amount now", "Put in", "Withdrawn", "Gain"], v.holders.map(function (h) {
+      var who = h.reg === "RESERVE" ? h.name : (h.name ? h.name + " (" + h.reg + ")" : h.reg);
+      var isReserve = h.reg === "RESERVE";
+      return [who, pct(h.sharePct), money(h.value, cur), money(h.putIn, cur), money(h.withdrawn, cur) + (isReserve ? " (given as sponsorship)" : ""), isReserve ? "" : signed(h.gain, cur) + (h.putIn > 0 ? " (" + (h.gainPct > 0 ? "+" : "") + h.gainPct + "%)" : "")];
+    }));
+    $("fnHoldersNote").textContent = v.holders.length ? "" : "Nobody holds a share yet. Add money to the reserve, then sponsor a member.";
+
+    // ledger
+    var NAMES = { deposit: "Money added", allocate: "Sponsorship", performance: "Result", withdrawal: "Withdrawal" };
+    table($("fnLedger"), ["Date", "What", "Member", "Amount", "Fund after", "Source", "Note", "By"], v.ledger.map(function (e) {
+      return [e.date, NAMES[e.type] || e.type, e.holder === "RESERVE" ? "Reserve" : e.holder, (e.type === "withdrawal" ? "-" : e.type === "performance" ? "" : "") + (e.type === "performance" ? signed(e.amount, cur) : money(e.amount, cur)), money(e.valueAfter, cur), e.source, e.note, e.by];
+    }));
+    if (flash) $("fnMsg").textContent = flash;
+  }
+
+  function load(flash) {
+    return api("/api/admin/funds/" + encodeURIComponent(fundId)).then(function (v) { render(v, flash); });
+  }
+
+  // ---- Actions ----
+  function send(path, body, prefix, button, okText) {
+    if (busy) return;
+    busy = true; button.disabled = true;
+    $("fnMsg").textContent = "";
+    showErrors(prefix, null);
+    api(path, "POST", body)
+      .then(function (v) {
+        render(v, okText(v.done));
+        if (prefix) { var f = $(prefix + "Form"); if (f) f.reset(); }
+      })
+      .catch(function (err) {
+        if (err.auth) return onAuth(err.message);
+        if (err.fields && prefix) showErrors(prefix, err.fields);
+        $("fnMsg").textContent = err.message;
+      })
+      .then(function () { busy = false; button.disabled = false; });
+  }
+
+  function who(r) { return r.name ? r.name + " (" + r.reg + ")" : r.reg; }
+
+  function payRequest(r, btn) {
+    var cur = view.currency;
+    var text = "Mark this withdrawal as paid?\n\n" + who(r) + "\n" + money(r.amountNow, cur) + (r.all ? " (their whole share, at today's value)" : "") + "\n\nOnly do this after you have sent the money. It is taken out of the fund now, at today's value, and cannot be undone here.";
+    if (!window.confirm(text)) return;
+    send("/api/admin/funds/" + encodeURIComponent(fundId) + "/withdrawals/" + encodeURIComponent(r.id) + "/pay", {}, "", btn, function (d) { return "Marked paid: " + money(d.paid, view.currency) + " taken out of the fund."; });
+  }
+  function rejectRequest(r, btn) {
+    var note = window.prompt("Why is this withdrawal being rejected? The member will see this.", "");
+    if (note === null) return;
+    send("/api/admin/funds/" + encodeURIComponent(fundId) + "/withdrawals/" + encodeURIComponent(r.id) + "/reject", { note: note }, "", btn, function () { return "Rejected. The money stays in the fund."; });
+  }
+
+  function wire() {
+    $("fnDepForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var holder = $("fnDep-holder").value.trim();
+      var amount = $("fnDep-amount").value;
+      var ask = "Add " + money(amount, view && view.currency) + " " + (holder ? "for " + holder : "to the reserve") + "?";
+      if (!window.confirm(ask)) return;
+      send("/api/admin/funds/" + encodeURIComponent(fundId) + "/deposit", { holder: holder, amount: amount, note: $("fnDep-note").value }, "fnDep", $("fnDepGo"), function (d) { return "Added " + money(d.amount, view.currency) + "."; });
+    });
+    $("fnAllForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var holder = $("fnAll-holder").value.trim();
+      var amount = $("fnAll-amount").value;
+      if (!window.confirm("Give " + money(amount, view && view.currency) + " of the reserve to " + holder + " as sponsorship?")) return;
+      send("/api/admin/funds/" + encodeURIComponent(fundId) + "/allocate", { holder: holder, amount: amount, note: $("fnAll-note").value }, "fnAll", $("fnAllGo"), function (d) { return "Sponsorship of " + money(d.amount, view.currency) + " given."; });
+    });
+    $("fnPerForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var amount = $("fnPer-amount").value.trim();
+      var value = $("fnPer-newValue").value.trim();
+      if (amount && value) { showErrors("fnPer", { amount: "Fill in only one of these two." }); return; }
+      if (!amount && !value) { showErrors("fnPer", { amount: "Enter the result, or the new value of the fund." }); return; }
+      var body = amount ? { amount: amount } : { newValue: value };
+      body.note = $("fnPer-note").value;
+      if (!window.confirm(amount ? "Record a result of " + amount + " " + view.currency + " for the whole fund? It changes every member's amount." : "Set the fund's value to " + value + " " + view.currency + "? It changes every member's amount.")) return;
+      send("/api/admin/funds/" + encodeURIComponent(fundId) + "/performance", body, "fnPer", $("fnPerGo"), function (d) { return "Result recorded: " + signed(d.amount, view.currency) + ". Fund now " + money(d.fundValue, view.currency) + "."; });
+    });
+    $("fnReload").addEventListener("click", function () {
+      $("fnMsg").textContent = "Loading...";
+      load("").then(function () { $("fnMsg").textContent = ""; }).catch(function (err) { fail(err); });
+    });
+    $("fnPick").addEventListener("change", function () { fundId = $("fnPick").value; $("fnReload").click(); });
+  }
+  var wired = false;
+
+  window.abecAdminFunds = {
+    setup: function (a) { api = a.api; onAuth = a.onAuth; },
+    open: function () {
+      if (!wired) { wire(); wired = true; }
+      $("fnMsg").textContent = "Loading...";
+      api("/api/admin/funds").then(function (r) {
+        var pick = $("fnPick");
+        pick.replaceChildren();
+        r.funds.forEach(function (f) { var o = el("option", null, f.name); o.value = f.id; pick.appendChild(o); });
+        pick.hidden = r.funds.length < 2;
+        if (!fundId || !r.funds.some(function (f) { return f.id === fundId; })) fundId = r.funds[0].id;
+        pick.value = fundId;
+        return load("");
+      }).then(function () { $("fnMsg").textContent = ""; }).catch(function (err) { fail(err); });
+    },
+    clear: function () {
+      view = null;
+      ["fnTiles", "fnReqTable", "fnHolders", "fnLedger", "fnProblems"].forEach(function (id) { var n = $(id); if (n) n.replaceChildren(); });
+      ["fnMsg", "fnReqNote", "fnHoldersNote"].forEach(function (id) { var n = $(id); if (n) n.textContent = ""; });
+    },
+  };
+})();
+```
+
 #### `public/status.html`
 
 ```html
@@ -7866,7 +9134,7 @@ _missing_
     currentReg = d.regNumber;
     if (sel && !explicit) sel.value = kindOfStatus(d.status); // main card of a person found without choosing a kind
     labelFor();
-    mount.replaceChildren(window.renderStudentCard(d));
+    mount.replaceChildren(window.renderStudentCard(d, { viewOnly: true }));
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     liveLine.textContent = note ? note.text : "Live record, checked at " + t;
@@ -8265,6 +9533,17 @@ _missing_
     var foot = el("div", "idc-foot");
     foot.appendChild(el("span", null, "Adebass Base Edge Consult"));
     card.appendChild(foot);
+
+    // Public look-up copies (Check ID) carry the same watermark as the certificate look-up, so they cannot be
+    // mistaken for the card the holder downloads from their portal.
+    if (opts.viewOnly) {
+      var wm = el("div", "idc-watermark");
+      wm.setAttribute("aria-hidden", "true");
+      wm.appendChild(el("span", "idc-wm-big", "VIEW ONLY"));
+      wm.appendChild(el("span", "idc-wm-small", "VERIFICATION COPY"));
+      card.appendChild(wm);
+      card.setAttribute("aria-label", card.getAttribute("aria-label") + " (view only, verification copy)");
+    }
     return card;
   };
 })();
@@ -8659,6 +9938,7 @@ _missing_
         <button type="button" role="tab" id="tab-staff" aria-selected="false" aria-controls="view-staff" hidden>Staff</button>
         <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
         <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
+        <button type="button" role="tab" id="tab-funds" aria-selected="false" aria-controls="view-funds" hidden>Funds</button>
         <button type="button" role="tab" id="tab-hosting" aria-selected="false" aria-controls="view-hosting" hidden>VPS hosting</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
       </nav>
@@ -8861,8 +10141,8 @@ _missing_
 
       <div id="view-community" role="tabpanel" aria-labelledby="tab-community" hidden>
         <article class="adm-card wide">
-          <h3>Student community</h3>
-          <p class="adm-note">Students see these on the Community page of their portal, as "Open WhatsApp community" and "Open Telegram community". Paste the invite link of your group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
+          <h3>Student communities</h3>
+          <p class="adm-note">Students see the Mentorship links on the Community page (under Mentorship in their portal menu) and the Traders links on the Traders community page (under Trading), each as an "Open WhatsApp" and an "Open Telegram" button. Paste the invite link of each group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
           <form id="communityForm" class="lk-form" novalidate></form>
           <div class="lk-bar">
             <button type="button" class="primary" id="communitySave">Save</button>
@@ -8880,6 +10160,75 @@ _missing_
             <button type="button" class="primary" id="videosSave">Save</button>
             <span class="lk-msg" id="videosMsg" role="status"></span>
           </div>
+        </article>
+      </div>
+
+      <div id="view-funds" role="tabpanel" aria-labelledby="tab-funds" hidden>
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3 id="fnTitle">Funds</h3>
+            <div class="fn-head-tools">
+              <select id="fnPick" aria-label="Choose a fund" hidden></select>
+              <button type="button" class="btn ghost" id="fnReload">Reload</button>
+            </div>
+          </div>
+          <p class="adm-note" id="fnAbout"></p>
+          <div class="kpis" id="fnTiles"></div>
+          <p class="adm-note" id="fnMsg" role="status"></p>
+          <div class="fn-problems" id="fnProblems" role="alert" hidden></div>
+        </article>
+
+        <div class="grid">
+          <article class="adm-card">
+            <h3>Add money</h3>
+            <p class="adm-note">Money paid into the fund. Leave the registration number empty to put it in the reserve, ready to give out as sponsorship. Fill it in to put money straight into one Alumni member's share.</p>
+            <form id="fnDepForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnDep-amount">Amount (<span id="fnCur">USD</span>)</label><input id="fnDep-amount" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="lk-err" id="fnDep-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnDep-holder">Member's registration number (optional)</label><input id="fnDep-holder" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001, or empty for the reserve" /><p class="lk-err" id="fnDep-e-holder" role="alert"></p></div>
+              <div class="field"><label for="fnDep-note">Note (optional)</label><input id="fnDep-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnDepGo">Add money</button></div>
+            </form>
+          </article>
+
+          <article class="adm-card">
+            <h3>Sponsor an Alumni member</h3>
+            <p class="adm-note">Gives part of the reserve to a member. It becomes their share, and it grows with the fund from today.</p>
+            <form id="fnAllForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnAll-holder">Member's registration number</label><input id="fnAll-holder" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" /><p class="lk-err" id="fnAll-e-holder" role="alert"></p></div>
+              <div class="field"><label for="fnAll-amount">Amount (<span id="fnCur2">USD</span>)</label><input id="fnAll-amount" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="lk-err" id="fnAll-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnAll-note">Note (optional)</label><input id="fnAll-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnAllGo">Give sponsorship</button></div>
+            </form>
+          </article>
+
+          <article class="adm-card">
+            <h3>Record a trading result</h3>
+            <p class="adm-note">What the fund made or lost. Every member's amount moves by the same percentage. Enter the profit (or a loss with a minus), or the fund's new total value. The copy-trading system will do this automatically later.</p>
+            <form id="fnPerForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnPer-amount">Profit or loss (<span id="fnCur3">USD</span>)</label><input id="fnPer-amount" type="number" step="0.01" inputmode="decimal" placeholder="e.g. 120 or -45.50" /><p class="lk-err" id="fnPer-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnPer-newValue">...or the fund's new total value</label><input id="fnPer-newValue" type="number" step="0.01" min="0" inputmode="decimal" /><p class="lk-err" id="fnPer-e-newValue" role="alert"></p></div>
+              <div class="field"><label for="fnPer-note">Note (optional)</label><input id="fnPer-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnPerGo">Record result</button></div>
+            </form>
+          </article>
+        </div>
+
+        <article class="adm-card wide">
+          <h3>Withdrawal requests</h3>
+          <p class="adm-note" id="fnReqNote" role="status"></p>
+          <div class="tablewrap"><table class="adm-table" id="fnReqTable"></table></div>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Who holds what</h3>
+          <div class="tablewrap"><table class="adm-table" id="fnHolders"></table></div>
+          <p class="adm-note" id="fnHoldersNote"></p>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Ledger (latest 60)</h3>
+          <p class="adm-note">Every entry, newest first. The full record is the Fund Ledger tab of the Google Sheet; do not edit it by hand.</p>
+          <div class="tablewrap"><table class="adm-table" id="fnLedger"></table></div>
         </article>
       </div>
 
@@ -9126,6 +10475,7 @@ _missing_
   <script src="/download.js"></script>
   <script src="/certificate-art.js"></script>
   <script src="/certificate.js"></script>
+  <script src="/admin-funds.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>
@@ -9189,6 +10539,7 @@ _missing_
     $("shTable").replaceChildren();
     $("shSearch").value = "";
     me = null;
+    window.abecAdminFunds.clear();
     setDashTitle();
     staffData = null;
     if ($("tmDlg").open) $("tmDlg").close();
@@ -9225,8 +10576,9 @@ _missing_
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", hosting: "hosting" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", funds: "funds", hosting: "hosting" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
+  window.abecAdminFunds.setup({ api: api, onAuth: function (m) { showLogin(m); } });
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
     var name = me && me.roleLabel ? me.roleLabel + " dashboard" : "Dashboard";
@@ -10753,11 +12105,12 @@ _missing_
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "database", "staff", "idcards", "certificates", "hosting"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "funds", "database", "staff", "idcards", "certificates", "hosting"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "hosting";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "funds" || name === "hosting";
+    if (name === "funds") window.abecAdminFunds.open();
     if (name === "quizcodes") openQuizCodes();
     if (name === "attendance") openAttendance();
     if (name === "hosting") openHosting();
@@ -10785,6 +12138,7 @@ _missing_
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
+  $("tab-funds").addEventListener("click", function () { setTab("funds"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-staff").addEventListener("click", function () { setTab("staff"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
@@ -11279,6 +12633,14 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .cert-signer img { max-width: 100%; max-height: 90px; justify-self: start; margin-top: 4px; }
 .cert-signer .warn { color: #8a5a00; font-weight: 600; }
 @media (max-width: 760px) { .idc-admin { grid-template-columns: 1fr; } .idc-list { max-height: 260px; } }
+
+/* Funds tab */
+.fn-head-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fn-head-tools .btn { height: 40px; padding: 0 16px; }
+.fn-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.fn-pay { display: block; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
+.fn-problems { margin-top: 10px; padding: 10px 14px; border: 1px solid #e8b64c; background: #fff8e6; border-radius: 12px; font-size: .88rem; display: grid; gap: 4px; }
+.fn-problems[hidden] { display: none; }
 ```
 
 #### `public/styles.css`
@@ -11557,6 +12919,14 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   box-shadow: 0 2em 3.5em -2em rgba(60, 8, 66, .8);
   animation: passIn .55s cubic-bezier(.2, .8, .2, 1) both;
 }
+/* "View only, verification copy" watermark on cards shown by Check ID (same wording as the certificate look-up) */
+.idc-watermark {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none; user-select: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transform: rotate(-18deg); color: #fff; opacity: .2; text-align: center; font-weight: 800; white-space: nowrap;
+}
+.idc-wm-big { font-size: 3.2em; line-height: 1.1; }
+.idc-wm-small { font-size: 1.35em; font-weight: 700; letter-spacing: .12em; }
 .idc[data-status="certified"] { --accent: #5ee0a4; }
 .idc[data-status="alumni-member"] { --accent: #f08ad9; }
 .idc::before {
@@ -11832,13 +13202,31 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quiz-open { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: #eef8f0; color: #1f6b3a; font-size: .88rem; font-weight: 600; }
 @media print { .quizcard, .quizrun, .quizgate { display: none; } }
 
-/* ---------- My portal submenu ---------- */
+/* ---------- Portal menu: ID Card, and the Trading and Mentorship dropdowns ---------- */
 .sheet-inner.is-wide { max-width: 680px; }
-.subnav { display: flex; gap: 6px; margin: 0 0 22px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow-x: auto; }
-.subnav a { flex: 1 0 auto; text-align: center; white-space: nowrap; padding: 10px 14px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: .92rem; color: var(--muted); }
-.subnav a:hover { background: var(--bone); color: var(--violet-deep); }
-.subnav a[aria-current="page"] { background: var(--violet-deep); color: #fff; }
-.subnav a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.subnav { display: flex; gap: 6px; position: relative; margin: 0 0 22px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+.sub-group { position: relative; flex: 1 1 0; min-width: 0; display: flex; }
+.subnav .sub-top {
+  flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border: 0; border-radius: 12px; background: none; cursor: pointer;
+  font: inherit; font-weight: 700; font-size: .92rem; text-align: center; text-decoration: none; white-space: nowrap; color: var(--muted);
+}
+.subnav .sub-top:hover { background: var(--bone); color: var(--violet-deep); }
+.subnav .sub-top[aria-current="page"], .subnav .sub-top.is-current { background: var(--violet-deep); color: #fff; }
+.subnav .sub-top:focus-visible, .sub-menu a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sub-caret { width: 7px; height: 7px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s; flex: none; }
+.sub-toggle[aria-expanded="true"] .sub-caret { transform: rotate(-135deg); margin-top: 3px; }
+.sub-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; min-width: max(100%, 200px);
+  display: grid; gap: 2px; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(40, 10, 46, .18);
+}
+.sub-menu[hidden] { display: none; }
+.sub-end .sub-menu { left: auto; right: 0; }
+.sub-menu a { display: block; padding: 11px 14px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: .94rem; color: var(--violet-deep); white-space: nowrap; }
+.sub-menu a[hidden] { display: none; }
+.sub-menu a:hover { background: var(--bone); }
+.sub-menu a[aria-current="page"] { background: var(--purple-soft); color: var(--violet); }
 
 /* ---------- Learning progress bar ---------- */
 .pbar { display: block; width: 100%; height: 12px; background: #eadcee; border-radius: 999px; overflow: hidden; }
@@ -11900,7 +13288,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .hb-pager .btn { height: 46px; }
 .hb-article + .btn.wide, .hb-msg + .hb-pager { margin-top: 0; }
 @media (min-width: 700px) { .hb-cards { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .subnav a { flex: 1 1 0; white-space: normal; display: grid; place-items: center; padding: 8px 6px; font-size: .86rem; line-height: 1.2; min-height: 46px; } }
+@media (max-width: 480px) { .subnav .sub-top { padding: 8px 4px; gap: 4px; font-size: .84rem; line-height: 1.2; min-height: 46px; } }
 @media print { .subnav, .journey, #viewQuiz, #viewHandbook { display: none; } }
 
 /* ---------- Computer view: menu at the top left, for everyone ---------- */
@@ -12133,6 +13521,30 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .bot-activity .bot-ok { color: #1e8449; }
 .bot-activity .bot-error { color: #c0392b; }
 .bot-activity .bot-warn { color: #9a6700; }
+
+/* Portal: Funds (Trading > Funds, Alumni members) */
+#fundsMount { display: grid; gap: 16px; }
+#fundsMount .quizcard { margin: 0; }
+#fundsMount h3 { margin: 0 0 6px; }
+.fd-back { width: fit-content; height: 40px; padding: 0 16px; font-size: .9rem; }
+.fd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+.fd-stat { display: grid; gap: 2px; padding: 12px 14px; background: var(--bone); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+.fd-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fd-value { font-family: var(--display); font-size: 1.2rem; color: var(--violet-deep); overflow-wrap: anywhere; }
+.fd-sub { font-size: .8rem; color: var(--muted); }
+.fd-bigamount { font-family: var(--display); font-size: 2rem; font-weight: 700; color: var(--violet-deep); margin: 6px 0 2px; overflow-wrap: anywhere; }
+.fd-up { color: #1e8449; }
+.fd-down { color: #c0392b; }
+.fd-chart { margin-top: 6px; }
+.fd-svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.fd-line { fill: none; stroke: var(--violet); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.fd-area { fill: var(--purple-soft); opacity: .7; }
+.fd-dot { fill: var(--violet-deep); }
+.fd-form { margin-top: 10px; }
+.fd-form input[type="number"] { width: 100%; max-width: 240px; }
+.fd-form textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; resize: vertical; }
+.fd-withdraw .live { max-width: none; margin: 10px 0; }
+@media print { #viewFunds { display: none; } }
 ```
 
 #### `public/links.js`
@@ -12289,8 +13701,10 @@ const FIELDS = [
   { key: "x", label: "X (Twitter)", kind: "url", hint: "https://x.com/yourname" },
   { key: "telegram", label: "Telegram", kind: "url", hint: "https://t.me/yourname" },
   { key: "youtube", label: "YouTube", kind: "url", hint: "https://youtube.com/@yourchannel" },
-  { key: "communityWhatsapp", label: "WhatsApp community group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
-  { key: "communityTelegram", label: "Telegram community group link", kind: "url", hint: "https://t.me/+...", group: "community" },
+  { key: "communityWhatsapp", label: "Mentorship community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "communityTelegram", label: "Mentorship community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
+  { key: "tradersWhatsapp", label: "Traders community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "tradersTelegram", label: "Traders community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
@@ -12310,6 +13724,8 @@ const DEFAULTS = {
   // Empty on purpose: the student Community page shows a button only once someone with the Community access sets the group.
   communityWhatsapp: "",
   communityTelegram: "",
+  tradersWhatsapp: "",
+  tradersTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   certSignerReg: "",
@@ -12384,7 +13800,7 @@ function toRows(values) {
 
 // The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
 // handed to anyone who visits the site.
-const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram"];
+const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram", "tradersWhatsapp", "tradersTelegram"];
 // The certificate settings are not site links either: they are only sent with a certificate.
 function publicView(values) {
   const out = { ...values };
@@ -12393,7 +13809,7 @@ function publicView(values) {
 }
 
 // Which fields belong to which dashboard tab. The "Site links" tab (links access) has everything without a group;
-// the "Community" tab (community access) has the two student group links. Each tab saves only its own fields.
+// the "Community" tab (community access) has the student group links (Mentorship and Traders). Each tab saves only its own fields.
 const COMMUNITY_KEYS = FIELDS.filter((f) => f.group === "community").map((f) => f.key);
 const CERT_KEYS = FIELDS.filter((f) => f.group === "certificate").map((f) => f.key);
 const siteFields = () => FIELDS.filter((f) => !f.group);
@@ -12402,14 +13818,20 @@ const communityFields = () => FIELDS.filter((f) => f.group === "community");
 const pick = (values, keys) => Object.fromEntries(keys.map((k) => [k, (values && values[k]) || ""]));
 const siteKeys = () => siteFields().map((f) => f.key);
 
-// What the student Community page offers: only the groups someone set on the dashboard (no fallback).
+// What the student Mentorship community page offers: only the groups someone set on the dashboard (no fallback).
 function communityFor(values) {
   const v = values || {};
   return { whatsapp: v.communityWhatsapp || "", telegram: v.communityTelegram || "" };
 }
 
+// Same for the Traders community page (under Trading in the portal menu): its own two groups, no fallback.
+function tradersFor(values) {
+  const v = values || {};
+  return { whatsapp: v.tradersWhatsapp || "", telegram: v.tradersTelegram || "" };
+}
+
 module.exports = {
-  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
+  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor, tradersFor,
   siteFields, communityFields, pick, siteKeys, CERT_KEYS, certFields,
 };
 ```
@@ -12995,11 +14417,11 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "staff.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "server.js", "sheets.js", "staff.js", "fund.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
   "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
-  "public/portal.html", "public/portal.js", "public/handbook.js",
+  "public/portal.html", "public/portal.js", "public/handbook.js", "public/funds.js", "public/admin-funds.js",
   "public/status.html", "public/status.js", "public/lookup-kind.js",
   "public/card.js", "public/qr.js", "public/nav.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
@@ -13064,3 +14486,4 @@ console.log("PROJECT-STATUS.md written,", (result.length / 1024).toFixed(0), "KB
 ### Telegram quiz bot (separate repository)
 
 _Quiz bot folder not found when this file was built._
+

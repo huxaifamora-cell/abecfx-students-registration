@@ -257,8 +257,12 @@ function create(store, opts = {}) {
       let m = masters.get(masterByReg.get(reg));
       const key = KEY_PREFIX + crypto.randomBytes(24).toString("base64url");
       if (!m) {
+        // a code is never reused, even when its master was deleted: the old trades still carry it
         let n = 0;
-        for (const c of masters.keys()) n = Math.max(n, parseInt(c.slice(1), 10) || 0);
+        const seen = (code) => { n = Math.max(n, parseInt(String(code).slice(1), 10) || 0); };
+        for (const code of masters.keys()) seen(code);
+        for (const key of trades.keys()) seen(key.split("|")[0]);
+        for (const f of follows.values()) if (f.master) seen(f.master);
         const name = text(await nameOf(reg), NAME_MAX) || reg;
         m = { code: "M" + (n + 1), reg, keyHash: hashKey(key), linkedAt: stamp(), name, about: "", listed: false, active: true, hosted: false, account: null };
         await store.appendTabRows("copymasters", [[m.code, reg, m.keyHash, m.linkedAt, name, "", "No", "Yes", "", stamp(), "No"]]);
