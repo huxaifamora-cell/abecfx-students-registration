@@ -12,6 +12,8 @@ const HEADERS = {
   botaccounts: ["Reg Number", "Key Hash (do not edit)", "Linked At (Lagos)", "Bot On", "Lot Size", "Stop Loss (account currency)", "Take Profit (account currency, 0 = none)", "Positions Per Trade", "Max Daily Trades", "Index Types", "Risk Accepted At (Lagos)", "Updated At (Lagos)", "Last Account Details (do not edit)"],
   botorders: ["Reg Number", "Order ID", "Created At (UTC)", "Lagos Date", "Signal", "Symbol", "Side", "Lot Size", "Positions Asked", "Positions Opened", "Result", "Detail"],
   bottrades: ["Reg Number", "Position", "Deal", "Symbol", "Type", "Lots", "Open Time (UTC)", "Open Price", "Close Time (UTC)", "Close Price", "Profit", "Swap", "Order", "Recorded At (Lagos)"],
+  fundledger: ["Entry ID", "Fund", "Date (Lagos)", "Type", "Holder (Reg Number or RESERVE)", "Amount", "Units", "Fund Value After", "Total Units After", "Unit Value After", "Source", "Ref", "Note", "By"],
+  fundwithdrawals: ["Request ID", "Fund", "Reg Number", "Requested At (Lagos)", "Amount", "Withdraw Everything", "Payout Details", "Status", "Decided At (Lagos)", "Decided By", "Note", "Amount Paid", "Units Removed", "Ledger Entry"],
   copymasters: ["Master Code", "Reg Number", "Key Hash (do not edit)", "Linked At (Lagos)", "Display Name", "About", "Listed (Yes/No)", "Active (No blocks this master)", "Last Account Details (do not edit)", "Updated At (Lagos)", "Hosted On ABEC-FX VPS (Yes/No)"],
   copyfollows: ["Reg Number", "Master Code", "Following (Yes/No)", "Lot Size", "Max Open Copied Trades", "Max Daily Copied Trades", "Followed At (UTC)", "Risk Accepted At (Lagos)", "Updated At (Lagos)"],
   copytrades: ["Master Code", "Ticket", "Symbol", "Side", "Lots", "Open Time (UTC)", "Open Price", "Stop Loss", "Take Profit", "Status", "Close Time (UTC)", "Close Price", "Profit", "Recorded At (Lagos)", "Closing Deals (do not edit)"],
@@ -21,7 +23,9 @@ const HEADERS = {
   progress: ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"],
   links: ["Key (do not edit)", "What it is", "Value"],
   videos: ["Chapter", "Chapter title", "YouTube video address"],
-  photos: ["Reg Number", "Photo (base64 JPEG - do not edit)"],
+  photos: ["Reg Number", "Photo (base64 JPEG - do not edit)", "Changed by student (date; clear this cell to allow one more change)"],
+  signatures: ["Reg Number", "Signature (base64 PNG - do not edit)"],
+  dobchanges: ["Reg Number", "Old Date of Birth", "New Date of Birth", "Changed At (Lagos)"],
   staff: ["Username", "Full Name", "Role", "Password Hash (do not edit)", "Active", "Created At (Lagos)", "Created By"],
   roles: ["Role Key (do not edit)", "Role Name", "Access (do not edit)", "Created At (Lagos)", "Created By"],
 };
@@ -36,7 +40,7 @@ function student(n, over = {}) {
 
 function createMemoryStore(seed = {}) {
   const fit = (row, w) => { const r = (row || []).map((c) => (c == null ? "" : String(c))); while (r.length < w) r.push(""); return r.slice(0, w); };
-  const data = { students: [], codes: [], quizcodes: [], classes: [], attendance: [], botaccounts: [], botorders: [], bottrades: [], copymasters: [], copyfollows: [], copytrades: [], copyorders: [], hostingrequests: [], quiz: [], progress: [], links: [], videos: [], photos: [], staff: [], roles: [] };
+  const data = { students: [], codes: [], quizcodes: [], classes: [], attendance: [], botaccounts: [], botorders: [], bottrades: [], fundledger: [], fundwithdrawals: [], copymasters: [], copyfollows: [], copytrades: [], copyorders: [], hostingrequests: [], quiz: [], progress: [], links: [], videos: [], photos: [], signatures: [], dobchanges: [], staff: [], roles: [] };
   for (const k of Object.keys(seed)) data[k] = seed[k].map((r) => r.slice());
   const width = (key) => HEADERS[key].length;
   const calls = []; // what was written, for the tests to look at
