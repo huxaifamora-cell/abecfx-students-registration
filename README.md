@@ -185,12 +185,19 @@ The quiz is locked until a student enters a one-time code (like `QZ-7K4M-9PXR`).
   itself is not locked unless you set `QUIZ_CODE_FOR_TELEGRAM=on` (see `env.example`). Turn that on only after
   checking that the bot shows the website's error message when the website answers 403.
 
-### Community page
+### Portal menu and the community pages
 
-Students see a **Community** item in their portal menu with two buttons: **Open WhatsApp community** and
-**Open Telegram community**. Each opens the group an admin set in `/admin` > **Community** (paste the group's
-invite link). A button only shows for a group that has been set; there is no fallback to the official channel. These
-two links are only given to signed-in students, never on the public pages.
+The student portal's menu has three primary items:
+
+- **ID Card**: the student's card (opens directly).
+- **Trading** (dropdown): **Signals** and **Bot trading** (Alumni members only), and **Traders community**.
+- **Mentorship** (dropdown): **Handbook**, **Workbook**, **Community**, **Live class** and **Quiz**.
+
+Both community pages have two buttons, **Open WhatsApp** and **Open Telegram**, and each page has its own pair of
+groups: **Community** (under Mentorship) and **Traders community** (under Trading, `#/traders`). Admins set all four
+links in `/admin` > **Community** (paste each group's invite link). A button only shows for a group that has been set;
+there is no fallback to the official channel. These links are only given to signed-in students (`GET /api/community`
+and `GET /api/traders-community`), never on the public pages.
 
 - **Who can set them:** the owner, any Admin, any Editor, and any custom role that has the **Student community**
   access. To put someone else in charge, open **Staff**, click **Create role**, tick only **Student community**,

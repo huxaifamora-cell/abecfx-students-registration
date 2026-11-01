@@ -922,6 +922,18 @@ app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
   }
 });
 
+// Student portal: the Traders community groups (Trading menu). Same rules as the Mentorship community above:
+// signed-in students only, and only the groups set on the dashboard's Community tab are offered.
+app.get("/api/traders-community", linksLimiter, studentAuth, async (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    res.json(links.tradersFor(await store.readLinks()));
+  } catch (err) {
+    console.error("Traders community links read failed:", err.message);
+    res.json(links.tradersFor({}));
+  }
+});
+
 // ---- One-time quiz codes ----
 // The quiz is locked until a student enters a code made by an admin (or a role with the "quizcodes" access).
 // A code opens the quiz for that student until their result is saved; then the quiz locks again and the next
