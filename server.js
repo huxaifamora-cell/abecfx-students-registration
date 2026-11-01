@@ -15,7 +15,8 @@ const quizcodes = require("./quizcodes");
 const attendanceLib = require("./attendance");
 const signalsLib = require("./signals");
 const botLib = require("./bot");
-const fundLib = require("./fund");
+const copyLib = require("./copy");
+const hostingLib = require("./hosting");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -923,18 +924,6 @@ app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
   }
 });
 
-// Student portal: the Traders community groups (Trading menu). Same rules as the Mentorship community above:
-// signed-in students only, and only the groups set on the dashboard's Community tab are offered.
-app.get("/api/traders-community", linksLimiter, studentAuth, async (_req, res) => {
-  res.set("Cache-Control", "no-store");
-  try {
-    res.json(links.tradersFor(await store.readLinks()));
-  } catch (err) {
-    console.error("Traders community links read failed:", err.message);
-    res.json(links.tradersFor({}));
-  }
-});
-
 // ---- One-time quiz codes ----
 // The quiz is locked until a student enters a code made by an admin (or a role with the "quizcodes" access).
 // A code opens the quiz for that student until their result is saved; then the quiz locks again and the next
@@ -1468,22 +1457,18 @@ const botTrading = botLib.create(store, {
   },
 });
 
-// Alumni-only gate for the portal pages under Trading. `message` is what a non-Alumni student is told.
-function alumniOnlyWith(message) {
-  return async function (req, res, next) {
-    res.set("Cache-Control", "no-store");
-    try {
-      const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
-      if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
-      if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: message });
-      next();
-    } catch (err) {
-      console.error("Alumni check failed:", err.message);
-      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
-    }
-  };
+async function alumniOnly(req, res, next) {
+  res.set("Cache-Control", "no-store");
+  try {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
+    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+    if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: "Bot trading is for Alumni members." });
+    next();
+  } catch (err) {
+    console.error("Alumni check failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
 }
-const alumniOnly = alumniOnlyWith("Bot trading is for Alumni members.");
 const botPortalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
@@ -1505,6 +1490,109 @@ function botRoute(handler) {
 }
 const botOffMessage = "Bot trading is switched off.";
 
+// ---- Copy trading (rules in copy.js): alumni members copy the trades of a master (any mentor or staff member) ----
+// Off unless COPY_TRADING=on. It uses the same MT5 connector as Bot trading, so a member links their account once.
+const COPY_ON = /^(1|on|true|yes)$/i.test(process.env.COPY_TRADING || "");
+const rowOfReg = async (reg) => (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+const copyTrading = copyLib.create(store, {
+  enabled: COPY_ON,
+  today: () => idrules.lagosToday(),
+  stamp: lagosTimestamp,
+  isAlumni: async (reg) => { const row = await rowOfReg(reg); return Boolean(row && idrules.idKinds(row).alumni); },
+  isStaff: async (reg) => { const row = await rowOfReg(reg); return Boolean(row && idrules.idKinds(row).staff); },
+  nameOf: async (reg) => { const row = await rowOfReg(reg); return row ? row[4] || "" : ""; },
+  connection: async (reg) => { const v = await botTrading.view(reg); return { linked: v.linked, connected: v.connected }; },
+});
+// Who may do what: Alumni members follow; Staff ID card holders (mentors and staff) can be masters.
+function holderOnly(kind, message) {
+  return async (req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      const row = await rowOfReg(req.studentReg);
+      if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+      if (!idrules.idKinds(row)[kind]) return res.status(403).json({ error: message });
+      next();
+    } catch (err) {
+      console.error("Card check failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+const staffOnly = holderOnly("staff", "Only staff and mentors can be a master.");
+async function alumniOrStaff(req, res, next) {
+  res.set("Cache-Control", "no-store");
+  try {
+    const row = await rowOfReg(req.studentReg);
+    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+    const k = idrules.idKinds(row);
+    if (!k.alumni && !k.staff) return res.status(403).json({ error: "This is for Alumni members, staff and mentors." });
+    next();
+  } catch (err) {
+    console.error("Card check failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+}
+function copyRoute(handler) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof copyLib.CopyError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      console.error("Copy trading request failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+const copyOffMessage = "Copy trading is switched off.";
+// ---- VPS hosting requests (rules in hosting.js): a member asks for their connector to run on the ABEC-FX VPS ----
+// Off unless VPS_HOSTING=on. The website only keeps the request. No password ever goes through it.
+const HOSTING_ON = /^(1|on|true|yes)$/i.test(process.env.VPS_HOSTING || "");
+const hostingSvc = hostingLib.create(store, { enabled: HOSTING_ON, stamp: lagosTimestamp, nameOf: async (reg) => { const row = await rowOfReg(reg); return row ? row[4] || "" : ""; } });
+function hostingRoute(handler) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof hostingLib.HostingError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      console.error("Hosting request failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+app.get("/api/portal/hosting", botPortalLimiter, studentAuth, alumniOnly, hostingRoute(async (req, res) => {
+  res.json(await hostingSvc.memberView(req.studentReg));
+}));
+app.post("/api/portal/hosting", botPortalLimiter, studentAuth, alumniOnly, hostingRoute(async (req, res) => {
+  res.json(await hostingSvc.request(req.studentReg, req.body));
+}));
+app.post("/api/portal/hosting/end", botPortalLimiter, studentAuth, alumniOnly, hostingRoute(async (req, res) => {
+  res.json(await hostingSvc.memberEnd(req.studentReg));
+}));
+
+app.get("/api/portal/copy", botPortalLimiter, studentAuth, alumniOnly, copyRoute(async (req, res) => {
+  await copyTrading.init();
+  const view = await copyTrading.followView(req.studentReg);
+  res.json({ ...view, hosted: await hostingSvc.isHosted(req.studentReg) });
+}));
+app.put("/api/portal/copy/follow", botPortalLimiter, studentAuth, alumniOnly, copyRoute(async (req, res) => {
+  if (!COPY_ON) return res.status(403).json({ error: copyOffMessage });
+  res.json(await copyTrading.saveFollow(req.studentReg, req.body));
+}));
+app.get("/api/portal/copy/master", botPortalLimiter, studentAuth, staffOnly, copyRoute(async (req, res) => {
+  res.json(await copyTrading.masterView(req.studentReg));
+}));
+app.put("/api/portal/copy/master", botPortalLimiter, studentAuth, staffOnly, copyRoute(async (req, res) => {
+  if (!COPY_ON) return res.status(403).json({ error: copyOffMessage });
+  res.json(await copyTrading.masterSettings(req.studentReg, req.body));
+}));
+app.post("/api/portal/copy/master/link", botPortalLimiter, studentAuth, staffOnly, copyRoute(async (req, res) => {
+  if (!COPY_ON) return res.status(403).json({ error: copyOffMessage });
+  res.json(await copyTrading.masterLink(req.studentReg));
+}));
+app.post("/api/portal/copy/master/disconnect", botPortalLimiter, studentAuth, staffOnly, copyRoute(async (req, res) => {
+  res.json(await copyTrading.masterDisconnect(req.studentReg));
+}));
+
 app.get("/api/portal/bot", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
   res.json(await botTrading.view(req.studentReg));
 }));
@@ -1513,14 +1601,14 @@ app.put("/api/portal/bot/settings", botPortalLimiter, studentAuth, alumniOnly, b
   res.json(await botTrading.saveSettings(req.studentReg, req.body));
 }));
 app.post("/api/portal/bot/link", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
-  if (!BOT_ON) return res.status(403).json({ error: botOffMessage });
+  if (!BOT_ON && !COPY_ON) return res.status(403).json({ error: botOffMessage });
   res.json(await botTrading.link(req.studentReg));
 }));
 app.post("/api/portal/bot/disconnect", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
   res.json(await botTrading.disconnect(req.studentReg));
 }));
 // The MT5 connector, with this website's address filled in. Alumni members only.
-app.get("/api/portal/bot/connector", botPortalLimiter, studentAuth, alumniOnly, (req, res) => {
+app.get("/api/portal/bot/connector", botPortalLimiter, studentAuth, alumniOrStaff, (req, res) => {
   try {
     const origin = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || req.protocol + "://" + req.get("host")).replace(/\/+$/, "");
     const source = require("fs").readFileSync(path.join(__dirname, "private", "bot", "ABECFX_Bot_Connector.mq5"), "utf8").replace(/__SERVER_URL__/g, origin);
@@ -1544,11 +1632,25 @@ const botReportLimiter = rateLimit({
 app.post("/api/bot/report", botReportLimiter, async (req, res) => {
   res.set("Cache-Control", "no-store");
   try {
-    if (!BOT_ON) return res.status(503).type("text/plain").send("ERR|" + botOffMessage);
+    if (!BOT_ON && !COPY_ON) return res.status(503).type("text/plain").send("ERR|" + botOffMessage);
+    const key = req.get("x-bot-key");
+    // A master's key (MK-...) reports the master's own trades; it is never sent orders.
+    if (copyLib.isMasterKey(key)) {
+      if (!COPY_ON) return res.status(503).type("text/plain").send("ERR|" + copyOffMessage);
+      await copyTrading.init();
+      const code = copyTrading.masterOfKey(key);
+      if (!code) return res.status(401).type("text/plain").send("ERR|This key is not valid. Link your account again in the portal.");
+      await copyTrading.masterReport(code, req.body);
+      return res.type("text/plain").send("OK");
+    }
     await botTrading.init();
-    const reg = botTrading.regOfKey(req.get("x-bot-key"));
+    const reg = botTrading.regOfKey(key);
     if (!reg) return res.status(401).type("text/plain").send("ERR|This key is not valid. Link your account again in the portal.");
     const lines = await botTrading.report(reg, req.body);
+    if (COPY_ON) {
+      // Copy trading: the same report decides what to copy for this member. A problem here never stops the bot's own lines.
+      try { lines.push(...(await copyTrading.followerLines(reg, req.body))); } catch (err) { console.error("Copy trading report failed:", err.message); }
+    }
     res.type("text/plain").send(["OK"].concat(lines).join("\n"));
   } catch (err) {
     if (err instanceof botLib.BotError) return res.status(err.status).type("text/plain").send("ERR|" + err.message);
@@ -1556,86 +1658,6 @@ app.post("/api/bot/report", botReportLimiter, async (req, res) => {
     res.status(500).type("text/plain").send("ERR|server problem");
   }
 });
-
-// ---- Funds (rules in fund.js): money pools Alumni members share in. The first is the Palliative Fund, which sponsors new
-// Alumni members to start trading. The copy-trading system will later report the fund's trading results through
-// fundService.performance(...), which is the one place a result enters the fund. Switch the whole feature off with FUNDS=off.
-const FUNDS_ON = !/^(0|off|false|no)$/i.test(process.env.FUNDS || "");
-const fundService = fundLib.create(store, {
-  currency: (process.env.FUND_CURRENCY || "USD").toUpperCase().slice(0, 5),
-  stamp: lagosTimestamp,
-  nameOf: async (reg) => {
-    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
-    return row ? row[4] || "" : "";
-  },
-  isAlumni: async (reg) => {
-    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
-    return Boolean(row && idrules.idKinds(row).alumni);
-  },
-});
-const fundAlumniOnly = alumniOnlyWith("The Funds are for Alumni members.");
-const fundPortalLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 60,
-  keyGenerator: (req) => req.studentReg,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests. Please wait a moment." },
-});
-function fundRoute(handler) {
-  return async (req, res) => {
-    res.set("Cache-Control", "no-store");
-    try {
-      if (!FUNDS_ON) return res.status(503).json({ error: "The Funds are switched off for now." });
-      await handler(req, res);
-    } catch (err) {
-      if (err instanceof fundLib.FundError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
-      console.error("Fund request failed:", err.message);
-      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
-    }
-  };
-}
-
-app.get("/api/portal/funds", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
-  res.json({ funds: await fundService.memberList(req.studentReg), currency: fundService.currency });
-}));
-app.get("/api/portal/funds/:id", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
-  res.json(await fundService.memberView(req.params.id, req.studentReg));
-}));
-app.post("/api/portal/funds/:id/withdrawals", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
-  await fundService.requestWithdrawal(req.params.id, req.studentReg, req.body);
-  res.json(await fundService.memberView(req.params.id, req.studentReg));
-}));
-app.post("/api/portal/funds/:id/withdrawals/:rid/cancel", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
-  await fundService.cancelWithdrawal(req.params.id, req.studentReg, req.params.rid);
-  res.json(await fundService.memberView(req.params.id, req.studentReg));
-}));
-
-// Dashboard: any role given the "funds" access (admins and the owner have it). Each action answers with the fund's fresh view.
-const fundsAuth = requirePerm("funds");
-const adminFundView = async (id, res, extra) => res.json({ ...(await fundService.adminView(id)), ...(extra || {}) });
-app.get("/api/admin/funds", adminLimiter, fundsAuth, fundRoute(async (_req, res) => res.json({ funds: fundService.list(), currency: fundService.currency })));
-app.get("/api/admin/funds/:id", adminLimiter, fundsAuth, fundRoute(async (req, res) => adminFundView(req.params.id, res)));
-app.post("/api/admin/funds/:id/deposit", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
-  const done = await fundService.deposit(req.params.id, req.body, req.admin.username);
-  await adminFundView(req.params.id, res, { done });
-}));
-app.post("/api/admin/funds/:id/allocate", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
-  const done = await fundService.allocate(req.params.id, req.body, req.admin.username);
-  await adminFundView(req.params.id, res, { done });
-}));
-app.post("/api/admin/funds/:id/performance", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
-  const done = await fundService.performance(req.params.id, req.body, req.admin.username);
-  await adminFundView(req.params.id, res, { done });
-}));
-app.post("/api/admin/funds/:id/withdrawals/:rid/pay", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
-  const done = await fundService.payWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
-  await adminFundView(req.params.id, res, { done });
-}));
-app.post("/api/admin/funds/:id/withdrawals/:rid/reject", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
-  const done = await fundService.rejectWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
-  await adminFundView(req.params.id, res, { done });
-}));
 
 // ---- Alumni signals: the Boom / Crash setup monitor (rules and Deriv connection in signals.js) ----
 // Off unless SIGNALS=on. Only students who hold the Alumni ID card can read it.
@@ -1709,6 +1731,22 @@ app.post("/api/portal/attendance/heartbeat", heartbeatLimiter, studentAuth, atte
   res.json(await attendance.heartbeat(req.studentReg, (req.body || {}).classId));
 }));
 
+// The dashboard's "VPS hosting" tab: requests to host a member's connector on the VPS.
+const hostingAuth = requirePerm("hosting");
+app.get("/api/admin/hosting", adminLimiter, hostingAuth, hostingRoute(async (_req, res) => {
+  res.json({ ...(await hostingSvc.adminList()), enabled: HOSTING_ON });
+}));
+app.post("/api/admin/hosting/update", adminLimiter, hostingAuth, hostingRoute(async (req, res) => {
+  const b = req.body || {};
+  res.json({ ...(await hostingSvc.adminUpdate(b.id, b, req.admin)), enabled: HOSTING_ON });
+}));
+// A new connector key for the member's terminal on the VPS. Shown once, to the admin only. It replaces the member's
+// own key (their own connector stops), and it is the member's normal connector key, so it trades only what the member allows.
+app.post("/api/admin/hosting/key", adminLimiter, hostingAuth, hostingRoute(async (req, res) => {
+  if (!BOT_ON && !COPY_ON) return res.status(403).json({ error: "Bot trading and copy trading are both switched off, so there is nothing to connect." });
+  const row = await hostingSvc.forKey((req.body || {}).id);
+  res.json(await botTrading.link(row.reg));
+}));
 app.get("/api/admin/attendance", adminLimiter, attendanceAuth, attendanceRoute(async (_req, res) => {
   res.json(await attendance.list());
 }));

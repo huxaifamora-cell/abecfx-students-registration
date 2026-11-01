@@ -10,10 +10,8 @@ const FIELDS = [
   { key: "x", label: "X (Twitter)", kind: "url", hint: "https://x.com/yourname" },
   { key: "telegram", label: "Telegram", kind: "url", hint: "https://t.me/yourname" },
   { key: "youtube", label: "YouTube", kind: "url", hint: "https://youtube.com/@yourchannel" },
-  { key: "communityWhatsapp", label: "Mentorship community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
-  { key: "communityTelegram", label: "Mentorship community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
-  { key: "tradersWhatsapp", label: "Traders community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
-  { key: "tradersTelegram", label: "Traders community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
+  { key: "communityWhatsapp", label: "WhatsApp community group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "communityTelegram", label: "Telegram community group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
@@ -33,8 +31,6 @@ const DEFAULTS = {
   // Empty on purpose: the student Community page shows a button only once someone with the Community access sets the group.
   communityWhatsapp: "",
   communityTelegram: "",
-  tradersWhatsapp: "",
-  tradersTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   certSignerReg: "",
@@ -109,7 +105,7 @@ function toRows(values) {
 
 // The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
 // handed to anyone who visits the site.
-const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram", "tradersWhatsapp", "tradersTelegram"];
+const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram"];
 // The certificate settings are not site links either: they are only sent with a certificate.
 function publicView(values) {
   const out = { ...values };
@@ -118,7 +114,7 @@ function publicView(values) {
 }
 
 // Which fields belong to which dashboard tab. The "Site links" tab (links access) has everything without a group;
-// the "Community" tab (community access) has the student group links (Mentorship and Traders). Each tab saves only its own fields.
+// the "Community" tab (community access) has the two student group links. Each tab saves only its own fields.
 const COMMUNITY_KEYS = FIELDS.filter((f) => f.group === "community").map((f) => f.key);
 const CERT_KEYS = FIELDS.filter((f) => f.group === "certificate").map((f) => f.key);
 const siteFields = () => FIELDS.filter((f) => !f.group);
@@ -127,19 +123,13 @@ const communityFields = () => FIELDS.filter((f) => f.group === "community");
 const pick = (values, keys) => Object.fromEntries(keys.map((k) => [k, (values && values[k]) || ""]));
 const siteKeys = () => siteFields().map((f) => f.key);
 
-// What the student Mentorship community page offers: only the groups someone set on the dashboard (no fallback).
+// What the student Community page offers: only the groups someone set on the dashboard (no fallback).
 function communityFor(values) {
   const v = values || {};
   return { whatsapp: v.communityWhatsapp || "", telegram: v.communityTelegram || "" };
 }
 
-// Same for the Traders community page (under Trading in the portal menu): its own two groups, no fallback.
-function tradersFor(values) {
-  const v = values || {};
-  return { whatsapp: v.tradersWhatsapp || "", telegram: v.tradersTelegram || "" };
-}
-
 module.exports = {
-  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor, tradersFor,
+  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
   siteFields, communityFields, pick, siteKeys, CERT_KEYS, certFields,
 };

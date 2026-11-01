@@ -40,7 +40,7 @@ const PERMS = [
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
   { key: "attendance", label: "Attendance", help: "Start and end live classes and see who attended (present for at least half of the class)." },
   { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
-  { key: "funds", label: "Funds", help: "Record money paid into a fund, give sponsorships to Alumni members, record the fund's trading results and pay or reject withdrawal requests." },
+  { key: "hosting", label: "VPS hosting", help: "See members' requests to have their connector hosted on the ABEC-FX VPS, approve or decline them, track the VPS slot and make their connector key." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "staff", label: "Staff and roles", help: "Add staff members, create roles and choose their access." },
 ];

@@ -6,7 +6,8 @@ const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 const attendance = require("./attendance");
 const bot = require("./bot");
-const fund = require("./fund");
+const copy = require("./copy");
+const hosting = require("./hosting");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -96,15 +97,27 @@ const BOTTRD_TAB = process.env.GOOGLE_BOTTRADE_TAB || "Bot Trades";
 const BOTTRD_HEADERS = bot.TRADE_HEADERS;
 const BOTTRD_LAST_COL = "N";
 
-// Funds (see fund.js): the ledger of every deposit, sponsorship, trading result and withdrawal, and the members'
-// withdrawal requests. Managed from the portal's "Funds" page and the dashboard's "Funds" tab, never the Database view,
-// because the ledger is replayed from the top to work out every balance.
-const FUNDLED_TAB = process.env.GOOGLE_FUNDLEDGER_TAB || "Fund Ledger";
-const FUNDLED_HEADERS = fund.LEDGER_HEADERS;
-const FUNDLED_LAST_COL = "N";
-const FUNDWD_TAB = process.env.GOOGLE_FUNDWITHDRAWAL_TAB || "Fund Withdrawals";
-const FUNDWD_HEADERS = fund.WITHDRAWAL_HEADERS;
-const FUNDWD_LAST_COL = "N";
+// Copy trading (see copy.js): the masters (staff and mentors), who follows whom with what settings, every trade of every
+// master, and every copy order sent to a follower. Managed from the portal's "Copy trading" page, never through the Database view.
+// An admin can set Active to No on a master row to block that master, or edit a follower's row by hand.
+const COPYMASTER_TAB = process.env.GOOGLE_COPYMASTER_TAB || "Copy Masters";
+const COPYMASTER_HEADERS = copy.MASTER_HEADERS;
+const COPYMASTER_LAST_COL = "K";
+const COPYFOLLOW_TAB = process.env.GOOGLE_COPYFOLLOW_TAB || "Copy Follows";
+const COPYFOLLOW_HEADERS = copy.FOLLOW_HEADERS;
+const COPYFOLLOW_LAST_COL = "I";
+const COPYTRADE_TAB = process.env.GOOGLE_COPYTRADE_TAB || "Copy Master Trades";
+const COPYTRADE_HEADERS = copy.TRADE_HEADERS;
+const COPYTRADE_LAST_COL = "O";
+const COPYORDER_TAB = process.env.GOOGLE_COPYORDER_TAB || "Copy Orders";
+const COPYORDER_HEADERS = copy.ORDER_HEADERS;
+const COPYORDER_LAST_COL = "N";
+
+// Member hosting requests (see hosting.js): who asked for their connector to run on the ABEC-FX VPS, and how far it has got.
+// No password is ever kept here. Managed from the dashboard's "VPS hosting" tab and the portal's Copy trading page.
+const HOSTREQ_TAB = process.env.GOOGLE_HOSTING_TAB || "Hosting Requests";
+const HOSTREQ_HEADERS = hosting.HEADERS;
+const HOSTREQ_LAST_COL = "L";
 
 // Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
@@ -242,11 +255,16 @@ async function init() {
   await ensureHeaders(BOTORD_TAB, BOTORD_HEADERS, BOTORD_LAST_COL);
   await ensureTab(BOTTRD_TAB);
   await ensureHeaders(BOTTRD_TAB, BOTTRD_HEADERS, BOTTRD_LAST_COL);
-
-  await ensureTab(FUNDLED_TAB);
-  await ensureHeaders(FUNDLED_TAB, FUNDLED_HEADERS, FUNDLED_LAST_COL);
-  await ensureTab(FUNDWD_TAB);
-  await ensureHeaders(FUNDWD_TAB, FUNDWD_HEADERS, FUNDWD_LAST_COL);
+  await ensureTab(COPYMASTER_TAB);
+  await ensureHeaders(COPYMASTER_TAB, COPYMASTER_HEADERS, COPYMASTER_LAST_COL);
+  await ensureTab(COPYFOLLOW_TAB);
+  await ensureHeaders(COPYFOLLOW_TAB, COPYFOLLOW_HEADERS, COPYFOLLOW_LAST_COL);
+  await ensureTab(COPYTRADE_TAB);
+  await ensureHeaders(COPYTRADE_TAB, COPYTRADE_HEADERS, COPYTRADE_LAST_COL);
+  await ensureTab(COPYORDER_TAB);
+  await ensureHeaders(COPYORDER_TAB, COPYORDER_HEADERS, COPYORDER_LAST_COL);
+  await ensureTab(HOSTREQ_TAB);
+  await ensureHeaders(HOSTREQ_TAB, HOSTREQ_HEADERS, HOSTREQ_LAST_COL);
 
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
@@ -656,9 +674,12 @@ const EDITOR_TABS = {
   botaccounts: { title: BOTACC_TAB, headers: BOTACC_HEADERS, lastCol: BOTACC_LAST_COL },
   botorders: { title: BOTORD_TAB, headers: BOTORD_HEADERS, lastCol: BOTORD_LAST_COL },
   bottrades: { title: BOTTRD_TAB, headers: BOTTRD_HEADERS, lastCol: BOTTRD_LAST_COL },
-  // Internal only: the funds' ledger and withdrawal requests. Managed through fund.js, the portal's "Funds" page and the "Funds" dashboard tab.
-  fundledger: { title: FUNDLED_TAB, headers: FUNDLED_HEADERS, lastCol: FUNDLED_LAST_COL },
-  fundwithdrawals: { title: FUNDWD_TAB, headers: FUNDWD_HEADERS, lastCol: FUNDWD_LAST_COL },
+  // Internal only: copy trading masters, follows, master trades and copy orders. Managed through copy.js and the portal's "Copy trading" page.
+  copymasters: { title: COPYMASTER_TAB, headers: COPYMASTER_HEADERS, lastCol: COPYMASTER_LAST_COL },
+  copyfollows: { title: COPYFOLLOW_TAB, headers: COPYFOLLOW_HEADERS, lastCol: COPYFOLLOW_LAST_COL },
+  copytrades: { title: COPYTRADE_TAB, headers: COPYTRADE_HEADERS, lastCol: COPYTRADE_LAST_COL },
+  copyorders: { title: COPYORDER_TAB, headers: COPYORDER_HEADERS, lastCol: COPYORDER_LAST_COL },
+  hostingrequests: { title: HOSTREQ_TAB, headers: HOSTREQ_HEADERS, lastCol: HOSTREQ_LAST_COL },
   // Internal only: live classes and who attended. Managed through attendance.js and the "Attendance" dashboard tab.
   classes: { title: CLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
   attendance: { title: ATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },
