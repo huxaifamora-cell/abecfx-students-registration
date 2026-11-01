@@ -30,7 +30,7 @@ test("staff columns match the real sheets.js (when its dependencies are installe
 });
 
 test("built-in roles: owner and admin everything, editor everything but the staff and quiz codes, moderator only view", () => {
-  const all = ["view", "links", "community", "videos", "quizcodes", "attendance", "certificates", "hosting", "database", "staff"];
+  const all = ["view", "links", "community", "videos", "quizcodes", "attendance", "certificates", "funds", "hosting", "database", "staff"];
   assert.deepEqual(staff.PERM_KEYS, all);
   for (const r of ["admin", "owner"]) for (const p of all) assert.equal(staff.can(r, p), true, r + " " + p);
   for (const p of ["view", "links", "community", "videos", "database"]) assert.equal(staff.can("editor", p), true, "editor " + p);

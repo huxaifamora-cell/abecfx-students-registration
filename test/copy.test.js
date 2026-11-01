@@ -414,3 +414,31 @@ test("an admin marks a master as hosted on the ABEC-FX VPS in the sheet; followe
   assert.equal((await fresh.masterView(MASTER_REG)).hosted, true);
   assert.equal(code, "M1");
 });
+
+test("a master code is not reused after its master is deleted, so old trades never join a new master", async () => {
+  const s = setup();
+  const { code } = await listedMaster(s);
+  advance(s, 1000);
+  await s.svc.masterReport(code, report([pos("5001")]));
+  s.store.data.copymasters.length = 0; // the person was deleted from the Database view
+  const fresh = s.make();
+  await fresh.init();
+  const again = await fresh.masterLink("ABECFX/26/0009");
+  assert.notEqual(again.code, code);
+});
+
+test("deleting a student also removes their copy trading and hosting records", async () => {
+  const { create } = require("../admin-database");
+  const { student } = require("./support/memory-store");
+  const store = createMemoryStore({ students: [student(1), student(2)] });
+  store.data.copyfollows.push(["ABECFX/26/0001", "M1", "Yes", "0.5", "3", "10", "", "", ""], ["ABECFX/26/0002", "M1", "Yes", "0.5", "3", "10", "", "", ""]);
+  store.data.copyorders.push(["ABECFX/26/0001", "C1", "", "", "M1", "5", "Open", "", "", "", "", "", "Opened", ""]);
+  store.data.copymasters.push(["M1", "ABECFX/26/0001", "", "", "Ade", "", "No", "Yes", "", "", "No"]);
+  store.data.hostingrequests.push(["H1", "ABECFX/26/0001", "", "Requested", "123456", "Deriv-Demo", "Demo", "", "", "", "", "member"]);
+  const svc = create(store);
+  await svc.remove("students", 2, store.data.students[0].slice());
+  assert.deepEqual(store.data.copyfollows.map((r) => r[0]), ["ABECFX/26/0002"]);
+  assert.equal(store.data.copyorders.length, 0);
+  assert.equal(store.data.copymasters.length, 0);
+  assert.equal(store.data.hostingrequests.length, 0);
+});
