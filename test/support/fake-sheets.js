@@ -7,6 +7,7 @@ const { createMemoryStore, student } = require("./memory-store");
 // With FAKE_CERTIFIED=1 a fourth student, ABECFX/26/0004 (ada4@example.com), is already Certified (status date "1 Jun 2026").
 const seeded = [student(1), student(2), student(3)];
 if (process.env.FAKE_CERTIFIED) seeded.push(student(4, { 4: "Alaba Emmanuel Akindejoye", 9: "Certified", 10: "1 Jun 2026" }));
+if (process.env.FAKE_ALUMNI) seeded.push(student(5, { 9: "Not a student", 17: "Yes" })); // ABECFX/26/0005 (ada5@example.com) holds only an Alumni ID card
 const mem = createMemoryStore({ students: seeded });
 const strings = (row) => row.map((c) => (c == null ? "" : String(c)));
 let linksNow = { ...require("../../links").DEFAULTS };
