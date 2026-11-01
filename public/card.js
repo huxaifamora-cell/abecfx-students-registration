@@ -270,6 +270,17 @@
     var foot = el("div", "idc-foot");
     foot.appendChild(el("span", null, "Adebass Base Edge Consult"));
     card.appendChild(foot);
+
+    // Public look-up copies (Check ID) carry the same watermark as the certificate look-up, so they cannot be
+    // mistaken for the card the holder downloads from their portal.
+    if (opts.viewOnly) {
+      var wm = el("div", "idc-watermark");
+      wm.setAttribute("aria-hidden", "true");
+      wm.appendChild(el("span", "idc-wm-big", "VIEW ONLY"));
+      wm.appendChild(el("span", "idc-wm-small", "VERIFICATION COPY"));
+      card.appendChild(wm);
+      card.setAttribute("aria-label", card.getAttribute("aria-label") + " (view only, verification copy)");
+    }
     return card;
   };
 })();

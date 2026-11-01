@@ -56,6 +56,7 @@
         <button type="button" role="tab" id="tab-staff" aria-selected="false" aria-controls="view-staff" hidden>Staff</button>
         <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
         <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
+        <button type="button" role="tab" id="tab-funds" aria-selected="false" aria-controls="view-funds" hidden>Funds</button>
         <button type="button" role="tab" id="tab-hosting" aria-selected="false" aria-controls="view-hosting" hidden>VPS hosting</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
       </nav>
@@ -258,8 +259,8 @@
 
       <div id="view-community" role="tabpanel" aria-labelledby="tab-community" hidden>
         <article class="adm-card wide">
-          <h3>Student community</h3>
-          <p class="adm-note">Students see these on the Community page of their portal, as "Open WhatsApp community" and "Open Telegram community". Paste the invite link of your group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
+          <h3>Student communities</h3>
+          <p class="adm-note">Students see the Mentorship links on the Community page (under Mentorship in their portal menu) and the Traders links on the Traders community page (under Trading), each as an "Open WhatsApp" and an "Open Telegram" button. Paste the invite link of each group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
           <form id="communityForm" class="lk-form" novalidate></form>
           <div class="lk-bar">
             <button type="button" class="primary" id="communitySave">Save</button>
@@ -277,6 +278,75 @@
             <button type="button" class="primary" id="videosSave">Save</button>
             <span class="lk-msg" id="videosMsg" role="status"></span>
           </div>
+        </article>
+      </div>
+
+      <div id="view-funds" role="tabpanel" aria-labelledby="tab-funds" hidden>
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3 id="fnTitle">Funds</h3>
+            <div class="fn-head-tools">
+              <select id="fnPick" aria-label="Choose a fund" hidden></select>
+              <button type="button" class="btn ghost" id="fnReload">Reload</button>
+            </div>
+          </div>
+          <p class="adm-note" id="fnAbout"></p>
+          <div class="kpis" id="fnTiles"></div>
+          <p class="adm-note" id="fnMsg" role="status"></p>
+          <div class="fn-problems" id="fnProblems" role="alert" hidden></div>
+        </article>
+
+        <div class="grid">
+          <article class="adm-card">
+            <h3>Add money</h3>
+            <p class="adm-note">Money paid into the fund. Leave the registration number empty to put it in the reserve, ready to give out as sponsorship. Fill it in to put money straight into one Alumni member's share.</p>
+            <form id="fnDepForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnDep-amount">Amount (<span id="fnCur">USD</span>)</label><input id="fnDep-amount" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="lk-err" id="fnDep-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnDep-holder">Member's registration number (optional)</label><input id="fnDep-holder" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001, or empty for the reserve" /><p class="lk-err" id="fnDep-e-holder" role="alert"></p></div>
+              <div class="field"><label for="fnDep-note">Note (optional)</label><input id="fnDep-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnDepGo">Add money</button></div>
+            </form>
+          </article>
+
+          <article class="adm-card">
+            <h3>Sponsor an Alumni member</h3>
+            <p class="adm-note">Gives part of the reserve to a member. It becomes their share, and it grows with the fund from today.</p>
+            <form id="fnAllForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnAll-holder">Member's registration number</label><input id="fnAll-holder" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" /><p class="lk-err" id="fnAll-e-holder" role="alert"></p></div>
+              <div class="field"><label for="fnAll-amount">Amount (<span id="fnCur2">USD</span>)</label><input id="fnAll-amount" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="lk-err" id="fnAll-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnAll-note">Note (optional)</label><input id="fnAll-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnAllGo">Give sponsorship</button></div>
+            </form>
+          </article>
+
+          <article class="adm-card">
+            <h3>Record a trading result</h3>
+            <p class="adm-note">What the fund made or lost. Every member's amount moves by the same percentage. Enter the profit (or a loss with a minus), or the fund's new total value. The copy-trading system will do this automatically later.</p>
+            <form id="fnPerForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnPer-amount">Profit or loss (<span id="fnCur3">USD</span>)</label><input id="fnPer-amount" type="number" step="0.01" inputmode="decimal" placeholder="e.g. 120 or -45.50" /><p class="lk-err" id="fnPer-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnPer-newValue">...or the fund's new total value</label><input id="fnPer-newValue" type="number" step="0.01" min="0" inputmode="decimal" /><p class="lk-err" id="fnPer-e-newValue" role="alert"></p></div>
+              <div class="field"><label for="fnPer-note">Note (optional)</label><input id="fnPer-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnPerGo">Record result</button></div>
+            </form>
+          </article>
+        </div>
+
+        <article class="adm-card wide">
+          <h3>Withdrawal requests</h3>
+          <p class="adm-note" id="fnReqNote" role="status"></p>
+          <div class="tablewrap"><table class="adm-table" id="fnReqTable"></table></div>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Who holds what</h3>
+          <div class="tablewrap"><table class="adm-table" id="fnHolders"></table></div>
+          <p class="adm-note" id="fnHoldersNote"></p>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Ledger (latest 60)</h3>
+          <p class="adm-note">Every entry, newest first. The full record is the Fund Ledger tab of the Google Sheet; do not edit it by hand.</p>
+          <div class="tablewrap"><table class="adm-table" id="fnLedger"></table></div>
         </article>
       </div>
 
@@ -523,6 +593,7 @@
   <script src="/download.js"></script>
   <script src="/certificate-art.js"></script>
   <script src="/certificate.js"></script>
+  <script src="/admin-funds.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>

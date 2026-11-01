@@ -271,6 +271,14 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   box-shadow: 0 2em 3.5em -2em rgba(60, 8, 66, .8);
   animation: passIn .55s cubic-bezier(.2, .8, .2, 1) both;
 }
+/* "View only, verification copy" watermark on cards shown by Check ID (same wording as the certificate look-up) */
+.idc-watermark {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none; user-select: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transform: rotate(-18deg); color: #fff; opacity: .2; text-align: center; font-weight: 800; white-space: nowrap;
+}
+.idc-wm-big { font-size: 3.2em; line-height: 1.1; }
+.idc-wm-small { font-size: 1.35em; font-weight: 700; letter-spacing: .12em; }
 .idc[data-status="certified"] { --accent: #5ee0a4; }
 .idc[data-status="alumni-member"] { --accent: #f08ad9; }
 .idc::before {
@@ -546,13 +554,31 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quiz-open { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: #eef8f0; color: #1f6b3a; font-size: .88rem; font-weight: 600; }
 @media print { .quizcard, .quizrun, .quizgate { display: none; } }
 
-/* ---------- My portal submenu ---------- */
+/* ---------- Portal menu: ID Card, and the Trading and Mentorship dropdowns ---------- */
 .sheet-inner.is-wide { max-width: 680px; }
-.subnav { display: flex; gap: 6px; margin: 0 0 22px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow-x: auto; }
-.subnav a { flex: 1 0 auto; text-align: center; white-space: nowrap; padding: 10px 14px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: .92rem; color: var(--muted); }
-.subnav a:hover { background: var(--bone); color: var(--violet-deep); }
-.subnav a[aria-current="page"] { background: var(--violet-deep); color: #fff; }
-.subnav a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.subnav { display: flex; gap: 6px; position: relative; margin: 0 0 22px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+.sub-group { position: relative; flex: 1 1 0; min-width: 0; display: flex; }
+.subnav .sub-top {
+  flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border: 0; border-radius: 12px; background: none; cursor: pointer;
+  font: inherit; font-weight: 700; font-size: .92rem; text-align: center; text-decoration: none; white-space: nowrap; color: var(--muted);
+}
+.subnav .sub-top:hover { background: var(--bone); color: var(--violet-deep); }
+.subnav .sub-top[aria-current="page"], .subnav .sub-top.is-current { background: var(--violet-deep); color: #fff; }
+.subnav .sub-top:focus-visible, .sub-menu a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sub-caret { width: 7px; height: 7px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s; flex: none; }
+.sub-toggle[aria-expanded="true"] .sub-caret { transform: rotate(-135deg); margin-top: 3px; }
+.sub-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; min-width: max(100%, 200px);
+  display: grid; gap: 2px; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(40, 10, 46, .18);
+}
+.sub-menu[hidden] { display: none; }
+.sub-end .sub-menu { left: auto; right: 0; }
+.sub-menu a { display: block; padding: 11px 14px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: .94rem; color: var(--violet-deep); white-space: nowrap; }
+.sub-menu a[hidden] { display: none; }
+.sub-menu a:hover { background: var(--bone); }
+.sub-menu a[aria-current="page"] { background: var(--purple-soft); color: var(--violet); }
 
 /* ---------- Learning progress bar ---------- */
 .pbar { display: block; width: 100%; height: 12px; background: #eadcee; border-radius: 999px; overflow: hidden; }
@@ -614,7 +640,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .hb-pager .btn { height: 46px; }
 .hb-article + .btn.wide, .hb-msg + .hb-pager { margin-top: 0; }
 @media (min-width: 700px) { .hb-cards { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .subnav a { flex: 1 1 0; white-space: normal; display: grid; place-items: center; padding: 8px 6px; font-size: .86rem; line-height: 1.2; min-height: 46px; } }
+@media (max-width: 480px) { .subnav .sub-top { padding: 8px 4px; gap: 4px; font-size: .84rem; line-height: 1.2; min-height: 46px; } }
 @media print { .subnav, .journey, #viewQuiz, #viewHandbook { display: none; } }
 
 /* ---------- Computer view: menu at the top left, for everyone ---------- */
@@ -847,3 +873,27 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .bot-activity .bot-ok { color: #1e8449; }
 .bot-activity .bot-error { color: #c0392b; }
 .bot-activity .bot-warn { color: #9a6700; }
+
+/* Portal: Funds (Trading > Funds, Alumni members) */
+#fundsMount { display: grid; gap: 16px; }
+#fundsMount .quizcard { margin: 0; }
+#fundsMount h3 { margin: 0 0 6px; }
+.fd-back { width: fit-content; height: 40px; padding: 0 16px; font-size: .9rem; }
+.fd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+.fd-stat { display: grid; gap: 2px; padding: 12px 14px; background: var(--bone); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+.fd-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fd-value { font-family: var(--display); font-size: 1.2rem; color: var(--violet-deep); overflow-wrap: anywhere; }
+.fd-sub { font-size: .8rem; color: var(--muted); }
+.fd-bigamount { font-family: var(--display); font-size: 2rem; font-weight: 700; color: var(--violet-deep); margin: 6px 0 2px; overflow-wrap: anywhere; }
+.fd-up { color: #1e8449; }
+.fd-down { color: #c0392b; }
+.fd-chart { margin-top: 6px; }
+.fd-svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.fd-line { fill: none; stroke: var(--violet); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.fd-area { fill: var(--purple-soft); opacity: .7; }
+.fd-dot { fill: var(--violet-deep); }
+.fd-form { margin-top: 10px; }
+.fd-form input[type="number"] { width: 100%; max-width: 240px; }
+.fd-form textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; resize: vertical; }
+.fd-withdraw .live { max-width: none; margin: 10px 0; }
+@media print { #viewFunds { display: none; } }

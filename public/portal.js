@@ -61,7 +61,7 @@
     if (typeof stopSignals === "function") stopSignals();
     if (typeof stopBot === "function") stopBot();
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -157,6 +157,7 @@
     sigAllowed = isAlumni;
     botAllowed = isAlumni;
     document.getElementById("botLink").hidden = !isAlumni;
+    document.getElementById("fundsLink").hidden = !isAlumni;
     // Copy trading: Alumni members follow a master; Staff ID card holders (mentors, staff) can be a master.
     var isStaffCard = (d.cards || []).indexOf("staff") >= 0;
     copyFollow = isAlumni;
@@ -180,18 +181,52 @@
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentView = "";
     route();
   }
 
-  // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "class", "signals", "bot", "copy"];
+  // ---- Portal menu: ID Card, Trading (Signals, Bot trading, Traders community) and Mentorship (Handbook, Workbook,
+  // Community, Live class, Quiz). Pages keep their addresses: #/card, #/quiz, #/handbook/03, #/traders ... ----
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds", "copy"];
   var copyFollow = false, copyMaster = false;
   var currentView = "";
 
+  // Dropdowns: tap or click Trading / Mentorship to open its list; one open at a time. They close when you pick a
+  // page, tap elsewhere, press Escape, or move the keyboard focus out of the menu.
+  function closeMenus(except) {
+    var groups = document.querySelectorAll("#subnav .sub-group");
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i] === except) continue;
+      groups[i].querySelector(".sub-menu").hidden = true;
+      groups[i].querySelector(".sub-toggle").setAttribute("aria-expanded", "false");
+    }
+  }
+  (function setupMenus() {
+    var nav = document.getElementById("subnav");
+    var groups = nav.querySelectorAll(".sub-group");
+    Array.prototype.forEach.call(groups, function (g) {
+      var btn = g.querySelector(".sub-toggle"), menu = g.querySelector(".sub-menu");
+      btn.addEventListener("click", function () {
+        var open = menu.hidden;
+        closeMenus(g);
+        menu.hidden = !open;
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      g.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || menu.hidden) return;
+        closeMenus();
+        btn.focus();
+      });
+      g.addEventListener("focusout", function (e) {
+        if (e.relatedTarget && !g.contains(e.relatedTarget)) closeMenus();
+      });
+    });
+    document.addEventListener("click", function (e) { if (!nav.contains(e.target)) closeMenus(); });
+  })();
+
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|workbook|community|class|signals|bot|copy)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community|traders|class|signals|bot|funds|copy)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -201,18 +236,26 @@
     VIEWS.forEach(function (v) {
       document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== r.view;
     });
-    var links = document.querySelectorAll("#subnav a");
+    var links = document.querySelectorAll("#subnav a[data-view]");
     for (var i = 0; i < links.length; i++) {
       if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
       else links[i].removeAttribute("aria-current");
     }
+    // a dropdown button is lit while the page you are on sits under it
+    var toggles = document.querySelectorAll("#subnav .sub-toggle");
+    for (var t = 0; t < toggles.length; t++) {
+      toggles[t].classList.toggle("is-current", !!toggles[t].parentNode.querySelector('.sub-menu a[aria-current="page"]'));
+    }
+    closeMenus();
     document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
+    if (r.view === "traders" && currentView !== "traders") showTraders();
     if (r.view === "class" && currentView !== "class") showClass();
     if (r.view === "signals" && currentView !== "signals") showSignals();
     if (r.view === "bot" && currentView !== "bot") showBot();
+    if (r.view === "funds" && currentView !== "funds") window.abecFunds.show();
     if (r.view !== "signals") stopSignals();
     if (r.view !== "bot") stopBot();
     if (r.view === "copy" && currentView !== "copy") window.abecCopy.show(copyFollow, copyMaster);
@@ -225,6 +268,7 @@
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecFunds.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecCopy.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Live class: join Google Meet in its own window; time with that window open counts towards attendance ----
@@ -571,15 +615,16 @@
   function safeHttps(u) {
     try { var x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
   }
-  function showCommunity() {
-    var msg = document.getElementById("communityMsg");
-    var wa = document.getElementById("communityWhatsapp");
-    var tg = document.getElementById("communityTelegram");
+  // One page for each community: the same two buttons, filled from its own address and element ids.
+  function loadGroups(url, ids) {
+    var msg = document.getElementById(ids.msg);
+    var wa = document.getElementById(ids.wa);
+    var tg = document.getElementById(ids.tg);
     msg.textContent = "Loading...";
     msg.hidden = false;
     wa.hidden = true;
     tg.hidden = true;
-    authFetch("/api/community")
+    authFetch(url)
       .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (c) {
         var w = safeHttps(c.whatsapp), t = safeHttps(c.telegram);
@@ -596,6 +641,8 @@
         msg.textContent = "We could not load the community links just now. Refresh to try again.";
       });
   }
+  function showCommunity() { loadGroups("/api/community", { msg: "communityMsg", wa: "communityWhatsapp", tg: "communityTelegram" }); }
+  function showTraders() { loadGroups("/api/traders-community", { msg: "tradersMsg", wa: "tradersWhatsapp", tg: "tradersTelegram" }); }
 
   // ---- Quiz results (taken in the ABEC-FX Telegram quiz bot) ----
   function el(tag, cls, text) {
