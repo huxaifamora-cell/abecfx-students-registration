@@ -199,6 +199,11 @@ function create(store) {
       async cascade(row) {
         const reg = (row[0] || "").trim().toUpperCase();
         if (!reg) return;
+        // Money in a fund is recorded against this registration number in an append-only ledger. Deleting the person
+        // would leave that money pointing at nobody, so it is refused until the fund records are settled.
+        const heldInFund = (await store.tabRows("fundledger")).some((r) => String(r.cells[4] || "").trim().toUpperCase() === reg)
+          || (await store.tabRows("fundwithdrawals")).some((r) => String(r.cells[2] || "").trim().toUpperCase() === reg);
+        if (heldInFund) throw new AdminError(409, "This person has records in a Fund (money paid in, a sponsorship or a withdrawal), so they cannot be deleted. Change their status instead.");
         await store.deleteTabRowsByReg("photos", reg, 0);
         await store.deleteTabRowsByReg("signatures", reg, 0);
         await store.deleteTabRowsByReg("dobchanges", reg, 0);
@@ -405,7 +410,7 @@ function create(store) {
   }
 
   // Every place a registration number is stored besides the Students tab: [tab, column index].
-  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1], ["botaccounts", 0], ["botorders", 0], ["bottrades", 0]];
+  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1], ["botaccounts", 0], ["botorders", 0], ["bottrades", 0], ["fundledger", 4], ["fundwithdrawals", 2]];
 
   // A new number must not already appear anywhere as someone else's (including a deleted student's records).
   async function regConflict(newReg) {

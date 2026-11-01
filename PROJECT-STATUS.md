@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 26 Oct 2026, 13:52 (Lagos time), after change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 1 Nov 2026, 11:36 (Lagos time), after change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -36,6 +36,8 @@
 16. **Change 13 (owner, 26 Oct 2026): the "Find a student" dropdown offers Student ID card, Alumni ID card, Staff ID card and Certificate.** A person can be a student (certified or uncertified) and also a staff member; a person can be a staff member with no Student ID; what each person has depends on what the admin ticked; the certificate is only for Certified students [DONE, awaiting live check].
 
 17. **Change 14 (owner, 26 Oct 2026): in the admin dashboard, if a person has more than one ID card, clicking their name under the ID cards tab shows all of them** [DONE, awaiting live check].
+
+18. **Change 15 (owner, 1 Nov 2026): Funds under Trading. The first fund is the Palliative Fund, a fund that sponsors new Alumni members to start trading.** It is meant to connect to the trading bot and, later, the copy-trading system, which will be used to grow the fund. Alumni members can see how much is in the fund and the percentage and amount that is theirs through compounding, and they can request a withdrawal [DONE, awaiting live check. The copy-trading connection is not built yet; the fund is ready for it].
 
 ## 2. Decisions
 
@@ -103,6 +105,13 @@
 | 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Staff Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old staff member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
 | 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Staff ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|staff`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Staff ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then staff) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Staff ID card's QR opens the Staff ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
 | 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Staff Member, Alumni Member) beside Status; the role box shows only while Staff Member is ticked; **Not a student** is refused unless Staff Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then staff), so they add up to the total; the **Staff** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
+| 2026-11-01 | **Change 15: a new Funds page under Trading (Alumni members only), first fund = Palliative Fund.** Menu: Trading > Funds (hidden for anyone without the Alumni ID card; a non-Alumni who opens `#/funds` is told it is for Alumni members). The page shows the fund's total, its growth since the start (with a small chart), the member's own share in percent, their amount, what was put in for them, what they withdrew and their gain, a table of the fund's recent results, their own activity and their withdrawal requests. More funds can be added later in one place (`FUNDS` in `fund.js`); the page lists them and opens one | Owner request. **Assumed:** only Alumni members see Funds (as for Signals and Bot trading); a member sees the fund as a whole and **only their own** share, never another member's. The Palliative Fund description on the page is a **draft I wrote**; replace it in `fund.js`. |
+| 2026-11-01 | **How a member's share and amount compound: units, like a unit trust.** The fund is cut into units. Money paid in buys units at the current unit value (it starts at 1.0000). A trading result changes the unit value, never anyone's units, so every member's amount moves by the same percentage and the profit already made keeps compounding. Someone who joins later pays today's unit value and does not take earlier profit; a loss is shared in proportion. A member's percentage = their units / all units | Owner asked for "the percentage and amount that is theirs through compounding". This is the standard fair way to share a pool that members join and leave at different times; a simple "percent of money put in" would be wrong as soon as anyone joins or withdraws after the first result. |
+| 2026-11-01 | **The fund keeps one append-only ledger** on a new sheet tab **Fund Ledger** (deposit, sponsorship, result, withdrawal). Every balance is worked out by replaying it from the top, so the sheet is the single source of truth. A second new tab, **Fund Withdrawals**, holds the requests. Neither tab appears in the Database view (hand edits would corrupt the balances). A ledger row typed wrongly by hand is skipped and listed under the fund in the dashboard | Keeps the numbers auditable and impossible to drift. |
+| 2026-11-01 | **Money in: RESERVE and sponsorship.** The admin records money paid into the fund (**Add money**). With no registration number it goes into the **Fund reserve**, a holder like any member, so percentages always add to 100%. **Sponsor an Alumni member** moves part of the reserve to that member at the current unit value, which becomes their share. Money can also be added straight to one Alumni member. Only Alumni members can hold a share. A person who holds or has withdrawn money in a fund **cannot be deleted** from the Database (it would leave the ledger pointing at nobody); changing their registration number carries their fund records with them | **Assumed:** the fund's own money is paid in by ABEC-FX, and a sponsorship is a share the member owns (and can withdraw), not a loan. |
+| 2026-11-01 | **Trading results.** The admin records a result (**Record a trading result**) as a profit or loss amount, or as the fund's new total value. This is also the one place the **copy-trading system will call later** (`fundService.performance(fundId, { amount, source: "copytrading", ref })`); a `ref` such as a day or batch id makes sending the same result twice record it once. Nothing in the bot trading or copy trading code is connected yet | Owner: the copy-trading system "will come later and will be used to grow the fund". |
+| 2026-11-01 | **Withdrawals: the member asks, the admin pays.** A member asks for an amount (up to their share) or "withdraw everything", and says where to send the money. One request at a time per fund; the member can cancel while it waits. Nothing leaves the fund until the admin has sent the money and presses **Mark paid**: only then the member's units are removed at that day's unit value, and the request shows Paid. The admin may pay less than asked but never more than the share is worth; **Reject** needs a reason the member sees | Owner: "they can request for withdrawal". **Assumed:** payment is made by hand outside the site (no payment service connected), and there is no lock-in period or minimum. |
+| 2026-11-01 | **A new dashboard access, "Funds"** (staff.js). Owner and Admin have it; Editor and Moderator do not; a custom role can be given it. The new **Funds** tab shows the fund's value, growth, reserve, forms to add money, sponsor and record a result, the withdrawal requests (Mark paid / Reject), who holds what, and the latest 60 ledger entries. Amounts are in **USD** unless the Render variable `FUND_CURRENCY` is set; `FUNDS=off` switches the feature off | **Assumed:** USD, like the MT5 bot accounts. |
 
 ## 3. Current state
 
@@ -168,7 +177,13 @@
 **Change 9 (Database tab) checks:** `npm test` runs 30 unit checks on `admin-database.js` against an in-memory sheet (`test/`): locked columns, every field rule, duplicate email, country and state, stale records (409), adding and deleting students (number never reused, cascade removes photo, quiz results and progress), quiz score recalculation, progress chapters, code adding and refusing, links and video checks, fixed tables refuse add and delete, formulas kept as plain text. The real `server.js` and the dashboard were then run with an in-memory sheet and a stand-in for Express (the build sandbox cannot reach npm): 11 checks over HTTP and **44 checks in a headless browser** (login, paging, search, add, edit, delete with confirmation, errors on the right fields, state list following the country, stale edit refused, quiz and progress add and edit, student delete cascade, unsafe link refused, sign-out clears the table, no console errors, no sideways scroll on a phone). A bug found and fixed in that run: the fifth tab made the page wider than a phone, so the tab bar now wraps. **Not tested:** real Google Sheets (the exact calls `values:batchUpdate`, `deleteDimension` and append were written from the Google Sheets API but never sent, including deleting several rows in one request for the cascade), `npm install`, Render.
 **Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
+**New (change 15, Funds):** `fund.js` (rules), a Funds page in the portal (`public/funds.js`) and a Funds tab in the dashboard (`public/admin-funds.js`). **Checked:** 17 unit tests in `test/fund.test.js` (units and compounding, a later joiner not taking earlier profit, sponsorship from the reserve, results by amount or new value, the copy-trading hook not double-counting, the withdrawal flow end to end including a half-finished payment being completed rather than repeated, a member never seeing another member's share, hand-typed bad rows skipped, two actions at once, the delete guard) and 1 test over HTTP in `test/fund-http.test.js` (Alumni only, dashboard access, the full flow through the real `server.js`). The two new pages were also run in a simulated browser against the real server: the member page drew the totals, share, chart and form; a withdrawal was requested through the form; the dashboard showed it, marked it paid and refused to sponsor a non-Alumni. **Not seen in a real browser** (no screenshots or phone check) and **not seen on live Render or against the real Google Sheet**. The copy-trading connection does not exist yet. **Existing tests:** 9 tests in the older suites (e.g. the Database "meta" list, locked columns, add-a-student defaults, community links, under-age date of birth, photo redo, certificate dashboard) already failed on the uploaded project before this change, for reasons unrelated to Funds, and still fail; `test/team.test.js` is a stale copy that cannot run. The change did not add a failure.
+
 ## 4. Next steps
+
+**Owner action for change 15 (Funds):** push the new `fund.js`, `public/funds.js`, `public/admin-funds.js`, `test/fund.test.js`, `test/fund-http.test.js`, and the changed `server.js`, `sheets.js`, `staff.js`, `admin-database.js`, `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `test/staff.test.js`, `test/support/memory-store.js`, `status/STATUS-SOURCE.md`, `status/build.js`, `PROJECT-STATUS.md` and `README.md`. No new package and no required variable (optional: `FUND_CURRENCY`, `FUNDS=off`). On start the site adds two tabs, **Fund Ledger** and **Fund Withdrawals**. Owner and Admin get the Funds tab automatically; give anyone else the **Funds** access on the Staff tab. Then try it with a test member: in `/admin` > Funds, **Add money** (no number) to fill the reserve, **Sponsor** an Alumni member, **Record a trading result**; sign in as that member, open **Trading > Funds**, check the amount and percentage, ask for a withdrawal, and **Mark paid** it. Use small test amounts first.
+
+**Next for Funds (not built):** connect the copy-trading system so it calls `fundService.performance(...)` with its results; decide the answers to questions 18 to 22 below.
 
 **Owner action for change 13:** push the changed `idrules.js`, `sheets.js`, `server.js`, `stats.js`, `admin-database.js`, `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js`, `public/admin.js`, the `test/` folder, `status/STATUS-SOURCE.md` and `PROJECT-STATUS.md`. No new Render variable and no new package. On start the site adds the two headers (Staff Member, Alumni Member) to the Students tab and refreshes the Status dropdown. Then in `/admin` > Database > Students (or in the sheet) tick **Staff Member** and/or **Alumni Member** for the right people, and set **Status** to **Not a student** for anyone who is staff only. Check on `/status`: pick each of the four choices for a student who is also a staff member; a Certified student shows a certificate, an Uncertified one does not.
 
@@ -251,11 +266,17 @@
 13. The handbook PDF is private (10-minute links). Is that right, or should it be a normal public download?
 16. A student added in the Database tab has no photo. Should there be a way to upload a photo there?
 17. Deleting a student also deletes their quiz results and progress. Would you rather keep the quiz results?
+18. **Funds: who pays the money into the Palliative Fund, and is a sponsorship a gift the member can fully withdraw?** As built, ABEC-FX adds the money, the sponsored member owns that share and may withdraw all of it. Should there be a lock-in period, a minimum before withdrawal, or part of the profit kept by the fund?
+19. **Funds: are amounts in USD?** Set by `FUND_CURRENCY` (default USD). Say if the fund is in naira or another currency.
+20. **Funds: how are withdrawals paid?** Built as a request the admin pays by hand (bank or wallet details typed by the member, shown to the admin). Do you want a different payout method or a fee?
+21. **Funds: should members see how many members are in the fund and the fund's total?** Built: yes, both. Nobody ever sees another member's share. Say if the total or member count should be hidden.
+22. **Funds and copy trading: how will the fund's money be linked to the copy-trading accounts, and how often will results be reported (daily, per trade)?** The fund only needs a profit or loss number and a reference per report.
 
 ## 6. Change log (newest first)
 
 | Date | Change |
 | --- | --- |
+| 2026-11-01 | **Change 15: Funds under Trading, first fund the Palliative Fund.** New `fund.js` (units ledger, sponsorship from a reserve, results, withdrawals), `public/funds.js` (portal page), `public/admin-funds.js` (dashboard tab); `sheets.js` (new **Fund Ledger** and **Fund Withdrawals** tabs); `server.js` (`/api/portal/funds...` for Alumni, `/api/admin/funds...` for the new access, shared Alumni gate); `staff.js` (new **Funds** access); `admin-database.js` (a person with fund records cannot be deleted; registration-number changes follow); `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`; tests `test/fund.test.js`, `test/fund-http.test.js`, `test/staff.test.js`; test helper `test/support/memory-store.js` (also repaired: it lacked the signatures, DOB changes and photo-change columns, which made 4 existing tests fail). 18 new tests. |
 | 2026-10-26 | **Change 14: admin ID cards tab shows every card a person holds.** `server.js` (`/api/admin/id-cards` adds `allCards`, one card per Student / Alumni / Staff ID card the person holds); `public/admin.js` (clicking a name draws each card under the other with its own Download button; the list shows "2 ID cards" for people with several); `public/admin.html` (one mount box, old single Download button removed); `public/admin.css` (spacing between cards). Owner action: push those four files. |
 | 2026-10-26 | **Rename "Find a student" to "Check ID".** Text only in `public/status.html`, `public/status.js`, `public/certificate.html`, `public/register.html`, `public/portal.html`, `public/admin.html`, `public/card.js`, `public/lookup-kind.js`, `public/styles.css`, `server.js` (comments), `README.md` |
 | 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Staff ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
@@ -289,7 +310,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 26 Oct 2026, 13:52 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 1 Nov 2026, 11:36 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -312,6 +333,10 @@ const { buildStats, drill, quizEntry } = require("./stats");
 const crypto = require("crypto");
 const quizToken = require("./quiztoken");
 const quizcodes = require("./quizcodes");
+const attendanceLib = require("./attendance");
+const signalsLib = require("./signals");
+const botLib = require("./bot");
+const fundLib = require("./fund");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -492,7 +517,7 @@ function cardFromRow(r, kind) {
     fullName: r[4] || "",
     gender: r[7] || "",
     country: r[2] || "",
-    state: r[12] || "",
+    state: /^abuja federal capital territory$/i.test((r[12] || "").trim()) ? "FCT Abuja" : r[12] || "",
     countryCode: countryCodes[r[2]] || "",
     programme: programmeName(r[3]),
     admitted: Number.isNaN(yy) ? "" : 2000 + yy,
@@ -504,6 +529,12 @@ function cardFromRow(r, kind) {
     statusDate: status === "Uncertified" ? "" : r[10] || "",
     ...expiry, // expiryKind, expires, expired, daysLeft
   };
+}
+
+// Every ID card the person holds (Student, Alumni, Staff), each built with its own status. The portal shows them all.
+function allCardsFromRow(r) {
+  const kinds = idrules.idCards(r);
+  return kinds.length ? kinds.map((k) => cardFromRow(r, k)) : [cardFromRow(r)];
 }
 
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
@@ -679,7 +710,8 @@ app.get("/api/lookup", lookupLimiter, async (req, res) => {
       return res.status(404).json({ error: "No student found with that registration number." });
     }
     // ?kind=student|alumni|staff picks the card. A person only has the cards the editor ticked for them.
-    const kind = String(req.query.kind || "").toLowerCase();
+    let kind = String(req.query.kind || "").toLowerCase();
+    if (kind === "team") kind = "staff"; // old links
     if (kind) {
       if (!["student", "alumni", "staff"].includes(kind)) return res.status(400).json({ error: "Choose a Student, Alumni or Staff ID card." });
       if (!idrules.idCards(r).includes(kind)) {
@@ -768,7 +800,7 @@ app.post("/api/portal/login", loginLimiter, async (req, res) => {
     if (!r || !safeEqual((r[5] || "").toLowerCase(), email)) {
       return res.status(401).json({ error: "That registration number and email do not match our records." });
     }
-    res.json({ token: session.sign(reg, secret), card: cardFromRow(r), photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg), signatureMissing: await signatureMissing(reg), photoRedo: photoRedo(r) });
+    res.json({ token: session.sign(reg, secret), card: { ...cardFromRow(r), allCards: allCardsFromRow(r) }, photoChanged: await photoUsed(reg), dobNotice: await dobNotice(r, reg), signatureMissing: await signatureMissing(reg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal sign-in failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -781,7 +813,7 @@ app.get("/api/portal/me", lookupLimiter, studentAuth, async (req, res) => {
     const rows = await store.readCached();
     const r = rows.find((row) => (row[0] || "").toUpperCase() === req.studentReg);
     if (!r) return res.status(401).json({ error: "Please sign in to your student portal." });
-    res.json({ ...cardFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg), photoRedo: photoRedo(r) });
+    res.json({ ...cardFromRow(r), allCards: allCardsFromRow(r), photoChanged: await photoUsed(req.studentReg), dobNotice: await dobNotice(r, req.studentReg), signatureMissing: await signatureMissing(req.studentReg), photoRedo: photoRedo(r) });
   } catch (err) {
     console.error("Portal card failed:", err.message);
     res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
@@ -1175,6 +1207,7 @@ const adminAuth = requirePerm("view"); // statistics, student lists and quiz res
 const linksAuth = requirePerm("links"); // site links
 const communityAuth = requirePerm("community"); // the student WhatsApp / Telegram groups
 const videosAuth = requirePerm("videos"); // chapter videos
+const attendanceAuth = requirePerm("attendance"); // live classes and attendance
 const quizCodesAuth = requirePerm("quizcodes"); // one-time quiz codes
 const certAuth = requirePerm("certificates"); // certificate signer settings, and every certificate
 const databaseAuth = requirePerm("database"); // the Database tab
@@ -1208,6 +1241,18 @@ app.get("/api/community", linksLimiter, studentAuth, async (_req, res) => {
   } catch (err) {
     console.error("Community links read failed:", err.message);
     res.json(links.communityFor({}));
+  }
+});
+
+// Student portal: the Traders community groups (Trading menu). Same rules as the Mentorship community above:
+// signed-in students only, and only the groups set on the dashboard's Community tab are offered.
+app.get("/api/traders-community", linksLimiter, studentAuth, async (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    res.json(links.tradersFor(await store.readLinks()));
+  } catch (err) {
+    console.error("Traders community links read failed:", err.message);
+    res.json(links.tradersFor({}));
   }
 });
 
@@ -1464,8 +1509,7 @@ app.get("/api/admin/id-cards", adminLimiter, staffAuth, async (req, res) => {
     // Each person comes with `allCards`: one card for every ID card they hold (Student, Alumni, Staff), so the
     // dashboard can show them all when the name is clicked.
     const cards = hit.slice().reverse().slice(0, limit).map((r) => {
-      const kinds = idrules.idCards(r);
-      return { ...cardFromRow(r), allCards: kinds.length ? kinds.map((k) => cardFromRow(r, k)) : [cardFromRow(r)] };
+      return { ...cardFromRow(r), allCards: allCardsFromRow(r) };
     });
     res.json({ total: hit.length, shown: cards.length, cards });
   } catch (err) {
@@ -1731,6 +1775,282 @@ app.post("/api/admin/quiz-codes/revoke", adminLimiter, quizCodesAuth, quizCodeRo
   res.json(await quizCodes.revoke((req.body || {}).code, req.admin));
 }));
 
+
+// ---- Bot trading (rules in bot.js): alumni members' MT5 accounts trade the signals within their own risk limits ----
+// Off unless BOT_TRADING=on. A small connector inside the member's MT5 (downloaded from the portal) talks to /api/bot/report.
+const BOT_ON = /^(1|on|true|yes)$/i.test(process.env.BOT_TRADING || "");
+const botTrading = botLib.create(store, {
+  enabled: BOT_ON,
+  today: () => idrules.lagosToday(),
+  stamp: lagosTimestamp,
+  isAlumni: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return Boolean(row && idrules.idKinds(row).alumni);
+  },
+});
+
+// Alumni-only gate for the portal pages under Trading. `message` is what a non-Alumni student is told.
+function alumniOnlyWith(message) {
+  return async function (req, res, next) {
+    res.set("Cache-Control", "no-store");
+    try {
+      const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
+      if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+      if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: message });
+      next();
+    } catch (err) {
+      console.error("Alumni check failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+const alumniOnly = alumniOnlyWith("Bot trading is for Alumni members.");
+const botPortalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a moment." },
+});
+function botRoute(handler) {
+  return async (req, res) => {
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof botLib.BotError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      console.error("Bot request failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+const botOffMessage = "Bot trading is switched off.";
+
+app.get("/api/portal/bot", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  res.json(await botTrading.view(req.studentReg));
+}));
+app.put("/api/portal/bot/settings", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  if (!BOT_ON) return res.status(403).json({ error: botOffMessage });
+  res.json(await botTrading.saveSettings(req.studentReg, req.body));
+}));
+app.post("/api/portal/bot/link", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  if (!BOT_ON) return res.status(403).json({ error: botOffMessage });
+  res.json(await botTrading.link(req.studentReg));
+}));
+app.post("/api/portal/bot/disconnect", botPortalLimiter, studentAuth, alumniOnly, botRoute(async (req, res) => {
+  res.json(await botTrading.disconnect(req.studentReg));
+}));
+// The MT5 connector, with this website's address filled in. Alumni members only.
+app.get("/api/portal/bot/connector", botPortalLimiter, studentAuth, alumniOnly, (req, res) => {
+  try {
+    const origin = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || req.protocol + "://" + req.get("host")).replace(/\/+$/, "");
+    const source = require("fs").readFileSync(path.join(__dirname, "private", "bot", "ABECFX_Bot_Connector.mq5"), "utf8").replace(/__SERVER_URL__/g, origin);
+    res.set({ "Content-Type": "text/plain; charset=utf-8", "Content-Disposition": 'attachment; filename="ABECFX_Bot_Connector.mq5"', "Cache-Control": "private, no-store" });
+    res.send(source);
+  } catch (err) {
+    console.error("Connector download failed:", err.message);
+    res.status(500).json({ error: "The connector file is not available right now." });
+  }
+});
+
+// The connector in the member's MT5. It signs in with the connection key, not with a student token.
+const botReportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 40,
+  keyGenerator: (req) => "k:" + String(req.get("x-bot-key") || "").slice(0, 12) + ":" + req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => res.status(429).type("text/plain").send("ERR|slow down"),
+});
+app.post("/api/bot/report", botReportLimiter, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    if (!BOT_ON) return res.status(503).type("text/plain").send("ERR|" + botOffMessage);
+    await botTrading.init();
+    const reg = botTrading.regOfKey(req.get("x-bot-key"));
+    if (!reg) return res.status(401).type("text/plain").send("ERR|This key is not valid. Link your account again in the portal.");
+    const lines = await botTrading.report(reg, req.body);
+    res.type("text/plain").send(["OK"].concat(lines).join("\n"));
+  } catch (err) {
+    if (err instanceof botLib.BotError) return res.status(err.status).type("text/plain").send("ERR|" + err.message);
+    console.error("Bot report failed:", err.message);
+    res.status(500).type("text/plain").send("ERR|server problem");
+  }
+});
+
+// ---- Funds (rules in fund.js): money pools Alumni members share in. The first is the Palliative Fund, which sponsors new
+// Alumni members to start trading. The copy-trading system will later report the fund's trading results through
+// fundService.performance(...), which is the one place a result enters the fund. Switch the whole feature off with FUNDS=off.
+const FUNDS_ON = !/^(0|off|false|no)$/i.test(process.env.FUNDS || "");
+const fundService = fundLib.create(store, {
+  currency: (process.env.FUND_CURRENCY || "USD").toUpperCase().slice(0, 5),
+  stamp: lagosTimestamp,
+  nameOf: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return row ? row[4] || "" : "";
+  },
+  isAlumni: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return Boolean(row && idrules.idKinds(row).alumni);
+  },
+});
+const fundAlumniOnly = alumniOnlyWith("The Funds are for Alumni members.");
+const fundPortalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a moment." },
+});
+function fundRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      if (!FUNDS_ON) return res.status(503).json({ error: "The Funds are switched off for now." });
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof fundLib.FundError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      console.error("Fund request failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+
+app.get("/api/portal/funds", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  res.json({ funds: await fundService.memberList(req.studentReg), currency: fundService.currency });
+}));
+app.get("/api/portal/funds/:id", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+app.post("/api/portal/funds/:id/withdrawals", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  await fundService.requestWithdrawal(req.params.id, req.studentReg, req.body);
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+app.post("/api/portal/funds/:id/withdrawals/:rid/cancel", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  await fundService.cancelWithdrawal(req.params.id, req.studentReg, req.params.rid);
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+
+// Dashboard: any role given the "funds" access (admins and the owner have it). Each action answers with the fund's fresh view.
+const fundsAuth = requirePerm("funds");
+const adminFundView = async (id, res, extra) => res.json({ ...(await fundService.adminView(id)), ...(extra || {}) });
+app.get("/api/admin/funds", adminLimiter, fundsAuth, fundRoute(async (_req, res) => res.json({ funds: fundService.list(), currency: fundService.currency })));
+app.get("/api/admin/funds/:id", adminLimiter, fundsAuth, fundRoute(async (req, res) => adminFundView(req.params.id, res)));
+app.post("/api/admin/funds/:id/deposit", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.deposit(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/allocate", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.allocate(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/performance", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.performance(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/withdrawals/:rid/pay", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.payWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/withdrawals/:rid/reject", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.rejectWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+
+// ---- Alumni signals: the Boom / Crash setup monitor (rules and Deriv connection in signals.js) ----
+// Off unless SIGNALS=on. Only students who hold the Alumni ID card can read it.
+const SIGNALS_ON = /^(1|on|true|yes)$/i.test(process.env.SIGNALS || "");
+const signals = signalsLib.create({
+  enabled: SIGNALS_ON,
+  url: process.env.DERIV_WS_URL || undefined,
+  appId: process.env.DERIV_APP_ID || undefined,
+  reminderMinutes: process.env.SIGNAL_REMINDER_MINUTES,
+  telegramToken: process.env.TELEGRAM_SIGNAL_TOKEN,
+  telegramChat: process.env.TELEGRAM_SIGNAL_CHAT_ID,
+  onAlert: BOT_ON ? (alert) => botTrading.onAlert(alert) : undefined, // each first alert becomes orders for members with the bot on
+});
+if (SIGNALS_ON) signals.start();
+
+const signalsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a moment." },
+});
+app.get("/api/portal/signals", signalsLimiter, studentAuth, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
+    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+    if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: "Signals are for Alumni members." });
+    res.json(signals.snapshot());
+  } catch (err) {
+    console.error("Signals failed:", err.message);
+    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+  }
+});
+
+// ---- Live-class attendance (rules in attendance.js) ----
+const attendance = attendanceLib.create(store, { now: lagosTimestamp });
+// Minutes are written to the sheet in one batch every few minutes while a class runs (and when it is ended).
+setInterval(() => { attendance.flush().catch((e) => console.error("Attendance save failed:", e.message)); }, 3 * 60 * 1000).unref();
+
+const heartbeatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 8,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests." },
+});
+function attendanceRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof attendanceLib.AttendanceError) {
+        return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      }
+      console.error("Attendance request failed:", err.message);
+      res.status(500).json({ error: "Could not reach the sheet. Please try again shortly." });
+    }
+  };
+}
+
+// The student's portal: the live class (with its Meet link) and their own attendance record.
+app.get("/api/portal/attendance", lookupLimiter, studentAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.forStudent(req.studentReg));
+}));
+// Sent every 30 seconds while the student's Meet window is open.
+app.post("/api/portal/attendance/heartbeat", heartbeatLimiter, studentAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.heartbeat(req.studentReg, (req.body || {}).classId));
+}));
+
+app.get("/api/admin/attendance", adminLimiter, attendanceAuth, attendanceRoute(async (_req, res) => {
+  res.json(await attendance.list());
+}));
+app.post("/api/admin/attendance/start", adminLimiter, attendanceAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.start(req.body, req.admin));
+}));
+app.post("/api/admin/attendance/end", adminLimiter, attendanceAuth, attendanceRoute(async (req, res) => {
+  res.json(await attendance.end(req.admin));
+}));
+app.get("/api/admin/attendance/report", adminLimiter, attendanceAuth, attendanceRoute(async (req, res) => {
+  const out = await attendance.report(String(req.query.id || ""));
+  const rows = await store.readCached(5000);
+  const byReg = new Map(rows.map((r) => [(r[0] || "").toUpperCase(), r]));
+  const people = out.people.map((p) => ({ ...p, name: (byReg.get(p.reg) || [])[4] || "" }));
+  // Registered students who never joined are listed as absent.
+  const joined = new Set(out.people.map((p) => p.reg));
+  const absent = rows.filter((r) => r && r[0] && idrules.idKinds(r).student && !joined.has((r[0] || "").toUpperCase()))
+    .map((r) => ({ reg: r[0], name: r[4] || "", minutes: 0, percent: 0, present: false }));
+  res.json({ ...out, people: people.concat(absent) });
+}));
+
 // ---- Database view: the editor browses, adds, edits and deletes records from /admin ----
 // What may be changed, and the checks on every change, live in admin-database.js. Only a WRONG password counts
 // toward the lock-out here (a mistyped value must not lock the editor out of editing); a second limiter just
@@ -1807,6 +2127,9 @@ const links = require("./links");
 const videos = require("./videos");
 const staff = require("./staff");
 const quizcodes = require("./quizcodes");
+const attendance = require("./attendance");
+const bot = require("./bot");
+const fund = require("./fund");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -1875,6 +2198,37 @@ const QUIZCODE_TAB = process.env.GOOGLE_QUIZCODE_TAB || "Quiz Codes";
 const QUIZCODE_HEADERS = quizcodes.HEADERS;
 const QUIZCODE_LAST_COL = "I";
 
+// Live-class attendance (see attendance.js): one row per class, and rows of minutes each student was present.
+// Managed from the dashboard's "Attendance" tab, never through the Database view.
+const CLASS_TAB = process.env.GOOGLE_CLASS_TAB || "Classes";
+const CLASS_HEADERS = attendance.CLASS_HEADERS;
+const CLASS_LAST_COL = "H";
+const ATT_TAB = process.env.GOOGLE_ATTENDANCE_TAB || "Attendance";
+const ATT_HEADERS = attendance.ATT_HEADERS;
+const ATT_LAST_COL = "D";
+
+// Bot trading (see bot.js): each member's connection key hash and risk settings, every order, and every closed trade.
+// Managed from the portal's "Bot trading" page, never through the Database view.
+const BOTACC_TAB = process.env.GOOGLE_BOTACCOUNT_TAB || "Bot Accounts";
+const BOTACC_HEADERS = bot.ACCOUNT_HEADERS;
+const BOTACC_LAST_COL = "M";
+const BOTORD_TAB = process.env.GOOGLE_BOTORDER_TAB || "Bot Orders";
+const BOTORD_HEADERS = bot.ORDER_HEADERS;
+const BOTORD_LAST_COL = "L";
+const BOTTRD_TAB = process.env.GOOGLE_BOTTRADE_TAB || "Bot Trades";
+const BOTTRD_HEADERS = bot.TRADE_HEADERS;
+const BOTTRD_LAST_COL = "N";
+
+// Funds (see fund.js): the ledger of every deposit, sponsorship, trading result and withdrawal, and the members'
+// withdrawal requests. Managed from the portal's "Funds" page and the dashboard's "Funds" tab, never the Database view,
+// because the ledger is replayed from the top to work out every balance.
+const FUNDLED_TAB = process.env.GOOGLE_FUNDLEDGER_TAB || "Fund Ledger";
+const FUNDLED_HEADERS = fund.LEDGER_HEADERS;
+const FUNDLED_LAST_COL = "N";
+const FUNDWD_TAB = process.env.GOOGLE_FUNDWITHDRAWAL_TAB || "Fund Withdrawals";
+const FUNDWD_HEADERS = fund.WITHDRAWAL_HEADERS;
+const FUNDWD_LAST_COL = "N";
+
 // Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
 const PROG_HEADERS = ["Reg Number", "Full Name", "Chapters Read", "Chapters Read (count)", "Total Chapters", "Percent", "Updated At (Lagos)"];
@@ -1891,7 +2245,7 @@ const VIDEO_HEADERS = ["Chapter", "Chapter title", "YouTube video address"];
 const VIDEO_LAST_COL = "C";
 
 // Dashboard staff (named admin / moderator accounts). Holds password HASHES only; never listed in the Database view.
-const STAFF_TAB = process.env.GOOGLE_STAFF_TAB || "Staff";
+const STAFF_TAB = process.env.GOOGLE_STAFF_TAB || process.env.GOOGLE_TEAM_TAB || "Staff";
 const STAFF_HEADERS = staff.HEADERS;
 const STAFF_LAST_COL = "G";
 
@@ -1967,12 +2321,23 @@ async function ensureHeaders(tab, headers, lastCol) {
 }
 
 // Make sure both tabs exist with headers, and the Status column is a dropdown.
+// The Staff tab used to be called "Team". An existing one is renamed so the accounts (and their password hashes) carry over.
+async function renameLegacyStaffTab() {
+  if (STAFF_TAB !== "Staff" || (await findTab("Staff"))) return;
+  const old = await findTab("Team");
+  if (!old) return;
+  await call(":batchUpdate", {
+    method: "POST",
+    data: { requests: [{ updateSheetProperties: { properties: { sheetId: old.sheetId, title: "Staff" }, fields: "title" } }] },
+  });
+}
+
 async function init() {
   const students = await ensureTab(TAB);
   await ensureHeaders(TAB, HEADERS, LAST_COL);
 
   const photos = await ensureTab(PHOTO_TAB);
-  await ensureHeaders(PHOTO_TAB, PHOTO_HEADERS, "B");
+  await ensureHeaders(PHOTO_TAB, PHOTO_HEADERS, "C");
 
   await ensureTab(SIG_TAB);
   await ensureHeaders(SIG_TAB, SIG_HEADERS, "B");
@@ -1988,6 +2353,23 @@ async function init() {
 
   const quizCodes = await ensureTab(QUIZCODE_TAB);
   await ensureHeaders(QUIZCODE_TAB, QUIZCODE_HEADERS, QUIZCODE_LAST_COL);
+
+  await ensureTab(CLASS_TAB);
+  await ensureHeaders(CLASS_TAB, CLASS_HEADERS, CLASS_LAST_COL);
+  await ensureTab(ATT_TAB);
+  await ensureHeaders(ATT_TAB, ATT_HEADERS, ATT_LAST_COL);
+
+  await ensureTab(BOTACC_TAB);
+  await ensureHeaders(BOTACC_TAB, BOTACC_HEADERS, BOTACC_LAST_COL);
+  await ensureTab(BOTORD_TAB);
+  await ensureHeaders(BOTORD_TAB, BOTORD_HEADERS, BOTORD_LAST_COL);
+  await ensureTab(BOTTRD_TAB);
+  await ensureHeaders(BOTTRD_TAB, BOTTRD_HEADERS, BOTTRD_LAST_COL);
+
+  await ensureTab(FUNDLED_TAB);
+  await ensureHeaders(FUNDLED_TAB, FUNDLED_HEADERS, FUNDLED_LAST_COL);
+  await ensureTab(FUNDWD_TAB);
+  await ensureHeaders(FUNDWD_TAB, FUNDWD_HEADERS, FUNDWD_LAST_COL);
 
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
@@ -2025,6 +2407,7 @@ async function init() {
     });
   }
 
+  await renameLegacyStaffTab();
   await ensureTab(STAFF_TAB);
   await ensureHeaders(STAFF_TAB, STAFF_HEADERS, STAFF_LAST_COL);
 
@@ -2392,6 +2775,16 @@ const EDITOR_TABS = {
   dobchanges: { title: DOB_TAB, headers: DOB_HEADERS, lastCol: "D" },
   // Internal only: quiz codes. Managed through quizcodes.js and the "Quiz codes" dashboard tab, never the Database view.
   quizcodes: { title: QUIZCODE_TAB, headers: QUIZCODE_HEADERS, lastCol: QUIZCODE_LAST_COL },
+  // Internal only: bot trading settings, orders and trades. Managed through bot.js and the portal's "Bot trading" page.
+  botaccounts: { title: BOTACC_TAB, headers: BOTACC_HEADERS, lastCol: BOTACC_LAST_COL },
+  botorders: { title: BOTORD_TAB, headers: BOTORD_HEADERS, lastCol: BOTORD_LAST_COL },
+  bottrades: { title: BOTTRD_TAB, headers: BOTTRD_HEADERS, lastCol: BOTTRD_LAST_COL },
+  // Internal only: the funds' ledger and withdrawal requests. Managed through fund.js, the portal's "Funds" page and the "Funds" dashboard tab.
+  fundledger: { title: FUNDLED_TAB, headers: FUNDLED_HEADERS, lastCol: FUNDLED_LAST_COL },
+  fundwithdrawals: { title: FUNDWD_TAB, headers: FUNDWD_HEADERS, lastCol: FUNDWD_LAST_COL },
+  // Internal only: live classes and who attended. Managed through attendance.js and the "Attendance" dashboard tab.
+  classes: { title: CLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
+  attendance: { title: ATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },
   // Internal only, like photos: the dashboard staff (password hashes). Managed through staff.js, never the Database view.
   staff: { title: STAFF_TAB, headers: STAFF_HEADERS, lastCol: STAFF_LAST_COL },
   // Internal only: custom roles. Managed through staff.js, never the Database view.
@@ -2427,10 +2820,25 @@ function sheetUrl() {
   return SHEET_ID ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/edit` : "";
 }
 
+// If a tab is missing (the start-up setup did not finish), make it and its header row, then try again once.
+// Google reports a missing tab as "Unable to parse range".
+async function healing(key, run) {
+  try {
+    return await run();
+  } catch (err) {
+    if (!/unable to parse range/i.test(String((err && err.message) || ""))) throw err;
+    const t = editorTab(key);
+    if (key === "staff") await renameLegacyStaffTab();
+    await ensureTab(t.title);
+    await ensureHeaders(t.title, t.headers, t.lastCol);
+    return run();
+  }
+}
+
 // Every data row of a tab, always read fresh. `n` is the row number in the sheet (the header is row 1).
 async function tabRows(key) {
   const t = editorTab(key);
-  const data = await call(`/values/${range(`A2:${t.lastCol}`, t.title)}`);
+  const data = await healing(key, () => call(`/values/${range(`A2:${t.lastCol}`, t.title)}`));
   return (data.values || []).map((r, i) => ({ n: i + 2, cells: fitRow(r, t.headers.length) }));
 }
 
@@ -2475,10 +2883,10 @@ async function renameRegCells(key, col, oldReg, newReg) {
 async function appendTabRows(key, rows) {
   const t = editorTab(key);
   if (!rows.length) return;
-  await call(
+  await healing(key, () => call(
     `/values/${range(`A:${t.lastCol}`, t.title)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: "POST", data: { values: rows.map((r) => fitRow(r, t.headers.length)) } }
-  );
+  ));
   invalidate(key);
 }
 
@@ -2567,7 +2975,9 @@ const PERMS = [
   { key: "community", label: "Student community", help: "Set the WhatsApp and Telegram groups students open from the Community page of their portal." },
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
+  { key: "attendance", label: "Attendance", help: "Start and end live classes and see who attended (present for at least half of the class)." },
   { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
+  { key: "funds", label: "Funds", help: "Record money paid into a fund, give sponsorships to Alumni members, record the fund's trading results and pay or reject withdrawal requests." },
   { key: "database", label: "Database", help: "Add, edit and delete students, codes, quiz results and other records." },
   { key: "staff", label: "Staff and roles", help: "Add staff members, create roles and choose their access." },
 ];
@@ -3049,6 +3459,496 @@ module.exports = {
 };
 ```
 
+#### `fund.js`
+
+```js
+// Funds: money pools that Alumni members can share in. The first one is the Palliative Fund, which sponsors new
+// Alumni members so they can start trading. Later the copy-trading system will trade the pool and report its
+// results here (see recordPerformance), so the pool grows and every member's share grows with it.
+//
+// HOW THE MONEY IS COUNTED (units, like a unit trust)
+//   The fund is cut into UNITS. Whoever puts money in receives units at the current unit value. Nobody's units
+//   change when the fund makes or loses money; the unit value does. So a member's share (units / all units) stays
+//   the same until money moves in or out, and their amount (units x unit value) compounds with every result
+//   the fund records. That is what lets a member see "how much is in the fund, and the percentage and amount
+//   that is mine", and lets a member who joins later come in at a fair price instead of taking old profit.
+//
+//   RESERVE is a holder too: money paid into the fund that no member owns yet. The admin gives (allocates) part of
+//   the reserve to a member as a sponsorship. Because the reserve holds units, the percentages always add to 100%.
+//
+// Everything is one append-only LEDGER (sheet tab "Fund Ledger"). The state of a fund is always worked out by
+// replaying the ledger from the top, so the sheet is the single source of truth and nothing can drift. Only the
+// Type, Holder and Amount columns are read back; the other columns (units, value after ...) are for human eyes.
+//
+//   deposit      money paid into the fund for a holder (a member or RESERVE); the holder gets units
+//   allocate     a sponsorship: units move from RESERVE to a member
+//   performance  the fund made (+) or lost (-) money; changes the value, not the units
+//   withdrawal   money paid out to a member; their units are removed
+//
+// Withdrawals are asked for by the member (tab "Fund Withdrawals") and paid by the admin, who then marks them paid;
+// only then does the ledger record the withdrawal, at the unit value of that moment.
+const crypto = require("crypto");
+
+// The funds that exist. To add another fund, add it here (the pages and the sheet follow).
+const FUNDS = [
+  {
+    id: "palliative",
+    name: "Palliative Fund",
+    tagline: "Sponsorship for new Alumni members starting to trade",
+    description:
+      "The Palliative Fund sponsors new Alumni members so they can start trading with real capital behind them. The fund is grown by the ABEC-FX copy-trading system, and every member's share grows with it.",
+  },
+];
+
+const RESERVE = "RESERVE";
+const TYPES = ["deposit", "allocate", "performance", "withdrawal"];
+const LEDGER_HEADERS = [
+  "Entry ID", "Fund", "Date (Lagos)", "Type", "Holder (Reg Number or RESERVE)", "Amount", "Units",
+  "Fund Value After", "Total Units After", "Unit Value After", "Source", "Ref", "Note", "By",
+];
+const L = { id: 0, fund: 1, date: 2, type: 3, holder: 4, amount: 5, units: 6, valueAfter: 7, unitsAfter: 8, unitValue: 9, source: 10, ref: 11, note: 12, by: 13 };
+
+const WITHDRAWAL_HEADERS = [
+  "Request ID", "Fund", "Reg Number", "Requested At (Lagos)", "Amount", "Withdraw Everything", "Payout Details",
+  "Status", "Decided At (Lagos)", "Decided By", "Note", "Amount Paid", "Units Removed", "Ledger Entry",
+];
+const W = { id: 0, fund: 1, reg: 2, at: 3, amount: 4, all: 5, details: 6, status: 7, decidedAt: 8, decidedBy: 9, note: 10, paid: 11, units: 12, entry: 13 };
+const STATUSES = ["Pending", "Paid", "Rejected", "Cancelled"];
+
+const MIN_MONEY = 0.01;
+const MAX_MONEY = 100000000;
+const CACHE_MS = 8000;
+const HISTORY_POINTS = 120;
+
+class FundError extends Error {
+  constructor(status, message, fields) {
+    super(message);
+    this.status = status;
+    if (fields) this.fields = fields;
+  }
+}
+
+const r2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const r6 = (n) => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+const normReg = (v) => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+const oneLine = (v, max) => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+const newId = (prefix) => prefix + "-" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
+
+function fundById(id) {
+  return FUNDS.find((f) => f.id === String(id || "").trim().toLowerCase()) || null;
+}
+
+// Read an amount of money someone typed. Returns a number rounded to 2 places, or throws a FundError for `field`.
+function money(v, field, { allowNegative = false, label = "Amount" } = {}) {
+  const s = typeof v === "string" ? v.replace(/[,\s]/g, "") : v;
+  const n = Number(s);
+  if (s === "" || s == null || !Number.isFinite(n)) throw new FundError(400, "Please fix the highlighted field.", { [field]: label + " must be a number." });
+  const x = r2(n);
+  if (allowNegative) {
+    if (x === 0 || Math.abs(x) > MAX_MONEY) throw new FundError(400, "Please fix the highlighted field.", { [field]: label + " must not be 0, and must be under " + MAX_MONEY.toLocaleString("en-US") + "." });
+  } else if (x < MIN_MONEY || x > MAX_MONEY) {
+    throw new FundError(400, "Please fix the highlighted field.", { [field]: label + " must be from " + MIN_MONEY + " to " + MAX_MONEY.toLocaleString("en-US") + "." });
+  }
+  return x;
+}
+
+// ---------- The state of one fund, worked out from its ledger entries ----------
+function emptyState() {
+  return { value: 0, units: 0, holders: new Map(), history: [], applied: 0, problems: [], refs: new Set() };
+}
+const unitValueOf = (s) => (s.units > 0 ? s.value / s.units : 1);
+function holderOf(s, h) {
+  if (!s.holders.has(h)) s.holders.set(h, { units: 0, in: 0, out: 0 });
+  return s.holders.get(h);
+}
+const holderValue = (s, h) => (s.holders.has(h) ? r2(s.holders.get(h).units * unitValueOf(s)) : 0);
+
+// Apply one entry to the state. Returns what it did ({ amount, units }) or throws a FundError saying why it cannot be.
+// Used both to replay the ledger and to check a new entry before it is written, so the two can never disagree.
+function apply(s, e) {
+  const nav = unitValueOf(s);
+  if (e.type === "deposit") {
+    if (!e.holder) throw new FundError(400, "Choose who the money is for.");
+    if (s.units > 0 && s.value <= 0) throw new FundError(409, "The fund has no value left, so money cannot be added until that is sorted out.");
+    const units = r6(e.amount / nav);
+    if (units <= 0) throw new FundError(400, "That amount is too small.");
+    const h = holderOf(s, e.holder);
+    h.units = r6(h.units + units); h.in = r2(h.in + e.amount);
+    s.units = r6(s.units + units); s.value = r2(s.value + e.amount);
+    return { amount: e.amount, units };
+  }
+  if (e.type === "allocate") {
+    if (!e.holder || e.holder === RESERVE) throw new FundError(400, "Choose the member to sponsor.");
+    const res = holderOf(s, RESERVE);
+    const worth = r2(res.units * nav);
+    if (e.amount > worth + 0.005) throw new FundError(409, "The reserve only holds " + worth.toFixed(2) + ". Add money to the reserve first.");
+    let units = r6(e.amount / nav);
+    if (units > res.units || Math.abs(worth - e.amount) <= 0.005) units = res.units;
+    if (units <= 0) throw new FundError(400, "That amount is too small.");
+    const h = holderOf(s, e.holder);
+    res.units = r6(res.units - units); res.out = r2(res.out + e.amount);
+    h.units = r6(h.units + units); h.in = r2(h.in + e.amount);
+    return { amount: e.amount, units };
+  }
+  if (e.type === "performance") {
+    if (s.units <= 0) throw new FundError(409, "There is no money in the fund yet, so there is nothing to grow.");
+    const value = r2(s.value + e.amount);
+    if (value < 0) throw new FundError(409, "That loss is bigger than the fund (" + s.value.toFixed(2) + ").");
+    s.value = value;
+    return { amount: e.amount, units: 0 };
+  }
+  if (e.type === "withdrawal") {
+    if (!e.holder || e.holder === RESERVE) throw new FundError(400, "Choose the member.");
+    const h = holderOf(s, e.holder);
+    const worth = r2(h.units * nav);
+    if (e.amount > worth + 0.005) throw new FundError(409, "That is more than the member's share, which is worth " + worth.toFixed(2) + ".");
+    let units = r6(e.amount / nav);
+    let amount = e.amount;
+    if (units >= h.units || Math.abs(worth - e.amount) <= 0.005) { units = h.units; amount = worth; }
+    if (units <= 0) throw new FundError(400, "That amount is too small.");
+    h.units = r6(h.units - units); h.out = r2(h.out + amount);
+    s.units = r6(s.units - units); s.value = r2(Math.max(0, s.value - amount));
+    if (s.units <= 0) { s.units = 0; s.value = 0; }
+    return { amount, units };
+  }
+  throw new FundError(400, "Unknown entry type.");
+}
+
+function parseEntry(cells) {
+  const type = String(cells[L.type] || "").trim().toLowerCase();
+  const amount = Number(String(cells[L.amount] || "").replace(/,/g, ""));
+  return {
+    id: String(cells[L.id] || "").trim(), type, holder: normReg(cells[L.holder]), amount: Number.isFinite(amount) ? amount : NaN,
+    date: String(cells[L.date] || ""), source: String(cells[L.source] || ""), ref: String(cells[L.ref] || ""),
+    note: String(cells[L.note] || ""), by: String(cells[L.by] || ""),
+  };
+}
+
+// Replay every entry of one fund, in sheet order. A row that cannot be applied (typed wrongly by hand) is skipped and
+// listed in `problems` so the admin can see it, instead of breaking the whole fund.
+function replay(rows, fundId) {
+  const s = emptyState();
+  const entries = [];
+  for (const { n, cells } of rows) {
+    if (String(cells[L.fund] || "").trim().toLowerCase() !== fundId) continue;
+    const e = parseEntry(cells);
+    e.n = n;
+    if (!TYPES.includes(e.type) || !Number.isFinite(e.amount) || e.amount === 0 || (e.type !== "performance" && e.amount < 0)) {
+      s.problems.push("Row " + n + ": the type or amount is not valid, so it was skipped.");
+      continue;
+    }
+    try {
+      const out = apply(s, e);
+      e.units = out.units;
+      e.amount = out.amount;
+    } catch (err) {
+      s.problems.push("Row " + n + ": " + err.message + " It was skipped.");
+      continue;
+    }
+    e.valueAfter = s.value; e.unitsAfter = s.units; e.unitValue = r6(unitValueOf(s));
+    if (e.ref) s.refs.add(e.source + "|" + e.ref);
+    s.applied++;
+    entries.push(e);
+    if (e.type === "performance" || s.history.length === 0) s.history.push({ date: e.date, unitValue: e.unitValue, value: s.value });
+  }
+  s.entries = entries;
+  return s;
+}
+
+// ---------- The service ----------
+// opts: stamp() Lagos time text, now() ms, currency, nameOf(reg) async -> full name, isAlumni(reg) async -> bool
+function create(store, opts = {}) {
+  const now = opts.now || (() => Date.now());
+  const stamp = opts.stamp || (() => new Date(now()).toISOString());
+  const currency = opts.currency || "USD";
+  const nameOf = opts.nameOf || (async () => "");
+  const isAlumni = opts.isAlumni || (async () => true);
+  const log = opts.log || ((...a) => console.log("[fund]", ...a));
+
+  let chain = Promise.resolve();
+  const queued = (task) => { const run = chain.then(task, task); chain = run.catch(() => {}); return run; };
+  let cache = { at: 0, rows: null };
+  const invalidate = () => { cache = { at: 0, rows: null }; };
+
+  async function ledgerRows(fresh) {
+    if (!fresh && cache.rows && now() - cache.at < CACHE_MS) return cache.rows;
+    const rows = await store.tabRows("fundledger");
+    cache = { at: now(), rows };
+    return rows;
+  }
+  const withdrawalRows = async () => (await store.tabRows("fundwithdrawals")).map(({ n, cells }) => ({ n, ...parseRequest(cells) }));
+
+  function parseRequest(c) {
+    return {
+      id: String(c[W.id] || "").trim(), fund: String(c[W.fund] || "").trim().toLowerCase(), reg: normReg(c[W.reg]), at: String(c[W.at] || ""),
+      amount: Number(c[W.amount]) || 0, all: /^yes$/i.test(String(c[W.all] || "")), details: String(c[W.details] || ""),
+      status: STATUSES.includes(String(c[W.status] || "").trim()) ? String(c[W.status]).trim() : "Pending",
+      decidedAt: String(c[W.decidedAt] || ""), decidedBy: String(c[W.decidedBy] || ""), note: String(c[W.note] || ""),
+      paid: Number(c[W.paid]) || 0, units: Number(c[W.units]) || 0, entry: String(c[W.entry] || ""),
+    };
+  }
+
+  function need(fundId) {
+    const f = fundById(fundId);
+    if (!f) throw new FundError(404, "That fund does not exist.");
+    return f;
+  }
+
+  const fundCard = (f) => ({ id: f.id, name: f.name, tagline: f.tagline, description: f.description });
+
+  // Write one ledger entry (inside the queue). Checks it against the freshly replayed state first.
+  async function post(fundId, entry, by) {
+    const rows = await ledgerRows(true);
+    const s = replay(rows, fundId);
+    if (entry.ref && s.refs.has((entry.source || "") + "|" + entry.ref)) return { duplicate: true };
+    const out = apply(s, entry); // throws a FundError if it cannot be done
+    const id = newId("FL");
+    const unitValue = r6(unitValueOf(s));
+    await store.appendTabRows("fundledger", [[
+      id, fundId, stamp(), entry.type, entry.holder || "", out.amount, out.units, s.value, s.units, unitValue,
+      entry.source || "manual", entry.ref || "", oneLine(entry.note, 200), oneLine(by, 60),
+    ]]);
+    invalidate();
+    return { id, amount: out.amount, units: out.units, fundValue: s.value, unitValue };
+  }
+
+  // ---- One member's numbers inside a replayed fund ----
+  function holdingOf(s, reg, pending) {
+    const nav = unitValueOf(s);
+    const h = s.holders.get(reg) || { units: 0, in: 0, out: 0 };
+    const value = r2(h.units * nav);
+    const gain = r2(value + h.out - h.in);
+    return {
+      units: h.units, sharePct: s.units > 0 ? Math.round((h.units / s.units) * 1e6) / 1e4 : 0, value,
+      putIn: h.in, withdrawn: h.out, gain, gainPct: h.in > 0 ? Math.round((gain / h.in) * 1e4) / 100 : 0,
+      pending: r2(pending), available: r2(Math.max(0, value - pending)),
+    };
+  }
+
+  const totalsOf = (s) => {
+    const members = Array.from(s.holders.entries()).filter(([k, h]) => k !== RESERVE && h.units > 0).length;
+    const nav = unitValueOf(s);
+    return {
+      value: s.value, units: s.units, unitValue: r6(nav), growthPct: Math.round((nav - 1) * 1e4) / 100, members,
+      reserve: holderValue(s, RESERVE), reservePct: s.units > 0 ? Math.round(((s.holders.get(RESERVE) || { units: 0 }).units / s.units) * 1e4) / 100 : 0,
+    };
+  };
+
+  const historyOf = (s) => {
+    const h = s.history.length ? s.history : [];
+    const start = h.length > HISTORY_POINTS ? h.slice(h.length - HISTORY_POINTS) : h;
+    return start.map((p) => ({ date: p.date, unitValue: p.unitValue }));
+  };
+
+  return {
+    FUNDS, RESERVE, currency,
+
+    list() { return FUNDS.map(fundCard); },
+
+    // What an Alumni member sees: the fund as a whole and their own share. Never anyone else's share.
+    async memberView(fundId, reg) {
+      const f = need(fundId);
+      reg = normReg(reg);
+      const [rows, wds] = await Promise.all([ledgerRows(false), withdrawalRows()]);
+      const s = replay(rows, f.id);
+      const mine = wds.filter((w) => w.fund === f.id && w.reg === reg);
+      const pending = mine.filter((w) => w.status === "Pending");
+      const pendingSum = pending.reduce((a, w) => a + (w.all ? holderValue(s, reg) : w.amount), 0);
+      return {
+        fund: fundCard(f), currency,
+        totals: (({ value, unitValue, growthPct, members }) => ({ value, unitValue, growthPct, members }))(totalsOf(s)),
+        me: holdingOf(s, reg, Math.min(pendingSum, holderValue(s, reg))),
+        history: historyOf(s),
+        activity: s.entries.filter((e) => e.holder === reg).slice(-40).reverse().map((e) => ({
+          id: e.id, date: e.date, type: e.type, amount: e.amount, units: e.units, unitValue: e.unitValue, note: e.note,
+        })),
+        results: s.entries.filter((e) => e.type === "performance").slice(-20).reverse().map((e) => ({ date: e.date, amount: e.amount, unitValue: e.unitValue, source: e.source })),
+        withdrawals: mine.slice().reverse().slice(0, 20).map((w) => ({
+          id: w.id, at: w.at, amount: w.all && w.status === "Pending" ? holderValue(s, reg) : (w.status === "Paid" ? w.paid : w.amount), all: w.all,
+          status: w.status, decidedAt: w.decidedAt, note: w.status === "Paid" || w.status === "Rejected" ? w.note : "",
+        })),
+        canWithdraw: holderValue(s, reg) > 0 && pending.length === 0,
+      };
+    },
+
+    // Every fund with its headline numbers and this member's share (for the list on the portal page).
+    async memberList(reg) {
+      reg = normReg(reg);
+      const rows = await ledgerRows(false);
+      return FUNDS.map((f) => {
+        const s = replay(rows, f.id);
+        const t = totalsOf(s);
+        return { ...fundCard(f), currency, value: t.value, growthPct: t.growthPct, myValue: holderValue(s, reg), mySharePct: holdingOf(s, reg, 0).sharePct };
+      });
+    },
+
+    // The admin's view: every holder with their share, pending withdrawals and the latest ledger entries.
+    async adminView(fundId) {
+      const f = need(fundId);
+      const [rows, wds] = await Promise.all([ledgerRows(true), withdrawalRows()]);
+      const s = replay(rows, f.id);
+      const holders = [];
+      for (const [reg, h] of s.holders.entries()) {
+        if (h.units <= 0 && h.in === 0 && h.out === 0) continue;
+        const hold = holdingOf(s, reg, 0);
+        holders.push({ reg, name: reg === RESERVE ? "Fund reserve (not yet given to a member)" : await nameOf(reg), ...hold });
+      }
+      holders.sort((a, b) => (a.reg === RESERVE ? -1 : b.reg === RESERVE ? 1 : b.value - a.value));
+      const requests = [];
+      for (const w of wds.filter((x) => x.fund === f.id).reverse().slice(0, 60)) {
+        const worth = holderValue(s, w.reg);
+        requests.push({ ...w, name: await nameOf(w.reg), worth, amountNow: w.all && w.status === "Pending" ? worth : w.amount });
+      }
+      return {
+        fund: fundCard(f), currency, totals: totalsOf(s), holders, requests, problems: s.problems,
+        history: historyOf(s),
+        ledger: s.entries.slice(-60).reverse().map((e) => ({ id: e.id, date: e.date, type: e.type, holder: e.holder, amount: e.amount, units: e.units, valueAfter: e.valueAfter, unitValue: e.unitValue, source: e.source, note: e.note, by: e.by })),
+      };
+    },
+
+    // ---- Admin actions. Each one goes through the queue so two admins can never work on stale numbers. ----
+    deposit(fundId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const b = body || {};
+        const amount = money(b.amount, "amount");
+        const holder = normReg(b.holder) || RESERVE;
+        if (holder !== RESERVE && !(await isAlumni(holder))) throw new FundError(400, "Please fix the highlighted field.", { holder: "That registration number is not an Alumni member." });
+        return post(fundId, { type: "deposit", holder, amount, note: b.note, source: "manual" }, by);
+      });
+    },
+
+    allocate(fundId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const b = body || {};
+        const amount = money(b.amount, "amount");
+        const holder = normReg(b.holder);
+        if (!holder || holder === RESERVE || !(await isAlumni(holder))) throw new FundError(400, "Please fix the highlighted field.", { holder: "Enter the registration number of an Alumni member." });
+        return post(fundId, { type: "allocate", holder, amount, note: b.note, source: "manual" }, by);
+      });
+    },
+
+    // The fund made or lost money. Give `amount` (+ profit, - loss), or `newValue` (what the fund is worth now).
+    // The copy-trading system will call this too, with source "copytrading" and a ref (e.g. a day or a batch id) so
+    // that sending the same result twice records it once.
+    performance(fundId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const b = body || {};
+        let amount;
+        if (b.newValue !== undefined && b.newValue !== "" && b.newValue !== null) {
+          const target = money(b.newValue, "newValue", { label: "The fund's value" });
+          const s = replay(await ledgerRows(true), fundId);
+          amount = r2(target - s.value);
+          if (amount === 0) throw new FundError(400, "Please fix the highlighted field.", { newValue: "That is what the fund is already worth." });
+        } else {
+          amount = money(b.amount, "amount", { allowNegative: true, label: "The result" });
+        }
+        return post(fundId, { type: "performance", amount, note: b.note, source: oneLine(b.source, 30) || "manual", ref: oneLine(b.ref, 60) }, by);
+      });
+    },
+
+    // The member asks to take money out. Nothing moves yet: the admin pays and then marks it paid.
+    requestWithdrawal(fundId, reg, body) {
+      return queued(async () => {
+        need(fundId);
+        reg = normReg(reg);
+        const b = body || {};
+        const all = b.all === true;
+        const details = oneLine(b.details, 300);
+        const errors = {};
+        if (details.length < 5) errors.details = "Tell us where to send the money (bank account or wallet details).";
+        const [rows, wds] = await Promise.all([ledgerRows(true), withdrawalRows()]);
+        const s = replay(rows, fundId);
+        const worth = holderValue(s, reg);
+        if (worth <= 0) throw new FundError(409, "You have no money in this fund to withdraw.");
+        if (wds.some((w) => w.fund === fundId && w.reg === reg && w.status === "Pending")) throw new FundError(409, "You already have a withdrawal waiting. Cancel it first if you want to change it.");
+        let amount = worth;
+        if (!all) {
+          try { amount = money(b.amount, "amount"); } catch (e) { Object.assign(errors, e.fields || {}); }
+          if (!errors.amount && amount > worth + 0.005) errors.amount = "You can withdraw up to " + worth.toFixed(2) + " " + currency + ".";
+        }
+        if (Object.keys(errors).length) throw new FundError(400, "Please fix the highlighted fields.", errors);
+        const id = newId("WD");
+        await store.appendTabRows("fundwithdrawals", [[id, fundId, reg, stamp(), amount, all ? "Yes" : "", details, "Pending", "", "", "", "", "", ""]]);
+        return { id, amount, all };
+      });
+    },
+
+    cancelWithdrawal(fundId, reg, requestId) {
+      return queued(async () => {
+        reg = normReg(reg);
+        const w = (await withdrawalRows()).find((x) => x.id === String(requestId || "") && x.fund === fundId && x.reg === reg);
+        if (!w) throw new FundError(404, "That withdrawal request was not found.");
+        if (w.status !== "Pending") throw new FundError(409, "That request is already " + w.status.toLowerCase() + ".");
+        await store.writeTabCells("fundwithdrawals", w.n, { [W.status]: "Cancelled", [W.decidedAt]: stamp(), [W.decidedBy]: reg });
+        return { ok: true };
+      });
+    },
+
+    // The admin has sent the money: take it out of the fund at today's unit value and mark the request Paid.
+    // `body.amount` may be lower than asked (never higher than the member's share).
+    payWithdrawal(fundId, requestId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const w = (await withdrawalRows()).find((x) => x.id === String(requestId || "") && x.fund === fundId);
+        if (!w) throw new FundError(404, "That withdrawal request was not found.");
+        if (w.status !== "Pending") throw new FundError(409, "That request is already " + w.status.toLowerCase() + ".");
+        const s = replay(await ledgerRows(true), fundId);
+        const worth = holderValue(s, w.reg);
+        const already = s.entries.some((e) => e.type === "withdrawal" && e.note.indexOf("Withdrawal " + w.id) === 0);
+        if (worth <= 0 && !already) throw new FundError(409, "This member has no money left in the fund. Reject the request.");
+        let amount = w.all ? worth : Math.min(w.amount, worth);
+        if (body && body.amount !== undefined && body.amount !== "") {
+          amount = money(body.amount, "amount");
+          if (amount > worth + 0.005) throw new FundError(400, "Please fix the highlighted field.", { amount: "The member's share is only worth " + worth.toFixed(2) + " now." });
+        }
+        const note = oneLine(body && body.note, 200);
+        // If an earlier attempt already took the money out of the fund but could not mark the request (a sheet hiccup),
+        // finish that one instead of taking the money out twice.
+        const earlier = s.entries.find((e) => e.type === "withdrawal" && e.note.indexOf("Withdrawal " + w.id) === 0);
+        const done = earlier
+          ? { id: earlier.id, amount: earlier.amount, units: earlier.units }
+          : await post(fundId, { type: "withdrawal", holder: w.reg, amount, note: "Withdrawal " + w.id + (note ? " - " + note : "") }, by);
+        await store.writeTabCells("fundwithdrawals", w.n, {
+          [W.status]: "Paid", [W.decidedAt]: stamp(), [W.decidedBy]: oneLine(by, 60), [W.note]: note, [W.paid]: done.amount, [W.units]: done.units, [W.entry]: done.id,
+        });
+        return { ok: true, paid: done.amount, units: done.units, entry: done.id };
+      });
+    },
+
+    rejectWithdrawal(fundId, requestId, body, by) {
+      return queued(async () => {
+        need(fundId);
+        const w = (await withdrawalRows()).find((x) => x.id === String(requestId || "") && x.fund === fundId);
+        if (!w) throw new FundError(404, "That withdrawal request was not found.");
+        if (w.status !== "Pending") throw new FundError(409, "That request is already " + w.status.toLowerCase() + ".");
+        const note = oneLine(body && body.note, 200);
+        if (note.length < 3) throw new FundError(400, "Please fix the highlighted field.", { note: "Say why, so the member knows." });
+        await store.writeTabCells("fundwithdrawals", w.n, { [W.status]: "Rejected", [W.decidedAt]: stamp(), [W.decidedBy]: oneLine(by, 60), [W.note]: note });
+        return { ok: true };
+      });
+    },
+
+    // True when this registration number holds money in any fund or has any fund record. A person like that must not be
+    // deleted from the Database, or the ledger would point at nobody.
+    async hasRecords(reg) {
+      reg = normReg(reg);
+      const rows = await store.tabRows("fundledger");
+      if (rows.some((r) => normReg(r.cells[L.holder]) === reg)) return true;
+      return (await store.tabRows("fundwithdrawals")).some((r) => normReg(r.cells[W.reg]) === reg);
+    },
+  };
+}
+
+module.exports = {
+  create, FundError, FUNDS, RESERVE, TYPES, STATUSES, LEDGER_HEADERS, WITHDRAWAL_HEADERS, L, W,
+  // exposed for the tests
+  replay, apply, money, unitValueOf,
+};
+```
+
 #### `quizcodes.js`
 
 ```js
@@ -3507,11 +4407,20 @@ function create(store) {
       async cascade(row) {
         const reg = (row[0] || "").trim().toUpperCase();
         if (!reg) return;
+        // Money in a fund is recorded against this registration number in an append-only ledger. Deleting the person
+        // would leave that money pointing at nobody, so it is refused until the fund records are settled.
+        const heldInFund = (await store.tabRows("fundledger")).some((r) => String(r.cells[4] || "").trim().toUpperCase() === reg)
+          || (await store.tabRows("fundwithdrawals")).some((r) => String(r.cells[2] || "").trim().toUpperCase() === reg);
+        if (heldInFund) throw new AdminError(409, "This person has records in a Fund (money paid in, a sponsorship or a withdrawal), so they cannot be deleted. Change their status instead.");
         await store.deleteTabRowsByReg("photos", reg, 0);
         await store.deleteTabRowsByReg("signatures", reg, 0);
         await store.deleteTabRowsByReg("dobchanges", reg, 0);
         await store.deleteTabRowsByReg("quiz", reg, 1);
         await store.deleteTabRowsByReg("progress", reg, 0);
+        await store.deleteTabRowsByReg("attendance", reg, 1);
+        await store.deleteTabRowsByReg("botaccounts", reg, 0);
+        await store.deleteTabRowsByReg("botorders", reg, 0);
+        await store.deleteTabRowsByReg("bottrades", reg, 0);
       },
     },
 
@@ -3709,7 +4618,7 @@ function create(store) {
   }
 
   // Every place a registration number is stored besides the Students tab: [tab, column index].
-  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5]];
+  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1], ["botaccounts", 0], ["botorders", 0], ["bottrades", 0], ["fundledger", 4], ["fundwithdrawals", 2]];
 
   // A new number must not already appear anywhere as someone else's (including a deleted student's records).
   async function regConflict(newReg) {
@@ -3851,8 +4760,8 @@ module.exports = { create, AdminError };
 // Certified students are graduates (their ID card says "Certified"). Only Uncertified students have IDs
 // that are valid for 2 months from the issue date. Certified, Staff Member and Alumni Member have no expiry.
 // "Graduate" is no longer a status of its own. Rows that still hold it in the sheet are read as Certified.
-// Old Mentor, Staff Member and CEO rows are read as Staff Member.
-const LEGACY_STATUS = { graduate: "Certified", mentor: "Staff Member", "staff member": "Staff Member", ceo: "Staff Member" };
+// Old Mentor, Team Member and CEO rows are read as Staff Member.
+const LEGACY_STATUS = { graduate: "Certified", mentor: "Staff Member", "team member": "Staff Member", "staff member": "Staff Member", ceo: "Staff Member" };
 function normalizeStatus(v) {
   const s = String(v == null ? "" : v).trim();
   return LEGACY_STATUS[s.toLowerCase()] || s;
@@ -4000,6 +4909,8 @@ module.exports = { SCALE, gradeFor, percent };
 // Students who registered before the rename have "Forex Mentorship" stored; they are shown as "Forex Course".
 const programmeName = (v) => (/^forex mentorship$/i.test(String(v || "").trim()) ? "Forex Course" : String(v || ""));
 // Student row columns: 0 reg, 1 registered at, 2 country, 3 programme, 4 name, 7 gender, 9 status, 12 state.
+// Rows saved before the rename still say "Abuja Federal Capital Territory"; everything shows and counts them as "FCT Abuja".
+const stateName = (v) => (/^abuja federal capital territory$/i.test(String(v).trim()) ? "FCT Abuja" : String(v));
 // Quiz row columns: 0 submitted at, 1 reg, 2 name, 3 score, 4 total, 5 percent, 6 grade, 7 attempt.
 const idrules = require("./idrules");
 const grading = require("./grading");
@@ -4015,7 +4926,7 @@ const KEYS = {
   gender: (r) => r[7],
   country: (r) => r[2],
   programme: (r) => programmeName(r[3]),
-  state: (r) => (r[12] ? `${r[12]}${r[2] ? ", " + r[2] : ""}` : ""),
+  state: (r) => (r[12] ? `${stateName(r[12])}${r[2] ? ", " + r[2] : ""}` : ""),
   year: (r) => {
     // year joined = the registration number's year, which is the admission year
     const yy = parseInt(String(r[0] || "").split("/")[1], 10);
@@ -4046,8 +4957,18 @@ function nextYm(ym) {
   return `${y}-${String(m).padStart(2, "0")}`;
 }
 
-// The one status a person is counted under in the bars: student standing first, then alumni, then staff.
-// (A Certified student who is also a staff member is counted once, as Certified, so the bars add up to the total.)
+// Every status a person holds, one for each ID card: Uncertified or Certified (student card), Staff Member, Alumni Member.
+// A Certified student who is also staff counts under both Certified and Staff Member, so the bars can add up to more
+// than the total. A person with no card at all is counted as Uncertified.
+function statusesOf(r) {
+  const k = idrules.idKinds(r);
+  const out = [];
+  if (k.student) out.push(k.student);
+  if (k.staff) out.push("Staff Member");
+  if (k.alumni) out.push("Alumni Member");
+  return out.length ? out : ["Uncertified"];
+}
+// The one main status of a person (student standing first, then alumni, then staff), shown on their list row.
 function statusOf(r) {
   const v = idrules.primaryStatus(r);
   return STATUS_ORDER.includes(v) ? v : "Uncertified";
@@ -4055,11 +4976,12 @@ function statusOf(r) {
 // The tiles count everyone who holds the card, however many cards they hold.
 const isGraduate = (r) => { const k = idrules.idKinds(r); return k.student === "Certified" || k.alumni; };
 const isStaff = (r) => idrules.idKinds(r).staff;
+const isAlumni = (r) => idrules.idKinds(r).alumni;
 
 function buildStats(rows, quizRows, todayISO) {
   const total = rows.length;
   const statusCounts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0]));
-  for (const r of rows) statusCounts[statusOf(r)] += 1;
+  for (const r of rows) for (const s of statusesOf(r)) statusCounts[s] += 1;
   const sum = (list) => list.reduce((n, s) => n + statusCounts[s], 0);
 
   // ---- joining dates ----
@@ -4123,6 +5045,7 @@ function buildStats(rows, quizRows, todayISO) {
     status: STATUS_ORDER.map((s) => ({ label: s, count: statusCounts[s] })),
     graduates: rows.filter(isGraduate).length, // Certified students + Alumni members
     uncertified: rows.filter((r) => idrules.idKinds(r).student === "Uncertified").length,
+    alumni: rows.filter(isAlumni).length, // everyone ticked as an Alumni Member
     staff: rows.filter(isStaff).length, // everyone ticked as a Staff Member, including students who are also staff
     byYear,
     months,
@@ -4168,7 +5091,7 @@ function studentOut(r) {
     fullName: r[4] || "",
     gender: r[7] || "",
     country: r[2] || "",
-    state: r[12] || "",
+    state: stateName(r[12] || ""),
     programme: programmeName(r[3]),
     status: statusOf(r),
     joined: iso ? idrules.formatISO(iso) : "",
@@ -4195,9 +5118,10 @@ function drill(rows, quizRows, kind, value) {
     case "graduates": title = "Certified graduates (Certified and Alumni Member)"; pick = isGraduate; break;
     case "uncertified": title = "Uncertified students"; pick = (r) => idrules.idKinds(r).student === "Uncertified"; break;
     case "staff": title = "Staff members"; pick = isStaff; break;
+    case "alumni": title = "Alumni members"; pick = isAlumni; break;
     case "status":
       if (!STATUS_ORDER.includes(val)) return null;
-      title = `Status: ${val}`; pick = (r) => statusOf(r) === val; break;
+      title = `Status: ${val}`; pick = (r) => statusesOf(r).includes(val); break;
     case "gender": case "country": case "state": case "programme": case "year": {
       if (!val) return null;
       const name = { gender: "Gender", country: "Country", state: "State", programme: "Programme", year: "Year joined" }[kind];
@@ -4772,7 +5696,8 @@ module.exports = { sign, verify, TTL_MS };
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "google-auth-library": "^9.14.0",
-    "helmet": "^7.1.0"
+    "helmet": "^7.1.0",
+    "ws": "^8.22.0"
   }
 }
 ```
@@ -5361,19 +6286,36 @@ _missing_
 
         <!-- Signed in -->
         <section id="home" hidden>
-          <!-- My portal submenu -->
+          <!-- Portal menu: ID Card, Trading and Mentorship (the last two open a dropdown) -->
           <nav class="subnav" id="subnav" aria-label="My portal">
-            <a href="#/card" data-view="card" aria-current="page">ID card</a>
-            <a href="#/community" data-view="community">Community</a>
-            <a href="#/handbook" data-view="handbook">Handbook</a>
-            <a href="#/workbook" data-view="workbook">Workbook</a>
-            <a href="#/quiz" data-view="quiz">Quiz</a>
+            <a href="#/card" class="sub-top" data-group="card" data-view="card" aria-current="page">ID Card</a>
+
+            <div class="sub-group" data-group="trading">
+              <button type="button" class="sub-top sub-toggle" id="tradingToggle" aria-haspopup="true" aria-expanded="false" aria-controls="tradingMenu">Trading <span class="sub-caret" aria-hidden="true"></span></button>
+              <div class="sub-menu" id="tradingMenu" hidden>
+                <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
+                <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
+                <a href="#/funds" data-view="funds" id="fundsLink" hidden>Funds</a>
+                <a href="#/traders" data-view="traders">Traders community</a>
+              </div>
+            </div>
+
+            <div class="sub-group sub-end" data-group="mentorship">
+              <button type="button" class="sub-top sub-toggle" id="mentorshipToggle" aria-haspopup="true" aria-expanded="false" aria-controls="mentorshipMenu">Mentorship <span class="sub-caret" aria-hidden="true"></span></button>
+              <div class="sub-menu" id="mentorshipMenu" hidden>
+                <a href="#/handbook" data-view="handbook">Handbook</a>
+                <a href="#/workbook" data-view="workbook">Workbook</a>
+                <a href="#/community" data-view="community">Community</a>
+                <a href="#/class" data-view="class">Live class</a>
+                <a href="#/quiz" data-view="quiz">Quiz</a>
+              </div>
+            </div>
           </nav>
 
           <!-- View: ID card -->
           <div id="viewCard" class="view">
             <h2 id="welcome">Welcome back</h2>
-            <p class="lead">This is your ID card.</p>
+            <p class="lead" id="cardLead">This is your ID card.</p>
             <div class="cardwrap" id="cardMount"></div>
             <p class="live" id="liveLine" role="status"></p>
             <div class="sig-edit" id="sigEdit">
@@ -5384,7 +6326,7 @@ _missing_
               </div>
               <p class="formErr" id="sigMsg" role="status"></p>
             </div>
-            <div class="pass-actions">
+            <div class="pass-actions" id="downloadRow">
               <button type="button" id="downloadBtn" class="btn ghost">Download ID card</button>
             </div>
 
@@ -5450,14 +6392,144 @@ _missing_
             </section>
           </div>
 
-          <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
+          <!-- View: Live class (join the Google Meet class; time in the Meet window counts towards attendance) -->
+          <div id="viewClass" class="view" hidden>
+            <h2>Live class</h2>
+            <p class="lead">Join your class on Google Meet from here. You are marked present when you are in the class for at least <b id="clsThreshold">50</b>% of it.</p>
+            <section class="quizcard" aria-label="Live class">
+              <p class="live" id="clsMsg" role="status">Loading...</p>
+              <div id="clsLive" hidden>
+                <h3 id="clsTitle"></h3>
+                <button type="button" class="btn primary wide" id="clsJoin">Join class on Google Meet</button>
+                <p class="live" id="clsStatus" role="status"></p>
+                <p class="cert-note">Keep this page open in your browser while you are in class. Your time is counted while the Meet window stays open.</p>
+              </div>
+            </section>
+            <h3 class="cls-h">Your attendance</h3>
+            <div class="hb-tablewrap"><table class="cls-table" id="clsTable"></table></div>
+          </div>
+
+          <!-- View: Signals (Alumni members only) -->
+          <div id="viewSignals" class="view" hidden>
+            <h2>Signals</h2>
+            <p class="lead">Live trade setups on the M30 and H1 charts for Boom, Crash, Jump, Step and Volatility indices, with the H4 and D1 trend. This page updates by itself.</p>
+            <p class="live" id="sigStatus" role="status">Loading...</p>
+            <div class="sig-tools">
+              <label class="sig-sound"><input type="checkbox" id="sigSound" /> Play a sound for new alerts</label>
+            </div>
+            <nav class="sig-tabs" id="sigTabs" role="tablist" aria-label="Index type"></nav>
+            <section id="sigPane" aria-live="polite">
+              <h3 class="cls-h">Indices tracked</h3>
+              <p class="sig-chips" id="sigTracked"></p>
+              <p class="cert-note" id="sigMissing"></p>
+              <h3 class="cls-h">Valid right now</h3>
+              <div id="sigActive" class="sig-grid"></div>
+              <h3 class="cls-h">Recent alerts</h3>
+              <div class="hb-tablewrap"><table class="cls-table" id="sigRecent"></table></div>
+            </section>
+            <p class="cert-note">These are trade setups from a fixed set of rules, not financial advice. Always manage your own risk.</p>
+          </div>
+
+          <!-- View: Bot trading (Alumni members only) -->
+          <div id="viewBot" class="view" hidden>
+            <h2>Bot trading</h2>
+            <p class="lead">Let the bot open the Signals for you on your own MetaTrader 5 account, inside the risk limits you set here.</p>
+            <p class="live" id="botStatus" role="status">Loading...</p>
+            <nav class="sig-tabs" id="botTabs" role="tablist" aria-label="Bot trading sections">
+              <button type="button" role="tab" data-pane="risk" aria-selected="true">Risk management</button>
+              <button type="button" role="tab" data-pane="link" aria-selected="false">Account link</button>
+              <button type="button" role="tab" data-pane="account" aria-selected="false">Account details</button>
+              <button type="button" role="tab" data-pane="trades" aria-selected="false">Trades</button>
+            </nav>
+
+            <section id="botPane-risk" class="bot-pane" aria-label="Risk management">
+              <form id="botForm" class="bot-form" novalidate>
+                <div class="field"><label for="bot-lot">Lot size (per position)</label><input id="bot-lot" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="formErr" id="bot-e-lot" role="alert"></p></div>
+                <div class="field"><label for="bot-sl">Stop loss (<span class="bot-cur">USD</span> per position)</label><input id="bot-sl" type="number" step="0.01" min="1" inputmode="decimal" /><span class="hint">The most each position can lose before it closes. Required.</span><p class="formErr" id="bot-e-sl" role="alert"></p></div>
+                <div class="field"><label for="bot-tp">Take profit (<span class="bot-cur">USD</span> per position)</label><input id="bot-tp" type="number" step="0.01" min="0" inputmode="decimal" /><span class="hint">Closes the position when it has made this much. 0 means no take profit.</span><p class="formErr" id="bot-e-tp" role="alert"></p></div>
+                <div class="field"><label for="bot-positions">Positions per trade</label><input id="bot-positions" type="number" step="1" min="1" inputmode="numeric" /><span class="hint">How many positions the bot opens for each signal.</span><p class="formErr" id="bot-e-positions" role="alert"></p></div>
+                <div class="field"><label for="bot-daily">Max daily trades</label><input id="bot-daily" type="number" step="1" min="1" inputmode="numeric" /><span class="hint">The most signals the bot will trade in one day (Lagos time).</span><p class="formErr" id="bot-e-daily" role="alert"></p></div>
+                <fieldset class="bot-groups"><legend>Index types to trade</legend>
+                  <label><input type="checkbox" name="botGroup" value="boom" /> Boom</label>
+                  <label><input type="checkbox" name="botGroup" value="crash" /> Crash</label>
+                  <label><input type="checkbox" name="botGroup" value="jump" /> Jump</label>
+                  <label><input type="checkbox" name="botGroup" value="step" /> Step</label>
+                  <label><input type="checkbox" name="botGroup" value="volatility" /> Volatility</label>
+                  <p class="formErr" id="bot-e-groups" role="alert"></p>
+                </fieldset>
+                <p class="cert-note" id="botRiskSummary"></p>
+                <label class="bot-switch"><input type="checkbox" id="bot-on" /> <b>Bot is on</b> (it opens trades for new signals)</label>
+                <label class="bot-accept" id="botAcceptRow"><input type="checkbox" id="bot-accept" /> I understand that trading Boom, Crash and other synthetic indices is high risk, that the bot can lose money, including on a real account, and that I am responsible for every trade it opens.</label>
+                <p class="formErr" id="bot-e-acceptRisk" role="alert"></p>
+                <button type="submit" class="btn primary wide" id="botSave">Save risk settings</button>
+                <p class="formErr" id="botMsg" role="status"></p>
+              </form>
+            </section>
+
+            <section id="botPane-link" class="bot-pane" aria-label="Account link" hidden>
+              <p class="live" id="botLinkState"></p>
+              <div class="bot-steps">
+                <p><b>1.</b> Press <b>Link account</b> to make your connection key.</p>
+                <p><b>2.</b> Press <b>Download connector</b> and put the file in MT5 (File &gt; Open Data Folder &gt; MQL5 &gt; Experts), then compile it in MetaEditor (F7) and restart MT5 or refresh the Navigator.</p>
+                <p><b>3.</b> In MT5, go to Tools &gt; Options &gt; Expert Advisors, tick <b>Allow WebRequest</b> and add <b id="botSiteUrl"></b>. Make sure <b>Algo Trading</b> is on (green).</p>
+                <p><b>4.</b> Drag <b>ABECFX_Bot_Connector</b> onto any chart, paste your key into <b>InpBotKey</b>, and press OK. Keep MT5 open (a VPS is best).</p>
+              </div>
+              <div class="pass-actions">
+                <button type="button" class="btn primary" id="botLinkBtn">Link account</button>
+                <button type="button" class="btn ghost" id="botDownload">Download connector</button>
+                <button type="button" class="btn ghost" id="botDisconnect">Disconnect account</button>
+              </div>
+              <div class="bot-key" id="botKeyBox" hidden>
+                <p class="cert-note">Your connection key. It is shown only now. Copy it and paste it into the connector.</p>
+                <code id="botKey"></code>
+                <button type="button" class="btn ghost" id="botKeyCopy">Copy key</button>
+              </div>
+              <p class="formErr" id="botLinkMsg" role="status"></p>
+            </section>
+
+            <section id="botPane-account" class="bot-pane" aria-label="Account details" hidden>
+              <div class="hb-tablewrap"><table class="cls-table" id="botAccount"></table></div>
+            </section>
+
+            <section id="botPane-trades" class="bot-pane" aria-label="Trades" hidden>
+              <p class="bot-total" id="botFloating"></p>
+              <h3 class="cls-h">Open trades</h3>
+              <div class="hb-tablewrap"><table class="cls-table" id="botOpen"></table></div>
+              <h3 class="cls-h">Trade history</h3>
+              <p class="cert-note" id="botHistoryTotal"></p>
+              <div class="hb-tablewrap"><table class="cls-table" id="botHistory"></table></div>
+              <h3 class="cls-h">Bot activity</h3>
+              <ul class="bot-activity" id="botActivity"></ul>
+            </section>
+            <p class="cert-note">The bot follows fixed rules, not advice, and losses are possible. Only risk money you can afford to lose.</p>
+          </div>
+
+          <!-- View: Mentorship community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
           <div id="viewCommunity" class="view" hidden>
-            <h2>Community</h2>
-            <p class="lead">Open the ABEC-FX community to learn alongside other students and get updates from your mentors.</p>
+            <h2>Mentorship community</h2>
+            <p class="lead">Open the ABEC-FX mentorship community to learn alongside other students and get updates from your mentors.</p>
             <section class="quizcard communitycard" aria-label="Community links">
               <p class="live" id="communityMsg" role="status">Loading...</p>
               <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp community</a>
               <a id="communityTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram community</a>
+            </section>
+          </div>
+
+          <!-- View: Funds (Alumni members only): the Palliative Fund and any later fund -->
+          <div id="viewFunds" class="view" hidden>
+            <h2>Funds</h2>
+            <p class="lead">Money pools that grow through the ABEC-FX trading system. See how much is in a fund, and the share and amount that are yours.</p>
+            <div id="fundsMount" aria-live="polite"></div>
+          </div>
+
+          <!-- View: Traders community (its own WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
+          <div id="viewTraders" class="view" hidden>
+            <h2>Traders community</h2>
+            <p class="lead">Join the ABEC-FX traders community to share setups and trade alongside other traders.</p>
+            <section class="quizcard communitycard" aria-label="Traders community links">
+              <p class="live" id="tradersMsg" role="status">Loading...</p>
+              <a id="tradersWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp traders community</a>
+              <a id="tradersTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram traders community</a>
             </section>
           </div>
 
@@ -5541,6 +6613,7 @@ _missing_
   <script src="/certificate.js"></script>
   <script src="/handbook.js"></script>
   <script src="/workbook.js"></script>
+  <script src="/funds.js"></script>
   <script src="/photo.js"></script>
   <script src="/signature.js"></script>
   <script src="/portal.js"></script>
@@ -5610,8 +6683,11 @@ _missing_
 
   // The sign-in has expired or is not valid: back to the sign-in form.
   function signedOut(message) {
+    if (typeof stopClassBeat === "function") stopClassBeat();
+    if (typeof stopSignals === "function") stopSignals();
+    if (typeof stopBot === "function") stopBot();
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -5644,18 +6720,76 @@ _missing_
     err.textContent = message || "";
   }
 
+  // ---- The student's ID cards: one card for each kind they hold (Student, Alumni, Staff) ----
+  var cardTitles = { "Staff Member": "Staff ID card", "Alumni Member": "Alumni ID card" };
+  function cardTitle(c) { return cardTitles[c.status] || "Student ID card"; }
+  // d: the portal record (with d.allCards). opts: { photoSrc, signatureSrc } shown on every card.
+  function drawCards(d, opts) {
+    var mount = document.getElementById("cardMount");
+    var list = d.allCards && d.allCards.length ? d.allCards : [d];
+    var many = list.length > 1;
+    document.getElementById("downloadBtn").parentNode.hidden = many;
+    document.getElementById("viewCard").classList.toggle("many-cards", many);
+    document.getElementById("cardLead").textContent = many ? "These are your ID cards." : "This is your ID card.";
+    mount.replaceChildren();
+    list.forEach(function (c) {
+      var one = document.createElement("section");
+      one.className = "idc-one";
+      if (many) {
+        var h = document.createElement("h3");
+        h.className = "idc-one-title";
+        h.textContent = cardTitle(c);
+        one.appendChild(h);
+      }
+      var wrap = document.createElement("div");
+      wrap.className = "cardwrap";
+      wrap.appendChild(window.renderStudentCard(c, opts));
+      one.appendChild(wrap);
+      if (many) {
+        var actions = document.createElement("p");
+        actions.className = "pass-actions";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn ghost";
+        var label = "Download " + cardTitle(c);
+        btn.textContent = label;
+        btn.addEventListener("click", function () {
+          var node = wrap.querySelector(".idc");
+          if (!node || btn.disabled) return;
+          btn.disabled = true; btn.textContent = "Preparing...";
+          window.downloadIdCard(node, currentReg + " " + cardTitle(c).replace(" ID card", "")).then(function () {
+            btn.textContent = label;
+          }, function () {
+            btn.textContent = "Could not download. Try again";
+            setTimeout(function () { btn.textContent = label; }, 3500);
+          }).then(function () { btn.disabled = false; });
+        });
+        actions.appendChild(btn);
+        one.appendChild(actions);
+      }
+      mount.appendChild(one);
+    });
+  }
+
   function showHome(d) {
     loading.hidden = true;
     signin.hidden = true;
     var first = (d.fullName || "").split(" ")[0];
     document.getElementById("welcome").textContent = first ? "Welcome back, " + first : "Welcome back";
     mySig = "";
+    // The Signals page is only for Alumni members.
+    var isAlumni = (d.cards || []).indexOf("alumni") >= 0;
+    document.getElementById("signalsLink").hidden = !isAlumni;
+    sigAllowed = isAlumni;
+    botAllowed = isAlumni;
+    document.getElementById("botLink").hidden = !isAlumni;
+    document.getElementById("fundsLink").hidden = !isAlumni;
     sigNote("");
     pendingSigNotice = !!d.signatureMissing;
     pendingPhotoNotice = !!d.photoRedo;
     showDobNotice(d.dobNotice);
     if (!d.dobNotice) nextNotice();
-    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber) }));
+    drawCards(d, { photoSrc: photoUrl(d.regNumber) });
     loadSignature(d);
     loadCertificate();
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -5668,17 +6802,51 @@ _missing_
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentView = "";
     route();
   }
 
-  // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community"];
+  // ---- Portal menu: ID Card, Trading (Signals, Bot trading, Traders community) and Mentorship (Handbook, Workbook,
+  // Community, Live class, Quiz). Pages keep their addresses: #/card, #/quiz, #/handbook/03, #/traders ... ----
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds"];
   var currentView = "";
 
+  // Dropdowns: tap or click Trading / Mentorship to open its list; one open at a time. They close when you pick a
+  // page, tap elsewhere, press Escape, or move the keyboard focus out of the menu.
+  function closeMenus(except) {
+    var groups = document.querySelectorAll("#subnav .sub-group");
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i] === except) continue;
+      groups[i].querySelector(".sub-menu").hidden = true;
+      groups[i].querySelector(".sub-toggle").setAttribute("aria-expanded", "false");
+    }
+  }
+  (function setupMenus() {
+    var nav = document.getElementById("subnav");
+    var groups = nav.querySelectorAll(".sub-group");
+    Array.prototype.forEach.call(groups, function (g) {
+      var btn = g.querySelector(".sub-toggle"), menu = g.querySelector(".sub-menu");
+      btn.addEventListener("click", function () {
+        var open = menu.hidden;
+        closeMenus(g);
+        menu.hidden = !open;
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      g.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || menu.hidden) return;
+        closeMenus();
+        btn.focus();
+      });
+      g.addEventListener("focusout", function (e) {
+        if (e.relatedTarget && !g.contains(e.relatedTarget)) closeMenus();
+      });
+    });
+    document.addEventListener("click", function (e) { if (!nav.contains(e.target)) closeMenus(); });
+  })();
+
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|workbook|community)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community|traders|class|signals|bot|funds)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -5688,15 +6856,28 @@ _missing_
     VIEWS.forEach(function (v) {
       document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== r.view;
     });
-    var links = document.querySelectorAll("#subnav a");
+    var links = document.querySelectorAll("#subnav a[data-view]");
     for (var i = 0; i < links.length; i++) {
       if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
       else links[i].removeAttribute("aria-current");
     }
+    // a dropdown button is lit while the page you are on sits under it
+    var toggles = document.querySelectorAll("#subnav .sub-toggle");
+    for (var t = 0; t < toggles.length; t++) {
+      toggles[t].classList.toggle("is-current", !!toggles[t].parentNode.querySelector('.sub-menu a[aria-current="page"]'));
+    }
+    closeMenus();
     document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
+    if (r.view === "traders" && currentView !== "traders") showTraders();
+    if (r.view === "class" && currentView !== "class") showClass();
+    if (r.view === "signals" && currentView !== "signals") showSignals();
+    if (r.view === "bot" && currentView !== "bot") showBot();
+    if (r.view === "funds" && currentView !== "funds") window.abecFunds.show();
+    if (r.view !== "signals") stopSignals();
+    if (r.view !== "bot") stopBot();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
     if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
@@ -5705,20 +6886,362 @@ _missing_
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecFunds.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+
+  // ---- Live class: join Google Meet in its own window; time with that window open counts towards attendance ----
+  var cls = { id: "", win: null, timer: null, minutes: 0 };
+  function stopClassBeat() { if (cls.timer) { clearInterval(cls.timer); cls.timer = null; } }
+  function clsStatus(text) { document.getElementById("clsStatus").textContent = text || ""; }
+  function beat() {
+    if (!cls.win || cls.win.closed) {
+      stopClassBeat();
+      clsStatus("Your Meet window is closed, so your time is not being counted. Press Join to go back in.");
+      return;
+    }
+    authFetch("/api/portal/attendance/heartbeat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ classId: cls.id }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { stopClassBeat(); signedOut(b.error); return; }
+        if (!r.ok) return;
+        if (!b.live) { stopClassBeat(); clsStatus("This class has ended. Thank you for joining."); showClass(true); return; }
+        cls.minutes = b.minutes;
+        clsStatus("You are being counted: " + b.minutes + (b.minutes === 1 ? " minute" : " minutes") + " so far.");
+      });
+    }).catch(function () { /* a missed beat is fine; the next one counts */ });
+  }
+  function renderClassHistory(b) {
+    var t = document.getElementById("clsTable");
+    t.replaceChildren();
+    if (!b.history.length) { t.innerHTML = ""; var p = document.createElement("caption"); p.textContent = "No classes yet."; t.appendChild(p); return; }
+    var head = t.createTHead().insertRow();
+    ["Class", "Date", "Time in class", "Result"].forEach(function (h) { var th = document.createElement("th"); th.textContent = h; head.appendChild(th); });
+    var body = t.createTBody();
+    b.history.forEach(function (c) {
+      var row = body.insertRow();
+      var res = c.live ? "Live now" : c.present ? "Present" : "Absent";
+      [c.title, (c.startedAt || "").split(",")[0], c.minutes + " of " + c.lengthMinutes + " min (" + c.percent + "%)", res].forEach(function (v) { row.insertCell().textContent = v; });
+    });
+  }
+  function showClass(keepBeat) {
+    var msg = document.getElementById("clsMsg");
+    var box = document.getElementById("clsLive");
+    if (!keepBeat) { msg.textContent = "Loading..."; msg.hidden = false; box.hidden = true; }
+    authFetch("/api/portal/attendance")
+      .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
+      .then(function (b) {
+        document.getElementById("clsThreshold").textContent = b.threshold;
+        renderClassHistory(b);
+        if (b.live) {
+          msg.hidden = true; box.hidden = false;
+          document.getElementById("clsTitle").textContent = b.live.title;
+          cls.id = b.live.id; cls.link = b.live.link;
+        } else {
+          stopClassBeat();
+          box.hidden = true; msg.hidden = false;
+          msg.textContent = "No class is live right now. When your mentor starts one, it will appear here.";
+        }
+      })
+      .catch(function (err) { if (err.message !== "signed out") { msg.hidden = false; msg.textContent = err.message || "Could not load the class."; } });
+  }
+  document.getElementById("clsJoin").addEventListener("click", function () {
+    if (!cls.link) return;
+    // Opened straight from the click so the browser allows it; we keep the window to see when it is closed.
+    cls.win = window.open(cls.link, "abecfxMeet");
+    if (!cls.win) { clsStatus("Your browser blocked the Meet window. Allow pop-ups for this site, then press Join again."); return; }
+    stopClassBeat();
+    clsStatus("Joining...");
+    beat();
+    cls.timer = setInterval(beat, 30000);
+  });
+
+  // ---- Signals (Alumni members): live Boom / Crash setups, refreshed every few seconds ----
+  var sigAllowed = false, sigTimer = null, sigSeen = 0, sigPrimed = false;
+  function stopSignals() { if (sigTimer) { clearInterval(sigTimer); sigTimer = null; } }
+  function beep() {
+    try {
+      var A = window.AudioContext || window.webkitAudioContext;
+      var ctx = new A(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 880; g.gain.value = 0.15;
+      o.connect(g); g.connect(ctx.destination); o.start();
+      setTimeout(function () { o.stop(); ctx.close(); }, 350);
+    } catch (e) { /* no sound available */ }
+  }
+  var sigGroup = "boom", sigLast = null;
+  function chip(text, cls) { var c = document.createElement("span"); c.className = "sig-chip" + (cls ? " " + cls : ""); c.textContent = text; return c; }
+  function renderSignals(b) {
+    sigLast = b;
+    var st = document.getElementById("sigStatus");
+    if (!b.enabled) st.textContent = "Signals are switched off on the server. Ask the admin to turn them on.";
+    else if (!b.connected) st.textContent = "Cannot reach the market feed right now" + (b.error ? " (" + b.error + ")" : "") + ". Trying again...";
+    else st.textContent = "Live. Watching " + b.watching.length + " indices. Updated " + new Date(b.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + ".";
+
+    // One tab for each index type, with how many setups are valid in it right now.
+    var tabs = document.getElementById("sigTabs");
+    tabs.replaceChildren();
+    b.groups.forEach(function (g) {
+      var n = b.active.filter(function (a) { return a.group === g.key; }).length;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-selected", g.key === sigGroup ? "true" : "false");
+      btn.textContent = g.title + (n ? " (" + n + ")" : "");
+      btn.addEventListener("click", function () { sigGroup = g.key; renderSignals(sigLast); });
+      tabs.appendChild(btn);
+    });
+
+    var g = b.groups.filter(function (x) { return x.key === sigGroup; })[0] || b.groups[0];
+    var tracked = document.getElementById("sigTracked");
+    tracked.replaceChildren();
+    if (!b.enabled) tracked.appendChild(chip("Signals are switched off on the server.", "sig-chip-off"));
+    else if (!b.connected) tracked.appendChild(chip("Waiting for the market feed...", "sig-chip-off"));
+    else if (!g.watching.length) tracked.appendChild(chip("None of the " + g.title + " indices is available from the market feed.", "sig-chip-off"));
+    g.watching.forEach(function (name) { tracked.appendChild(chip(name)); });
+    document.getElementById("sigMissing").textContent = g.unavailable.length
+      ? "Not available from the market feed (so not tracked): " + g.unavailable.join(", ") + "."
+      : "";
+
+    var grid = document.getElementById("sigActive");
+    grid.replaceChildren();
+    var active = b.active.filter(function (a) { return a.group === g.key; });
+    if (!active.length) {
+      var none = document.createElement("p");
+      none.className = "live";
+      none.textContent = "No " + g.title + " setup is valid right now.";
+      grid.appendChild(none);
+    }
+    active.forEach(function (a) {
+      var c = document.createElement("div");
+      c.className = "sig-card sig-" + a.type.toLowerCase();
+      var h = document.createElement("strong");
+      h.textContent = a.market + " " + a.type;
+      var l1 = document.createElement("span");
+      l1.textContent = "Timeframe " + a.tf + " · valid " + a.minutes + (a.minutes === 1 ? " minute" : " minutes");
+      var l2 = document.createElement("span");
+      l2.textContent = "H4: " + a.h4 + " · D1: " + a.d1;
+      c.appendChild(h); c.appendChild(l1); c.appendChild(l2);
+      grid.appendChild(c);
+    });
+    var t = document.getElementById("sigRecent");
+    t.replaceChildren();
+    var recent = b.recent.filter(function (e) { return e.group === g.key; });
+    if (!recent.length) { var cap = document.createElement("caption"); cap.textContent = "No " + g.title + " alerts yet."; t.appendChild(cap); }
+    else {
+      var head = t.createTHead().insertRow();
+      ["Time", "Index", "Setup", "TF", "H4", "D1"].forEach(function (x) { var th = document.createElement("th"); th.textContent = x; head.appendChild(th); });
+      var body = t.createTBody();
+      recent.forEach(function (e) {
+        var row = body.insertRow();
+        [new Date(e.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), e.market, e.type + (e.first ? "" : " (reminder)"), e.tf, e.h4, e.d1].forEach(function (v) { row.insertCell().textContent = v; });
+      });
+    }
+    // The sound plays for a new alert in any index type, not only the tab that is open.
+    var newest = b.recent.length ? b.recent[0].id : 0;
+    if (sigPrimed && newest > sigSeen && document.getElementById("sigSound").checked) beep();
+    sigSeen = Math.max(sigSeen, newest);
+    sigPrimed = true;
+  }
+  function loadSignals() {
+    authFetch("/api/portal/signals")
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { r: r, b: b }; }); })
+      .then(function (x) {
+        if (x.r.status === 401) { stopSignals(); signedOut(x.b.error); return; }
+        if (!x.r.ok) { document.getElementById("sigStatus").textContent = x.b.error || "Could not load signals."; return; }
+        renderSignals(x.b);
+      })
+      .catch(function () { document.getElementById("sigStatus").textContent = "Network problem. Retrying..."; });
+  }
+  function showSignals() {
+    stopSignals();
+    if (!sigAllowed) { document.getElementById("sigStatus").textContent = "Signals are for Alumni members."; return; }
+    sigPrimed = false; sigSeen = 0;
+    document.getElementById("sigStatus").textContent = "Loading...";
+    loadSignals();
+    sigTimer = setInterval(loadSignals, 5000);
+  }
+
+  // ---- Bot trading (Alumni members): risk settings, account link, account details, open trades and history ----
+  var botAllowed = false, botTimer = null, botPane = "risk", botData = null, botBusy = false;
+  function $b(id) { return document.getElementById(id); }
+  function stopBot() { if (botTimer) { clearInterval(botTimer); botTimer = null; } }
+  function money(n, cur) { return (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? " " + cur : ""); }
+  function cell(row, value, cls) { var c = row.insertCell(); c.textContent = value; if (cls) c.className = cls; return c; }
+  function fillTable(t, head, rows, empty) {
+    t.replaceChildren();
+    if (!rows.length) { var cap = document.createElement("caption"); cap.textContent = empty; t.appendChild(cap); return; }
+    var hr = t.createTHead().insertRow();
+    head.forEach(function (h) { var th = document.createElement("th"); th.textContent = h; hr.appendChild(th); });
+    var body = t.createTBody();
+    rows.forEach(function (r) { var row = body.insertRow(); r.forEach(function (v) { if (v && v.cls) cell(row, v.t, v.cls); else cell(row, v); }); });
+  }
+  function pnl(n, cur) { return { t: (n > 0 ? "+" : "") + money(n, cur), cls: n > 0 ? "bot-up" : n < 0 ? "bot-down" : "" }; }
+  function when(iso) { return iso ? new Date(iso).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""; }
+
+  function showBotPane(name) {
+    botPane = name;
+    ["risk", "link", "account", "trades"].forEach(function (p) { $b("botPane-" + p).hidden = p !== name; });
+    var tabs = $b("botTabs").querySelectorAll("button");
+    for (var i = 0; i < tabs.length; i++) tabs[i].setAttribute("aria-selected", tabs[i].getAttribute("data-pane") === name ? "true" : "false");
+  }
+  $b("botTabs").addEventListener("click", function (e) { var p = e.target && e.target.getAttribute && e.target.getAttribute("data-pane"); if (p) showBotPane(p); });
+
+  function riskSummary() {
+    var s = botData && botData.settings ? botData.settings : {};
+    var cur = botData && botData.account && botData.account.currency ? botData.account.currency : "USD";
+    var sl = Number($b("bot-sl").value) || 0, pos = Number($b("bot-positions").value) || 0, day = Number($b("bot-daily").value) || 0;
+    $b("botRiskSummary").textContent = sl && pos
+      ? "If every stop loss is hit, one signal can cost up to " + money(sl * pos, cur) + " (" + pos + " x " + money(sl, cur) + "), and a full day of " + day + " signals up to " + money(sl * pos * day, cur) + "."
+      : "";
+  }
+  ["bot-sl", "bot-positions", "bot-daily"].forEach(function (id) { $b(id).addEventListener("input", riskSummary); });
+
+  function fillBotForm(d) {
+    var s = d.settings;
+    $b("bot-lot").value = s.lot; $b("bot-sl").value = s.sl; $b("bot-tp").value = s.tp; $b("bot-positions").value = s.positions; $b("bot-daily").value = s.daily;
+    var boxes = document.querySelectorAll("input[name=botGroup]");
+    for (var i = 0; i < boxes.length; i++) boxes[i].checked = s.groups.indexOf(boxes[i].value) >= 0;
+    $b("bot-on").checked = s.on;
+    $b("botAcceptRow").hidden = s.accepted;
+    var cur = (d.account && d.account.currency) || "USD";
+    var spans = document.querySelectorAll(".bot-cur");
+    for (var j = 0; j < spans.length; j++) spans[j].textContent = cur;
+    riskSummary();
+  }
+
+  function renderBot(d, keepForm) {
+    botData = d;
+    var st = $b("botStatus");
+    if (!d.enabled) st.textContent = "Bot trading is switched off on the server. Ask the admin to turn it on.";
+    else if (!d.linked) st.textContent = "Not linked yet. Open Account link to connect your MetaTrader 5 account.";
+    else if (!d.connected) st.textContent = "Your account is linked, but your MT5 connector is not reporting right now. Check that MT5 is open and the connector is on a chart.";
+    else st.textContent = (d.settings.on ? "Bot is ON. " : "Bot is OFF. ") + "Connected to account " + ((d.account && d.account.login) || "") + ". Today: " + d.today.used + " of " + d.today.max + " trades used.";
+    if (!keepForm) fillBotForm(d);
+
+    var ls = $b("botLinkState");
+    ls.textContent = !d.linked ? "Not linked." : d.connected ? "Linked and connected." : "Linked, waiting for the MT5 connector.";
+    $b("botLinkBtn").textContent = d.linked ? "Make a new key" : "Link account";
+    $b("botDisconnect").hidden = !d.linked;
+    $b("botSiteUrl").textContent = location.origin;
+
+    var a = d.account;
+    if (!a) fillTable($b("botAccount"), [], [], "No account details yet. They appear here once your MT5 connector reports.");
+    else {
+      var c = a.currency || "";
+      fillTable($b("botAccount"), ["Detail", "Value"], [
+        ["Account number", a.login], ["Name", a.name], ["Broker", a.company], ["Server", a.server],
+        ["Account type", a.real ? "Real" : "Demo"], ["Leverage", a.leverage ? "1:" + a.leverage : ""],
+        ["Balance", money(a.balance, c)], ["Equity", money(a.equity, c)], ["Margin used", money(a.margin, c)], ["Free margin", money(a.freeMargin, c)],
+        ["Floating profit / loss (whole account)", pnl(a.profit, c)], ["Last report", d.lastSeen ? when(d.lastSeen) : ""],
+      ], "");
+    }
+
+    var cur = (a && a.currency) || "";
+    var fl = $b("botFloating");
+    fl.textContent = "Floating profit / loss of the bot's open trades: " + (d.floating > 0 ? "+" : "") + money(d.floating, cur);
+    fl.className = "bot-total " + (d.floating > 0 ? "bot-up" : d.floating < 0 ? "bot-down" : "");
+    fillTable($b("botOpen"), ["Opened", "Market", "Type", "Lots", "Open price", "SL", "TP", "Profit / loss"],
+      d.positions.map(function (p) { return [when(p.openTime), p.symbol, p.type, p.lots, p.openPrice, p.sl || "-", p.tp || "-", pnl(p.profit + p.swap, cur)]; }), "No open bot trades.");
+    $b("botHistoryTotal").textContent = d.history.length ? "Closed trades shown: " + d.history.length + ". Their total profit / loss: " + (d.historyProfit > 0 ? "+" : "") + money(d.historyProfit, cur) + "." : "";
+    fillTable($b("botHistory"), ["Closed", "Market", "Type", "Lots", "Open price", "Close price", "Profit / loss"],
+      d.history.map(function (t) { return [when(t.closeTime), t.symbol, t.type, t.lots, t.openPrice, t.closePrice, pnl(t.profit + t.swap, cur)]; }), "No closed bot trades yet.");
+    var ul = $b("botActivity");
+    ul.replaceChildren();
+    if (!d.activity.length) { var li0 = document.createElement("li"); li0.textContent = "Nothing yet."; ul.appendChild(li0); }
+    d.activity.forEach(function (e) { var li = document.createElement("li"); li.className = "bot-" + e.kind; li.textContent = when(e.at) + " - " + e.message; ul.appendChild(li); });
+  }
+
+  function botFetch(url, method, body) {
+    var o = { method: method || "GET", headers: {} };
+    if (body) { o.headers["Content-Type"] = "application/json"; o.body = JSON.stringify(body); }
+    return authFetch(url, o).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { stopBot(); signedOut(b.error); throw new Error("signed out"); }
+        if (!r.ok) { var e = new Error(b.error || "Something went wrong."); e.fields = b.errors; throw e; }
+        return b;
+      });
+    });
+  }
+  function loadBot(keepForm) {
+    return botFetch("/api/portal/bot").then(function (d) { renderBot(d, keepForm); })
+      .catch(function (err) { if (err.message !== "signed out") $b("botStatus").textContent = err.message; });
+  }
+  function showBot() {
+    stopBot();
+    if (!botAllowed) { $b("botStatus").textContent = "Bot trading is for Alumni members."; return; }
+    $b("botStatus").textContent = "Loading...";
+    loadBot(false);
+    // The live parts (connection, open trades) refresh by themselves; the form is left alone so typing is not lost.
+    botTimer = setInterval(function () { if (!botBusy) loadBot(true); }, 5000);
+  }
+
+  $b("botForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    ["lot", "sl", "tp", "positions", "daily", "groups", "acceptRisk"].forEach(function (k) { $b("bot-e-" + k).textContent = ""; });
+    $b("botMsg").textContent = "";
+    var groups = [].slice.call(document.querySelectorAll("input[name=botGroup]")).filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
+    var btn = $b("botSave");
+    btn.disabled = true; botBusy = true;
+    botFetch("/api/portal/bot/settings", "PUT", {
+      lot: $b("bot-lot").value, sl: $b("bot-sl").value, tp: $b("bot-tp").value, positions: $b("bot-positions").value, daily: $b("bot-daily").value,
+      groups: groups, on: $b("bot-on").checked, acceptRisk: $b("bot-accept").checked,
+    }).then(function (d) { renderBot(d, false); $b("botMsg").textContent = "Saved."; })
+      .catch(function (err) {
+        if (err.message === "signed out") return;
+        var f = err.fields || {};
+        ["lot", "sl", "tp", "positions", "daily", "groups", "acceptRisk"].forEach(function (k) { $b("bot-e-" + k).textContent = f[k] || ""; });
+        $b("botMsg").textContent = err.fields ? "Please fix the highlighted fields." : err.message;
+      }).then(function () { btn.disabled = false; botBusy = false; });
+  });
+
+  $b("botLinkBtn").addEventListener("click", function () {
+    var d = botData;
+    if (d && d.linked && !window.confirm("Making a new key stops the connector you have now. You will need to paste the new key into MT5. Continue?")) return;
+    $b("botLinkMsg").textContent = "";
+    botFetch("/api/portal/bot/link", "POST", {}).then(function (r) {
+      $b("botKey").textContent = r.key;
+      $b("botKeyBox").hidden = false;
+      return loadBot(true);
+    }).catch(function (err) { if (err.message !== "signed out") $b("botLinkMsg").textContent = err.message; });
+  });
+  $b("botKeyCopy").addEventListener("click", function () {
+    var key = $b("botKey").textContent;
+    var done = function () { $b("botKeyCopy").textContent = "Copied"; setTimeout(function () { $b("botKeyCopy").textContent = "Copy key"; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(key).then(done, function () {});
+  });
+  $b("botDisconnect").addEventListener("click", function () {
+    if (!window.confirm("Disconnect your account? The bot switches off and the connector stops working until you link again. Trades already open stay open in MT5.")) return;
+    botFetch("/api/portal/bot/disconnect", "POST", {}).then(function (d) { $b("botKeyBox").hidden = true; renderBot(d, false); $b("botLinkMsg").textContent = "Disconnected."; })
+      .catch(function (err) { if (err.message !== "signed out") $b("botLinkMsg").textContent = err.message; });
+  });
+  $b("botDownload").addEventListener("click", function () {
+    // The file is only for signed-in Alumni members, so it is fetched with the sign-in and saved from the page.
+    authFetch("/api/portal/bot/connector").then(function (r) {
+      if (!r.ok) throw new Error("The connector could not be downloaded.");
+      return r.blob();
+    }).then(function (blob) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ABECFX_Bot_Connector.mq5";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }).catch(function (err) { $b("botLinkMsg").textContent = err.message; });
+  });
 
   // ---- Community: the WhatsApp and Telegram groups set on the dashboard, opened in a new tab ----
   function safeHttps(u) {
     try { var x = new URL(String(u || "")); return x.protocol === "https:" ? x.href : ""; } catch (e) { return ""; }
   }
-  function showCommunity() {
-    var msg = document.getElementById("communityMsg");
-    var wa = document.getElementById("communityWhatsapp");
-    var tg = document.getElementById("communityTelegram");
+  // One page for each community: the same two buttons, filled from its own address and element ids.
+  function loadGroups(url, ids) {
+    var msg = document.getElementById(ids.msg);
+    var wa = document.getElementById(ids.wa);
+    var tg = document.getElementById(ids.tg);
     msg.textContent = "Loading...";
     msg.hidden = false;
     wa.hidden = true;
     tg.hidden = true;
-    authFetch("/api/community")
+    authFetch(url)
       .then(function (r) { return r.json().then(function (b) { if (r.status === 401) { signedOut(); throw new Error("signed out"); } if (!r.ok) throw new Error(b.error); return b; }); })
       .then(function (c) {
         var w = safeHttps(c.whatsapp), t = safeHttps(c.telegram);
@@ -5735,6 +7258,8 @@ _missing_
         msg.textContent = "We could not load the community links just now. Refresh to try again.";
       });
   }
+  function showCommunity() { loadGroups("/api/community", { msg: "communityMsg", wa: "communityWhatsapp", tg: "communityTelegram" }); }
+  function showTraders() { loadGroups("/api/traders-community", { msg: "tradersMsg", wa: "tradersWhatsapp", tg: "tradersTelegram" }); }
 
   // ---- Quiz results (taken in the ABEC-FX Telegram quiz bot) ----
   function el(tag, cls, text) {
@@ -6110,7 +7635,7 @@ _missing_
         try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
         pendingPhotoNotice = false;
         return myCard().then(function (res) {
-          if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
+          if (res.ok) drawCards(res.body, { photoSrc: dataUrl, signatureSrc: mySig });
           setPhotoEditable(false);
           msg.textContent = "";
           photoNoticeDlg.close();
@@ -6189,7 +7714,7 @@ _missing_
     sigMsg.style.color = ok ? "var(--violet, #5a1060)" : "";
   }
   function redrawCard(d) {
-    document.getElementById("cardMount").replaceChildren(window.renderStudentCard(d, { photoSrc: photoUrl(d.regNumber), signatureSrc: mySig }));
+    drawCards(d, { photoSrc: photoUrl(d.regNumber), signatureSrc: mySig });
   }
   function loadSignature(d) {
     sigPanel.hidden = true;
@@ -6275,7 +7800,7 @@ _missing_
             try { localStorage.setItem("abecfx_photo_v", String(Date.now())); } catch (e) {}
             // Show the photo just chosen (the saved copy can be cached by the browser for a few minutes)
             return myCard().then(function (res) {
-              if (res.ok) document.getElementById("cardMount").replaceChildren(window.renderStudentCard(res.body, { photoSrc: dataUrl, signatureSrc: mySig }));
+              if (res.ok) drawCards(res.body, { photoSrc: dataUrl, signatureSrc: mySig });
               setPhotoEditable(false);
               photoNote("Your photo has been updated. A photo can only be changed once, so this is final.", true);
             });
@@ -6643,6 +8168,552 @@ _missing_
 })();
 ```
 
+#### `public/funds.js`
+
+```js
+// Funds inside the student portal (Trading > Funds, Alumni members only).
+// Shows the fund as a whole, the signed-in member's own share and amount, how the fund has grown, and lets the member
+// ask to withdraw. All numbers come from the website (fund.js); this file only draws them.
+// portal.js calls setup() once with its sign-in helpers, show() when the page opens and reset() on sign-out.
+(function () {
+  var api = null; // { authFetch(url, opts), signedOut(msg) } from portal.js
+  var mount = null;
+  var openId = null; // fund being looked at, or null for the list
+  var data = null;   // the open fund's view from the server
+  var busy = false;
+  var NS = "http://www.w3.org/2000/svg";
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function money(n, cur) {
+    var v = Number(n) || 0;
+    return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? " " + cur : "");
+  }
+  function pct(n) { return (Number(n) || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + "%"; }
+  function signed(n, cur) { var v = Number(n) || 0; return (v > 0 ? "+" : v < 0 ? "-" : "") + money(Math.abs(v), cur); }
+  function signedPct(n) { var v = Number(n) || 0; return (v > 0 ? "+" : v < 0 ? "-" : "") + pct(Math.abs(v)); }
+  function tone(n) { return n > 0 ? "fd-up" : n < 0 ? "fd-down" : ""; }
+
+  function readJson(r) {
+    return r.json().then(function (b) {
+      if (r.status === 401) { api.signedOut(b.error); throw new Error("signed out"); }
+      if (!r.ok) { var e = new Error(b.error || "Something went wrong. Please try again."); e.fields = b.errors; throw e; }
+      return b;
+    });
+  }
+  function get(url) { return api.authFetch(url).then(readJson); }
+  function post(url, body) {
+    return api.authFetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).then(readJson);
+  }
+
+  // ---- A small line chart of the unit value (what one unit of the fund is worth), drawn with SVG ----
+  function chart(points) {
+    var wrap = el("div", "fd-chart");
+    if (!points || points.length < 2) {
+      wrap.appendChild(el("p", "cert-note", "The growth chart appears after the fund has recorded its first result."));
+      return wrap;
+    }
+    var W = 560, H = 160, padL = 8, padR = 8, padT = 12, padB = 12;
+    var vals = points.map(function (p) { return p.unitValue; });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (hi - lo < 1e-9) { lo -= 0.01; hi += 0.01; }
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Fund growth: one unit started at 1.00 and is now worth " + vals[vals.length - 1].toFixed(4));
+    svg.setAttribute("class", "fd-svg");
+    var x = function (i) { return padL + (i * (W - padL - padR)) / (points.length - 1); };
+    var y = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB); };
+    var line = points.map(function (p, i) { return x(i).toFixed(1) + "," + y(p.unitValue).toFixed(1); }).join(" ");
+    var area = document.createElementNS(NS, "polygon");
+    area.setAttribute("points", padL + "," + (H - padB) + " " + line + " " + x(points.length - 1).toFixed(1) + "," + (H - padB));
+    area.setAttribute("class", "fd-area");
+    var path = document.createElementNS(NS, "polyline");
+    path.setAttribute("points", line);
+    path.setAttribute("class", "fd-line");
+    var dot = document.createElementNS(NS, "circle");
+    dot.setAttribute("cx", x(points.length - 1).toFixed(1));
+    dot.setAttribute("cy", y(vals[vals.length - 1]).toFixed(1));
+    dot.setAttribute("r", "4");
+    dot.setAttribute("class", "fd-dot");
+    svg.appendChild(area); svg.appendChild(path); svg.appendChild(dot);
+    wrap.appendChild(svg);
+    wrap.appendChild(el("p", "cert-note", "Value of one unit of the fund, from " + points[0].date + " to " + points[points.length - 1].date + "."));
+    return wrap;
+  }
+
+  function stat(label, value, cls, sub) {
+    var d = el("div", "fd-stat");
+    d.appendChild(el("span", "fd-label", label));
+    d.appendChild(el("b", "fd-value" + (cls ? " " + cls : ""), value));
+    if (sub) d.appendChild(el("span", "fd-sub", sub));
+    return d;
+  }
+
+  function table(headers, rows, caption) {
+    var wrap = el("div", "hb-tablewrap");
+    var t = el("table", "cls-table");
+    if (caption) t.appendChild(el("caption", null, caption));
+    var thead = el("tr");
+    headers.forEach(function (h) { thead.appendChild(el("th", null, h)); });
+    var head = el("thead"); head.appendChild(thead); t.appendChild(head);
+    var body = el("tbody");
+    rows.forEach(function (r) {
+      var tr = el("tr");
+      r.forEach(function (c) {
+        var td = el("td");
+        if (c && typeof c === "object" && c.nodeType) td.appendChild(c); else td.textContent = c == null ? "" : String(c);
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    t.appendChild(body); wrap.appendChild(t);
+    return wrap;
+  }
+
+  var TYPE_NAME = { deposit: "Money added", allocate: "Sponsorship", withdrawal: "Withdrawal", performance: "Result" };
+
+  // ---- The list of funds ----
+  function renderList(list, currency) {
+    mount.replaceChildren();
+    if (!list.length) { mount.appendChild(el("p", "live", "There are no funds yet.")); return; }
+    list.forEach(function (f) {
+      var card = el("section", "quizcard fd-listcard");
+      card.appendChild(el("h3", null, f.name));
+      card.appendChild(el("p", "cert-note", f.tagline));
+      var row = el("div", "fd-stats");
+      row.appendChild(stat("In the fund", money(f.value, currency)));
+      row.appendChild(stat("Growth", signedPct(f.growthPct), tone(f.growthPct)));
+      row.appendChild(stat("Your amount", money(f.myValue, currency), null, f.myValue > 0 ? pct(f.mySharePct) + " of the fund" : "No share yet"));
+      card.appendChild(row);
+      var open = el("button", "btn primary wide", "Open " + f.name);
+      open.type = "button";
+      open.addEventListener("click", function () { openFund(f.id); });
+      card.appendChild(open);
+      mount.appendChild(card);
+    });
+  }
+
+  // ---- One fund ----
+  function renderFund(d, flash) {
+    mount.replaceChildren();
+    var cur = d.currency;
+    var me = d.me;
+
+    if (listCount > 1) {
+      var back = el("button", "btn ghost fd-back", "All funds");
+      back.type = "button";
+      back.addEventListener("click", function () { openId = null; load(); });
+      mount.appendChild(back);
+    }
+
+    var head = el("section", "quizcard fd-head");
+    head.appendChild(el("h3", null, d.fund.name));
+    head.appendChild(el("p", "cert-note", d.fund.description));
+    var top = el("div", "fd-stats");
+    top.appendChild(stat("In the fund", money(d.totals.value, cur)));
+    top.appendChild(stat("Growth since the start", signedPct(d.totals.growthPct), tone(d.totals.growthPct), "Value of one unit: " + d.totals.unitValue.toFixed(4)));
+    top.appendChild(stat("Members", String(d.totals.members)));
+    head.appendChild(top);
+    head.appendChild(chart(d.history));
+    mount.appendChild(head);
+
+    // your share
+    var mine = el("section", "quizcard fd-mine");
+    mine.appendChild(el("h3", null, "Your share"));
+    if (me.units > 0 || me.putIn > 0 || me.withdrawn > 0) {
+      var big = el("p", "fd-bigamount", money(me.value, cur));
+      mine.appendChild(big);
+      mine.appendChild(el("p", "cert-note", "That is " + pct(me.sharePct) + " of the fund. Your amount grows (or falls) with every result the fund records, and the profit you have already made keeps working for you."));
+      var grid = el("div", "fd-stats");
+      grid.appendChild(stat("Your share", pct(me.sharePct)));
+      grid.appendChild(stat("Put in for you", money(me.putIn, cur)));
+      grid.appendChild(stat("Withdrawn", money(me.withdrawn, cur)));
+      grid.appendChild(stat("Gain so far", signed(me.gain, cur), tone(me.gain), me.putIn > 0 ? signedPct(me.gainPct) : ""));
+      mine.appendChild(grid);
+    } else {
+      mine.appendChild(el("p", "cert-note", "You do not have a share in this fund yet. When ABEC-FX sponsors you, your amount and your percentage will show here."));
+    }
+    mount.appendChild(mine);
+
+    // withdraw
+    var wd = el("section", "quizcard fd-withdraw");
+    wd.appendChild(el("h3", null, "Withdraw"));
+    var pendingReq = (d.withdrawals || []).filter(function (w) { return w.status === "Pending"; })[0];
+    if (pendingReq) {
+      wd.appendChild(el("p", "live live-soon", "Waiting for ABEC-FX to pay: " + (pendingReq.all ? "everything (" + money(pendingReq.amount, cur) + " at today's value)" : money(pendingReq.amount, cur)) + ". Asked on " + pendingReq.at + "."));
+      var cancel = el("button", "btn ghost", "Cancel this request");
+      cancel.type = "button";
+      cancel.addEventListener("click", function () {
+        if (busy) return;
+        busy = true; cancel.disabled = true;
+        post("/api/portal/funds/" + encodeURIComponent(openId) + "/withdrawals/" + encodeURIComponent(pendingReq.id) + "/cancel")
+          .then(function (v) { data = v; renderFund(v, "Request cancelled."); })
+          .catch(function (err) { if (err.message !== "signed out") { cancel.disabled = false; flashMsg(err.message, true); } })
+          .then(function () { busy = false; });
+      });
+      wd.appendChild(cancel);
+    } else if (me.value > 0) {
+      wd.appendChild(el("p", "cert-note", "You can withdraw up to " + money(me.available, cur) + ". Your request goes to ABEC-FX, who send you the money and then take it out of the fund at the value of that day."));
+      wd.appendChild(withdrawForm(me, cur));
+    } else {
+      wd.appendChild(el("p", "cert-note", "There is nothing to withdraw yet."));
+    }
+    var msg = el("p", "formErr");
+    msg.id = "fdMsg";
+    msg.setAttribute("role", "status");
+    wd.appendChild(msg);
+    mount.appendChild(wd);
+    if (flash) flashMsg(flash, false);
+
+    // history
+    if ((d.results || []).length) {
+      var sec = el("section", "quizcard");
+      sec.appendChild(el("h3", null, "Recent results of the fund"));
+      sec.appendChild(table(["Date", "Result", "Unit value"], d.results.map(function (r) {
+        return [r.date, colored(signed(r.amount, cur), tone(r.amount)), Number(r.unitValue).toFixed(4)];
+      })));
+      mount.appendChild(sec);
+    }
+    if ((d.activity || []).length) {
+      var act = el("section", "quizcard");
+      act.appendChild(el("h3", null, "Your activity"));
+      act.appendChild(table(["Date", "What", "Amount", "Note"], d.activity.map(function (a) {
+        return [a.date, TYPE_NAME[a.type] || a.type, a.type === "withdrawal" ? "-" + money(a.amount, cur) : money(a.amount, cur), a.note || ""];
+      })));
+      mount.appendChild(act);
+    }
+    if ((d.withdrawals || []).length) {
+      var wl = el("section", "quizcard");
+      wl.appendChild(el("h3", null, "Your withdrawal requests"));
+      wl.appendChild(table(["Asked", "Amount", "Status", "Note"], d.withdrawals.map(function (w) {
+        return [w.at, money(w.amount, cur) + (w.all && w.status === "Pending" ? " (everything)" : ""), w.status, w.note || ""];
+      })));
+      mount.appendChild(wl);
+    }
+    mount.appendChild(el("p", "cert-note", "Trading carries risk. The value of a fund can go down as well as up, and no profit is promised. Sponsorship and withdrawals are managed by ABEC-FX."));
+  }
+
+  function colored(text, cls) { var s = el("span", cls, text); return s; }
+
+  function flashMsg(text, bad) {
+    var m = document.getElementById("fdMsg");
+    if (!m) return;
+    m.textContent = text || "";
+    m.style.color = bad ? "" : "#1e8449";
+  }
+
+  function withdrawForm(me, cur) {
+    var form = el("form", "bot-form fd-form");
+    form.noValidate = true;
+
+    var f1 = el("div", "field");
+    var l1 = el("label", null, "Amount (" + cur + ")"); l1.setAttribute("for", "fd-amount");
+    var amount = el("input"); amount.id = "fd-amount"; amount.type = "number"; amount.step = "0.01"; amount.min = "0.01"; amount.max = String(me.available); amount.inputMode = "decimal";
+    var e1 = el("p", "formErr"); e1.id = "fd-e-amount"; e1.setAttribute("role", "alert");
+    f1.appendChild(l1); f1.appendChild(amount); f1.appendChild(e1);
+
+    var all = el("label", "bot-switch");
+    var allBox = el("input"); allBox.type = "checkbox"; allBox.id = "fd-all";
+    all.appendChild(allBox);
+    all.appendChild(document.createTextNode(" Withdraw everything (my whole share, at the value on the day it is paid)"));
+    allBox.addEventListener("change", function () { amount.disabled = allBox.checked; if (allBox.checked) amount.value = ""; });
+
+    var f2 = el("div", "field");
+    var l2 = el("label", null, "Where should we send the money?"); l2.setAttribute("for", "fd-details");
+    var details = el("textarea"); details.id = "fd-details"; details.rows = 3; details.maxLength = 300;
+    details.placeholder = "Bank name, account number and account name, or your wallet address and network";
+    var e2 = el("p", "formErr"); e2.id = "fd-e-details"; e2.setAttribute("role", "alert");
+    f2.appendChild(l2); f2.appendChild(details); f2.appendChild(e2);
+
+    var go = el("button", "btn primary wide", "Request withdrawal"); go.type = "submit";
+    form.appendChild(f1); form.appendChild(all); form.appendChild(f2); form.appendChild(go);
+
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      if (busy) return;
+      e1.textContent = ""; e2.textContent = ""; flashMsg("");
+      var body = { details: details.value };
+      if (allBox.checked) body.all = true; else body.amount = amount.value;
+      var ask = allBox.checked ? "Withdraw your whole share" : "Withdraw " + money(amount.value, cur);
+      if (!window.confirm(ask + "? This sends a request to ABEC-FX. Nothing leaves the fund until it is paid.")) return;
+      busy = true; go.disabled = true;
+      post("/api/portal/funds/" + encodeURIComponent(openId) + "/withdrawals", body)
+        .then(function (v) { data = v; renderFund(v, "Request sent. ABEC-FX will pay you and mark it done."); })
+        .catch(function (err) {
+          if (err.message === "signed out") return;
+          go.disabled = false;
+          if (err.fields) { e1.textContent = err.fields.amount || ""; e2.textContent = err.fields.details || ""; }
+          else flashMsg(err.message, true);
+        })
+        .then(function () { busy = false; });
+    });
+    return form;
+  }
+
+  // ---- Loading ----
+  var listCount = 0;
+  function load() {
+    mount.replaceChildren(el("p", "live", "Loading the funds..."));
+    var seq = ++loadSeq;
+    var p = openId
+      ? get("/api/portal/funds/" + encodeURIComponent(openId)).then(function (d) { if (seq === loadSeq) { data = d; renderFund(d); } })
+      : get("/api/portal/funds").then(function (d) {
+          if (seq !== loadSeq) return;
+          listCount = d.funds.length;
+          if (d.funds.length === 1) { openId = d.funds[0].id; return get("/api/portal/funds/" + encodeURIComponent(openId)).then(function (v) { if (seq === loadSeq) { data = v; renderFund(v); } }); }
+          renderList(d.funds, d.currency);
+        });
+    return p.catch(function (err) {
+      if (err.message === "signed out" || seq !== loadSeq) return;
+      mount.replaceChildren(el("p", "live live-bad", err.message));
+    });
+  }
+  var loadSeq = 0;
+  function openFund(id) { openId = id; load(); }
+
+  window.abecFunds = {
+    setup: function (a) { api = a; mount = document.getElementById("fundsMount"); },
+    show: function () { if (!mount) return; openId = null; load(); },
+    reset: function () { loadSeq++; openId = null; data = null; listCount = 0; if (mount) mount.replaceChildren(); },
+  };
+})();
+```
+
+#### `public/admin-funds.js`
+
+```js
+// Dashboard > Funds: run the money of a fund. Add money, sponsor an Alumni member, record the fund's trading result,
+// pay or reject withdrawal requests, and see every member's share and the ledger.
+// admin.js calls setup() once with its api helper, open() when the tab opens and clear() on sign-out.
+(function () {
+  var api = null;       // admin.js: api(path, method, body) -> Promise
+  var onAuth = null;    // admin.js: showLogin(message)
+  var view = null;      // the open fund's data from the server
+  var fundId = "";
+  var busy = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function money(n, cur) {
+    return (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? " " + cur : "");
+  }
+  function signed(n, cur) { var v = Number(n) || 0; return (v > 0 ? "+" : v < 0 ? "-" : "") + money(Math.abs(v), cur); }
+  function pct(n) { return (Number(n) || 0).toLocaleString("en-US", { maximumFractionDigits: 4 }) + "%"; }
+
+  function table(mount, heads, rows) {
+    mount.replaceChildren();
+    var thead = el("thead"), tr = el("tr");
+    heads.forEach(function (h) { tr.appendChild(el("th", null, h)); });
+    thead.appendChild(tr); mount.appendChild(thead);
+    var body = el("tbody");
+    rows.forEach(function (r) {
+      var row = el("tr");
+      r.forEach(function (c) {
+        var td = el("td");
+        if (c && typeof c === "object" && c.nodeType) td.appendChild(c); else td.textContent = c == null ? "" : String(c);
+        row.appendChild(td);
+      });
+      body.appendChild(row);
+    });
+    mount.appendChild(body);
+  }
+
+  function fail(err, msgId) {
+    if (err && err.auth) { onAuth(err.message); return; }
+    $(msgId || "fnMsg").textContent = (err && err.message) || "Something went wrong.";
+  }
+
+  function showErrors(prefix, fields) {
+    ["holder", "amount", "newValue", "note"].forEach(function (k) {
+      var e = $(prefix + "-e-" + k);
+      if (e) e.textContent = (fields && fields[k]) || "";
+    });
+  }
+
+  // ---- Drawing ----
+  function tile(label, value, sub) {
+    var d = el("div", "kpi");
+    d.appendChild(el("b", null, value));
+    d.appendChild(el("span", null, label));
+    if (sub) { d.appendChild(document.createElement("br")); d.appendChild(el("span", null, sub)); }
+    return d;
+  }
+
+  function render(v, flash) {
+    view = v;
+    var cur = v.currency;
+    $("fnTitle").textContent = v.fund.name;
+    $("fnAbout").textContent = v.fund.description;
+    $("fnCur").textContent = cur;
+    $("fnCur2").textContent = cur;
+    $("fnCur3").textContent = cur;
+    var t = v.totals;
+    var tiles = $("fnTiles");
+    tiles.replaceChildren(
+      tile("In the fund", money(t.value, cur)),
+      tile("Growth since the start", (t.growthPct > 0 ? "+" : "") + t.growthPct + "%", "Unit value " + t.unitValue.toFixed(4)),
+      tile("Members with a share", String(t.members)),
+      tile("In the reserve (not given out yet)", money(t.reserve, cur), pct(t.reservePct) + " of the fund")
+    );
+
+    // problems typed into the sheet by hand
+    var pr = $("fnProblems");
+    pr.replaceChildren();
+    pr.hidden = !(v.problems && v.problems.length);
+    if (!pr.hidden) {
+      pr.appendChild(el("b", null, "Some rows of the Fund Ledger sheet could not be used, so they are ignored:"));
+      v.problems.slice(0, 10).forEach(function (p) { pr.appendChild(el("div", null, p)); });
+    }
+
+    // withdrawal requests
+    var pending = v.requests.filter(function (r) { return r.status === "Pending"; });
+    $("fnReqNote").textContent = pending.length
+      ? pending.length + " waiting. Send the money first, then press \"Mark paid\". Only then does it leave the fund."
+      : "No withdrawal is waiting.";
+    table($("fnReqTable"), ["Asked", "Member", "Amount", "Pay to", "Status", ""], v.requests.map(function (r) {
+      var amount = money(r.amountNow, cur) + (r.all && r.status === "Pending" ? " (everything)" : "");
+      var status = r.status + (r.decidedBy ? " by " + r.decidedBy : "") + (r.note ? ": " + r.note : "");
+      var actions = "";
+      if (r.status === "Pending") {
+        var box = el("div", "fn-actions");
+        var pay = el("button", "btn ghost sh-rowbtn", "Mark paid");
+        pay.type = "button";
+        pay.addEventListener("click", function () { payRequest(r, pay); });
+        var rej = el("button", "btn ghost sh-rowbtn sh-del", "Reject");
+        rej.type = "button";
+        rej.addEventListener("click", function () { rejectRequest(r, rej); });
+        box.appendChild(pay); box.appendChild(rej);
+        actions = box;
+      }
+      var who = r.name ? r.name + " (" + r.reg + ")" : r.reg;
+      var worth = r.status === "Pending" ? " Share now worth " + money(r.worth, cur) + "." : "";
+      var payTo = el("span", "fn-pay", r.details);
+      return [r.at, who, amount + worth, payTo, status, actions];
+    }));
+
+    // holders
+    table($("fnHolders"), ["Member", "Share", "Amount now", "Put in", "Withdrawn", "Gain"], v.holders.map(function (h) {
+      var who = h.reg === "RESERVE" ? h.name : (h.name ? h.name + " (" + h.reg + ")" : h.reg);
+      var isReserve = h.reg === "RESERVE";
+      return [who, pct(h.sharePct), money(h.value, cur), money(h.putIn, cur), money(h.withdrawn, cur) + (isReserve ? " (given as sponsorship)" : ""), isReserve ? "" : signed(h.gain, cur) + (h.putIn > 0 ? " (" + (h.gainPct > 0 ? "+" : "") + h.gainPct + "%)" : "")];
+    }));
+    $("fnHoldersNote").textContent = v.holders.length ? "" : "Nobody holds a share yet. Add money to the reserve, then sponsor a member.";
+
+    // ledger
+    var NAMES = { deposit: "Money added", allocate: "Sponsorship", performance: "Result", withdrawal: "Withdrawal" };
+    table($("fnLedger"), ["Date", "What", "Member", "Amount", "Fund after", "Source", "Note", "By"], v.ledger.map(function (e) {
+      return [e.date, NAMES[e.type] || e.type, e.holder === "RESERVE" ? "Reserve" : e.holder, (e.type === "withdrawal" ? "-" : e.type === "performance" ? "" : "") + (e.type === "performance" ? signed(e.amount, cur) : money(e.amount, cur)), money(e.valueAfter, cur), e.source, e.note, e.by];
+    }));
+    if (flash) $("fnMsg").textContent = flash;
+  }
+
+  function load(flash) {
+    return api("/api/admin/funds/" + encodeURIComponent(fundId)).then(function (v) { render(v, flash); });
+  }
+
+  // ---- Actions ----
+  function send(path, body, prefix, button, okText) {
+    if (busy) return;
+    busy = true; button.disabled = true;
+    $("fnMsg").textContent = "";
+    showErrors(prefix, null);
+    api(path, "POST", body)
+      .then(function (v) {
+        render(v, okText(v.done));
+        if (prefix) { var f = $(prefix + "Form"); if (f) f.reset(); }
+      })
+      .catch(function (err) {
+        if (err.auth) return onAuth(err.message);
+        if (err.fields && prefix) showErrors(prefix, err.fields);
+        $("fnMsg").textContent = err.message;
+      })
+      .then(function () { busy = false; button.disabled = false; });
+  }
+
+  function who(r) { return r.name ? r.name + " (" + r.reg + ")" : r.reg; }
+
+  function payRequest(r, btn) {
+    var cur = view.currency;
+    var text = "Mark this withdrawal as paid?\n\n" + who(r) + "\n" + money(r.amountNow, cur) + (r.all ? " (their whole share, at today's value)" : "") + "\n\nOnly do this after you have sent the money. It is taken out of the fund now, at today's value, and cannot be undone here.";
+    if (!window.confirm(text)) return;
+    send("/api/admin/funds/" + encodeURIComponent(fundId) + "/withdrawals/" + encodeURIComponent(r.id) + "/pay", {}, "", btn, function (d) { return "Marked paid: " + money(d.paid, view.currency) + " taken out of the fund."; });
+  }
+  function rejectRequest(r, btn) {
+    var note = window.prompt("Why is this withdrawal being rejected? The member will see this.", "");
+    if (note === null) return;
+    send("/api/admin/funds/" + encodeURIComponent(fundId) + "/withdrawals/" + encodeURIComponent(r.id) + "/reject", { note: note }, "", btn, function () { return "Rejected. The money stays in the fund."; });
+  }
+
+  function wire() {
+    $("fnDepForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var holder = $("fnDep-holder").value.trim();
+      var amount = $("fnDep-amount").value;
+      var ask = "Add " + money(amount, view && view.currency) + " " + (holder ? "for " + holder : "to the reserve") + "?";
+      if (!window.confirm(ask)) return;
+      send("/api/admin/funds/" + encodeURIComponent(fundId) + "/deposit", { holder: holder, amount: amount, note: $("fnDep-note").value }, "fnDep", $("fnDepGo"), function (d) { return "Added " + money(d.amount, view.currency) + "."; });
+    });
+    $("fnAllForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var holder = $("fnAll-holder").value.trim();
+      var amount = $("fnAll-amount").value;
+      if (!window.confirm("Give " + money(amount, view && view.currency) + " of the reserve to " + holder + " as sponsorship?")) return;
+      send("/api/admin/funds/" + encodeURIComponent(fundId) + "/allocate", { holder: holder, amount: amount, note: $("fnAll-note").value }, "fnAll", $("fnAllGo"), function (d) { return "Sponsorship of " + money(d.amount, view.currency) + " given."; });
+    });
+    $("fnPerForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var amount = $("fnPer-amount").value.trim();
+      var value = $("fnPer-newValue").value.trim();
+      if (amount && value) { showErrors("fnPer", { amount: "Fill in only one of these two." }); return; }
+      if (!amount && !value) { showErrors("fnPer", { amount: "Enter the result, or the new value of the fund." }); return; }
+      var body = amount ? { amount: amount } : { newValue: value };
+      body.note = $("fnPer-note").value;
+      if (!window.confirm(amount ? "Record a result of " + amount + " " + view.currency + " for the whole fund? It changes every member's amount." : "Set the fund's value to " + value + " " + view.currency + "? It changes every member's amount.")) return;
+      send("/api/admin/funds/" + encodeURIComponent(fundId) + "/performance", body, "fnPer", $("fnPerGo"), function (d) { return "Result recorded: " + signed(d.amount, view.currency) + ". Fund now " + money(d.fundValue, view.currency) + "."; });
+    });
+    $("fnReload").addEventListener("click", function () {
+      $("fnMsg").textContent = "Loading...";
+      load("").then(function () { $("fnMsg").textContent = ""; }).catch(function (err) { fail(err); });
+    });
+    $("fnPick").addEventListener("change", function () { fundId = $("fnPick").value; $("fnReload").click(); });
+  }
+  var wired = false;
+
+  window.abecAdminFunds = {
+    setup: function (a) { api = a.api; onAuth = a.onAuth; },
+    open: function () {
+      if (!wired) { wire(); wired = true; }
+      $("fnMsg").textContent = "Loading...";
+      api("/api/admin/funds").then(function (r) {
+        var pick = $("fnPick");
+        pick.replaceChildren();
+        r.funds.forEach(function (f) { var o = el("option", null, f.name); o.value = f.id; pick.appendChild(o); });
+        pick.hidden = r.funds.length < 2;
+        if (!fundId || !r.funds.some(function (f) { return f.id === fundId; })) fundId = r.funds[0].id;
+        pick.value = fundId;
+        return load("");
+      }).then(function () { $("fnMsg").textContent = ""; }).catch(function (err) { fail(err); });
+    },
+    clear: function () {
+      view = null;
+      ["fnTiles", "fnReqTable", "fnHolders", "fnLedger", "fnProblems"].forEach(function (id) { var n = $(id); if (n) n.replaceChildren(); });
+      ["fnMsg", "fnReqNote", "fnHoldersNote"].forEach(function (id) { var n = $(id); if (n) n.textContent = ""; });
+    },
+  };
+})();
+```
+
 #### `public/status.html`
 
 ```html
@@ -6759,7 +8830,7 @@ _missing_
     currentReg = d.regNumber;
     if (sel && !explicit) sel.value = kindOfStatus(d.status); // main card of a person found without choosing a kind
     labelFor();
-    mount.replaceChildren(window.renderStudentCard(d));
+    mount.replaceChildren(window.renderStudentCard(d, { viewOnly: true }));
     var t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     var note = window.expiryNotice(d);
     liveLine.textContent = note ? note.text : "Live record, checked at " + t;
@@ -6861,6 +8932,7 @@ _missing_
 
   // A link such as /status?kind=staff&reg=ABECFX/26/0001 opens with that card already chosen.
   var wanted = qs.get("kind");
+  if (wanted === "team") wanted = "staff"; // old links
   if (!onCert && wanted && Array.prototype.some.call(sel.options, function (o) { return o.value === wanted && o.value !== "certificate"; })) {
     sel.value = wanted;
   }
@@ -7157,6 +9229,17 @@ _missing_
     var foot = el("div", "idc-foot");
     foot.appendChild(el("span", null, "Adebass Base Edge Consult"));
     card.appendChild(foot);
+
+    // Public look-up copies (Check ID) carry the same watermark as the certificate look-up, so they cannot be
+    // mistaken for the card the holder downloads from their portal.
+    if (opts.viewOnly) {
+      var wm = el("div", "idc-watermark");
+      wm.setAttribute("aria-hidden", "true");
+      wm.appendChild(el("span", "idc-wm-big", "VIEW ONLY"));
+      wm.appendChild(el("span", "idc-wm-small", "VERIFICATION COPY"));
+      card.appendChild(wm);
+      card.setAttribute("aria-label", card.getAttribute("aria-label") + " (view only, verification copy)");
+    }
     return card;
   };
 })();
@@ -7544,12 +9627,14 @@ _missing_
         <button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="view-overview">Statistics</button>
         <button type="button" role="tab" id="tab-quiz" aria-selected="false" aria-controls="view-quiz">Quiz results</button>
         <button type="button" role="tab" id="tab-quizcodes" aria-selected="false" aria-controls="view-quizcodes" hidden>Quiz codes</button>
+        <button type="button" role="tab" id="tab-attendance" aria-selected="false" aria-controls="view-attendance" hidden>Attendance</button>
         <button type="button" role="tab" id="tab-links" aria-selected="false" aria-controls="view-links">Site links</button>
         <button type="button" role="tab" id="tab-community" aria-selected="false" aria-controls="view-community" hidden>Community</button>
         <button type="button" role="tab" id="tab-videos" aria-selected="false" aria-controls="view-videos">Chapter videos</button>
         <button type="button" role="tab" id="tab-staff" aria-selected="false" aria-controls="view-staff" hidden>Staff</button>
         <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
         <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
+        <button type="button" role="tab" id="tab-funds" aria-selected="false" aria-controls="view-funds" hidden>Funds</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
       </nav>
 
@@ -7659,6 +9744,54 @@ _missing_
         </article>
       </div>
 
+      <div id="view-attendance" role="tabpanel" aria-labelledby="tab-attendance" hidden>
+        <article class="adm-card wide">
+          <h3>Live class</h3>
+          <p class="adm-note">Start the class here when your Google Meet begins and end it when it finishes. Students open the class from their portal, which opens your Meet link in its own window. Their time is counted while that window stays open. A student is marked present when they were there for at least <b id="atThreshold">50</b>% of the class.</p>
+          <div id="atLiveBox" hidden>
+            <p class="adm-note"><b id="atLiveTitle"></b> is live. Started <span id="atLiveSince"></span>.</p>
+            <div class="lk-bar">
+              <button type="button" class="primary" id="atEnd">End class</button>
+              <span class="lk-msg" id="atEndMsg" role="status"></span>
+            </div>
+          </div>
+          <form id="atForm" class="lk-form" novalidate>
+            <div class="field">
+              <label for="at-title">Class name</label>
+              <input id="at-title" type="text" maxlength="100" autocomplete="off" placeholder="Week 3: Risk management" />
+              <p class="lk-err" id="at-e-title" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="at-link">Google Meet link</label>
+              <input id="at-link" type="url" maxlength="200" autocomplete="off" spellcheck="false" placeholder="https://meet.google.com/abc-defg-hij" />
+              <p class="lk-err" id="at-e-link" role="alert"></p>
+            </div>
+            <div class="lk-bar">
+              <button type="submit" class="primary" id="atStart">Start class</button>
+              <span class="lk-msg" id="atMsg" role="status"></span>
+            </div>
+          </form>
+        </article>
+
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3>Classes</h3>
+            <button type="button" class="btn ghost" id="atReload">Reload</button>
+          </div>
+          <div class="tablewrap"><table class="adm-table" id="atTable"></table></div>
+          <p class="adm-note" id="atNote" role="status"></p>
+        </article>
+
+        <article class="adm-card wide" id="atReportCard" hidden>
+          <div class="adm-card-head">
+            <h3 id="atReportTitle">Attendance</h3>
+            <button type="button" class="btn ghost" id="atCsv">Download CSV</button>
+          </div>
+          <div class="tablewrap"><table class="adm-table" id="atReportTable"></table></div>
+          <p class="adm-note" id="atReportNote" role="status"></p>
+        </article>
+      </div>
+
       <div id="view-links" role="tabpanel" aria-labelledby="tab-links" hidden>
         <article class="adm-card wide">
           <h3>Site links</h3>
@@ -7673,8 +9806,8 @@ _missing_
 
       <div id="view-community" role="tabpanel" aria-labelledby="tab-community" hidden>
         <article class="adm-card wide">
-          <h3>Student community</h3>
-          <p class="adm-note">Students see these on the Community page of their portal, as "Open WhatsApp community" and "Open Telegram community". Paste the invite link of your group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
+          <h3>Student communities</h3>
+          <p class="adm-note">Students see the Mentorship links on the Community page (under Mentorship in their portal menu) and the Traders links on the Traders community page (under Trading), each as an "Open WhatsApp" and an "Open Telegram" button. Paste the invite link of each group. A button only appears for a link you set; leave a box empty to hide it. Links must start with https://</p>
           <form id="communityForm" class="lk-form" novalidate></form>
           <div class="lk-bar">
             <button type="button" class="primary" id="communitySave">Save</button>
@@ -7692,6 +9825,75 @@ _missing_
             <button type="button" class="primary" id="videosSave">Save</button>
             <span class="lk-msg" id="videosMsg" role="status"></span>
           </div>
+        </article>
+      </div>
+
+      <div id="view-funds" role="tabpanel" aria-labelledby="tab-funds" hidden>
+        <article class="adm-card wide">
+          <div class="adm-card-head">
+            <h3 id="fnTitle">Funds</h3>
+            <div class="fn-head-tools">
+              <select id="fnPick" aria-label="Choose a fund" hidden></select>
+              <button type="button" class="btn ghost" id="fnReload">Reload</button>
+            </div>
+          </div>
+          <p class="adm-note" id="fnAbout"></p>
+          <div class="kpis" id="fnTiles"></div>
+          <p class="adm-note" id="fnMsg" role="status"></p>
+          <div class="fn-problems" id="fnProblems" role="alert" hidden></div>
+        </article>
+
+        <div class="grid">
+          <article class="adm-card">
+            <h3>Add money</h3>
+            <p class="adm-note">Money paid into the fund. Leave the registration number empty to put it in the reserve, ready to give out as sponsorship. Fill it in to put money straight into one Alumni member's share.</p>
+            <form id="fnDepForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnDep-amount">Amount (<span id="fnCur">USD</span>)</label><input id="fnDep-amount" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="lk-err" id="fnDep-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnDep-holder">Member's registration number (optional)</label><input id="fnDep-holder" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001, or empty for the reserve" /><p class="lk-err" id="fnDep-e-holder" role="alert"></p></div>
+              <div class="field"><label for="fnDep-note">Note (optional)</label><input id="fnDep-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnDepGo">Add money</button></div>
+            </form>
+          </article>
+
+          <article class="adm-card">
+            <h3>Sponsor an Alumni member</h3>
+            <p class="adm-note">Gives part of the reserve to a member. It becomes their share, and it grows with the fund from today.</p>
+            <form id="fnAllForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnAll-holder">Member's registration number</label><input id="fnAll-holder" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABECFX/26/0001" /><p class="lk-err" id="fnAll-e-holder" role="alert"></p></div>
+              <div class="field"><label for="fnAll-amount">Amount (<span id="fnCur2">USD</span>)</label><input id="fnAll-amount" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="lk-err" id="fnAll-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnAll-note">Note (optional)</label><input id="fnAll-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnAllGo">Give sponsorship</button></div>
+            </form>
+          </article>
+
+          <article class="adm-card">
+            <h3>Record a trading result</h3>
+            <p class="adm-note">What the fund made or lost. Every member's amount moves by the same percentage. Enter the profit (or a loss with a minus), or the fund's new total value. The copy-trading system will do this automatically later.</p>
+            <form id="fnPerForm" class="lk-form" novalidate>
+              <div class="field"><label for="fnPer-amount">Profit or loss (<span id="fnCur3">USD</span>)</label><input id="fnPer-amount" type="number" step="0.01" inputmode="decimal" placeholder="e.g. 120 or -45.50" /><p class="lk-err" id="fnPer-e-amount" role="alert"></p></div>
+              <div class="field"><label for="fnPer-newValue">...or the fund's new total value</label><input id="fnPer-newValue" type="number" step="0.01" min="0" inputmode="decimal" /><p class="lk-err" id="fnPer-e-newValue" role="alert"></p></div>
+              <div class="field"><label for="fnPer-note">Note (optional)</label><input id="fnPer-note" type="text" maxlength="200" autocomplete="off" /></div>
+              <div class="lk-bar"><button type="submit" class="primary" id="fnPerGo">Record result</button></div>
+            </form>
+          </article>
+        </div>
+
+        <article class="adm-card wide">
+          <h3>Withdrawal requests</h3>
+          <p class="adm-note" id="fnReqNote" role="status"></p>
+          <div class="tablewrap"><table class="adm-table" id="fnReqTable"></table></div>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Who holds what</h3>
+          <div class="tablewrap"><table class="adm-table" id="fnHolders"></table></div>
+          <p class="adm-note" id="fnHoldersNote"></p>
+        </article>
+
+        <article class="adm-card wide">
+          <h3>Ledger (latest 60)</h3>
+          <p class="adm-note">Every entry, newest first. The full record is the Fund Ledger tab of the Google Sheet; do not edit it by hand.</p>
+          <div class="tablewrap"><table class="adm-table" id="fnLedger"></table></div>
         </article>
       </div>
 
@@ -7938,6 +10140,7 @@ _missing_
   <script src="/download.js"></script>
   <script src="/certificate-art.js"></script>
   <script src="/certificate.js"></script>
+  <script src="/admin-funds.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>
@@ -8001,6 +10204,7 @@ _missing_
     $("shTable").replaceChildren();
     $("shSearch").value = "";
     me = null;
+    window.abecAdminFunds.clear();
     setDashTitle();
     staffData = null;
     if ($("tmDlg").open) $("tmDlg").close();
@@ -8037,8 +10241,9 @@ _missing_
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", funds: "funds" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
+  window.abecAdminFunds.setup({ api: api, onAuth: function (m) { showLogin(m); } });
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
     var name = me && me.roleLabel ? me.roleLabel + " dashboard" : "Dashboard";
@@ -8260,13 +10465,14 @@ _missing_
       kpi("Total students", s.total, { kind: "all" }),
       kpi("Certified graduates", s.graduates, { kind: "graduates" }),
       kpi("Uncertified", s.uncertified, { kind: "uncertified" }),
+      kpi("Alumni members", s.alumni, { kind: "alumni" }),
       kpi("Staff members", s.staff, { kind: "staff" }),
       kpi("Took the quiz", s.quiz.students, { kind: "quiz-students" }),
       kpi("Average quiz score", s.quiz.avgPct == null ? "-" : s.quiz.avgPct + "%", { kind: "quiz-avg" })
     );
     var by = function (kind) { return function (i) { return { kind: kind, value: i.label }; }; };
     bars($("c-status"), s.status.filter(function (x) { return x.count > 0; }), { total: s.total, drill: by("status") });
-    $("c-status-note").textContent = "A person can hold several cards (Student, Alumni, Staff), so the Staff and Certified graduates tiles can be larger than their bars: the bars count each person once, under their main status.";
+    $("c-status-note").textContent = "A person can hold several ID cards (Student, Alumni, Staff). They are counted under every status they hold, so the bars can add up to more than the total number of students.";
     bars($("c-gender"), s.gender, { drill: by("gender") });
     bars($("c-programme"), s.programme, { drill: by("programme") });
     bars($("c-year"), s.byYear, { drill: by("year") });
@@ -8480,6 +10686,87 @@ _missing_
 
   // ---------- Site links ----------
   var linkFields = [];
+  // ---------- Attendance: start and end a live class, and see who was present ----------
+  var at = { classes: [], report: null, threshold: 50 };
+  function openAttendance() {
+    $("atNote").textContent = "Loading...";
+    loadAttendance().catch(function (err) { if (err.auth) showLogin(err.message); else $("atNote").textContent = err.message; });
+  }
+  function loadAttendance() {
+    return api("/api/admin/attendance").then(function (r) {
+      at.classes = r.classes; at.threshold = r.threshold;
+      $("atThreshold").textContent = r.threshold;
+      renderAttendance();
+    });
+  }
+  function renderAttendance() {
+    var live = at.classes.filter(function (c) { return c.live; })[0];
+    $("atLiveBox").hidden = !live;
+    $("atForm").hidden = !!live;
+    if (live) { $("atLiveTitle").textContent = live.title; $("atLiveSince").textContent = live.startedAt; }
+    $("atNote").textContent = at.classes.length ? "" : "No classes yet. Start one above.";
+    table($("atTable"), [
+      { t: "Class" }, { t: "Started" }, { t: "Length" }, { t: "Joined", n: 1 }, { t: "Present", n: 1 }, { t: "" },
+    ], at.classes.map(function (c) {
+      var b = el("button", "btn ghost sh-rowbtn", "View");
+      b.type = "button";
+      b.addEventListener("click", function () { showAttendanceReport(c); });
+      return [c.title + (c.live ? " (live)" : ""), c.startedAt, c.lengthMinutes + " min", c.joined, c.present, { node: b }];
+    }));
+  }
+  function showAttendanceReport(c) {
+    $("atReportCard").hidden = false;
+    $("atReportTitle").textContent = c.title + " - attendance";
+    $("atReportNote").textContent = "Loading...";
+    $("atReportTable").replaceChildren();
+    api("/api/admin/attendance/report?id=" + encodeURIComponent(c.id)).then(function (r) {
+      at.report = r;
+      var present = r.people.filter(function (p) { return p.present; }).length;
+      var joined = r.people.filter(function (p) { return p.minutes > 0; }).length;
+      $("atReportNote").textContent = present + " present (at least " + r.threshold + "% of " + r.class.lengthMinutes + " minutes), " + joined + " joined, " + (r.people.length - joined) + " registered students never joined.";
+      table($("atReportTable"), [
+        { t: "Student" }, { t: "Reg number" }, { t: "Minutes", n: 1 }, { t: "%", n: 1 }, { t: "Result" },
+      ], r.people.map(function (p) {
+        return [p.name, p.reg, p.minutes, p.percent + "%", p.present ? "Present" : "Absent"];
+      }));
+      $("atReportCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }).catch(function (err) { if (err.auth) showLogin(err.message); else $("atReportNote").textContent = err.message; });
+  }
+  $("atForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    $("at-e-title").textContent = ""; $("at-e-link").textContent = ""; $("atMsg").textContent = "";
+    var b = $("atStart"); b.disabled = true;
+    api("/api/admin/attendance/start", "POST", { title: $("at-title").value, link: $("at-link").value }).then(function () {
+      $("at-title").value = ""; $("at-link").value = "";
+      $("atMsg").textContent = "Class started. Students can now join it from their portal.";
+      return loadAttendance();
+    }).catch(function (err) {
+      if (err.auth) return showLogin(err.message);
+      $("at-e-title").textContent = (err.fields && err.fields.title) || "";
+      $("at-e-link").textContent = (err.fields && err.fields.link) || "";
+      $("atMsg").textContent = err.fields ? "" : err.message;
+    }).then(function () { b.disabled = false; });
+  });
+  $("atEnd").addEventListener("click", function () {
+    if (!window.confirm("End the live class now? Students will stop being counted.")) return;
+    var b = $("atEnd"); b.disabled = true; $("atEndMsg").textContent = "Saving...";
+    api("/api/admin/attendance/end", "POST", {}).then(function () { $("atEndMsg").textContent = ""; return loadAttendance(); })
+      .catch(function (err) { if (err.auth) showLogin(err.message); else $("atEndMsg").textContent = err.message; })
+      .then(function () { b.disabled = false; });
+  });
+  $("atReload").addEventListener("click", openAttendance);
+  $("atCsv").addEventListener("click", function () {
+    if (!at.report) return;
+    var q = function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
+    var lines = [["Student", "Reg number", "Minutes", "Percent", "Result"].map(q).join(",")].concat(at.report.people.map(function (p) {
+      return [p.name, p.reg, p.minutes, p.percent, p.present ? "Present" : "Absent"].map(q).join(",");
+    }));
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    a.download = "attendance-" + at.report["class"].id + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+
   // ---------- Quiz codes: make, list and cancel the one-time codes that unlock the quiz ----------
   var QC_LABEL = { Unused: "Unused", Unlocked: "In use", Completed: "Completed", Revoked: "Cancelled" };
 
@@ -9420,12 +11707,14 @@ _missing_
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "links", "community", "videos", "database", "staff", "idcards", "certificates"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "funds", "database", "staff", "idcards", "certificates"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "idcards" || name === "certificates";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "funds";
+    if (name === "funds") window.abecAdminFunds.open();
     if (name === "quizcodes") openQuizCodes();
+    if (name === "attendance") openAttendance();
     if (name === "database") openSheets();
     if (name === "staff") openStaff();
     if (name === "idcards") openIdCards();
@@ -9446,9 +11735,11 @@ _missing_
   $("tab-overview").addEventListener("click", function () { setTab("overview"); });
   $("tab-quiz").addEventListener("click", function () { setTab("quiz"); });
   $("tab-quizcodes").addEventListener("click", function () { setTab("quizcodes"); });
+  $("tab-attendance").addEventListener("click", function () { setTab("attendance"); });
   $("tab-links").addEventListener("click", function () { setTab("links"); });
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
+  $("tab-funds").addEventListener("click", function () { setTab("funds"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-staff").addEventListener("click", function () { setTab("staff"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
@@ -9942,6 +12233,14 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .cert-signer img { max-width: 100%; max-height: 90px; justify-self: start; margin-top: 4px; }
 .cert-signer .warn { color: #8a5a00; font-weight: 600; }
 @media (max-width: 760px) { .idc-admin { grid-template-columns: 1fr; } .idc-list { max-height: 260px; } }
+
+/* Funds tab */
+.fn-head-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fn-head-tools .btn { height: 40px; padding: 0 16px; }
+.fn-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.fn-pay { display: block; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
+.fn-problems { margin-top: 10px; padding: 10px 14px; border: 1px solid #e8b64c; background: #fff8e6; border-radius: 12px; font-size: .88rem; display: grid; gap: 4px; }
+.fn-problems[hidden] { display: none; }
 ```
 
 #### `public/styles.css`
@@ -10220,6 +12519,14 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
   box-shadow: 0 2em 3.5em -2em rgba(60, 8, 66, .8);
   animation: passIn .55s cubic-bezier(.2, .8, .2, 1) both;
 }
+/* "View only, verification copy" watermark on cards shown by Check ID (same wording as the certificate look-up) */
+.idc-watermark {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none; user-select: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transform: rotate(-18deg); color: #fff; opacity: .2; text-align: center; font-weight: 800; white-space: nowrap;
+}
+.idc-wm-big { font-size: 3.2em; line-height: 1.1; }
+.idc-wm-small { font-size: 1.35em; font-weight: 700; letter-spacing: .12em; }
 .idc[data-status="certified"] { --accent: #5ee0a4; }
 .idc[data-status="alumni-member"] { --accent: #f08ad9; }
 .idc::before {
@@ -10495,13 +12802,31 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .quiz-open { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: #eef8f0; color: #1f6b3a; font-size: .88rem; font-weight: 600; }
 @media print { .quizcard, .quizrun, .quizgate { display: none; } }
 
-/* ---------- My portal submenu ---------- */
+/* ---------- Portal menu: ID Card, and the Trading and Mentorship dropdowns ---------- */
 .sheet-inner.is-wide { max-width: 680px; }
-.subnav { display: flex; gap: 6px; margin: 0 0 22px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow-x: auto; }
-.subnav a { flex: 1 0 auto; text-align: center; white-space: nowrap; padding: 10px 14px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: .92rem; color: var(--muted); }
-.subnav a:hover { background: var(--bone); color: var(--violet-deep); }
-.subnav a[aria-current="page"] { background: var(--violet-deep); color: #fff; }
-.subnav a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.subnav { display: flex; gap: 6px; position: relative; margin: 0 0 22px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+.sub-group { position: relative; flex: 1 1 0; min-width: 0; display: flex; }
+.subnav .sub-top {
+  flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border: 0; border-radius: 12px; background: none; cursor: pointer;
+  font: inherit; font-weight: 700; font-size: .92rem; text-align: center; text-decoration: none; white-space: nowrap; color: var(--muted);
+}
+.subnav .sub-top:hover { background: var(--bone); color: var(--violet-deep); }
+.subnav .sub-top[aria-current="page"], .subnav .sub-top.is-current { background: var(--violet-deep); color: #fff; }
+.subnav .sub-top:focus-visible, .sub-menu a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sub-caret { width: 7px; height: 7px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s; flex: none; }
+.sub-toggle[aria-expanded="true"] .sub-caret { transform: rotate(-135deg); margin-top: 3px; }
+.sub-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; min-width: max(100%, 200px);
+  display: grid; gap: 2px; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(40, 10, 46, .18);
+}
+.sub-menu[hidden] { display: none; }
+.sub-end .sub-menu { left: auto; right: 0; }
+.sub-menu a { display: block; padding: 11px 14px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: .94rem; color: var(--violet-deep); white-space: nowrap; }
+.sub-menu a[hidden] { display: none; }
+.sub-menu a:hover { background: var(--bone); }
+.sub-menu a[aria-current="page"] { background: var(--purple-soft); color: var(--violet); }
 
 /* ---------- Learning progress bar ---------- */
 .pbar { display: block; width: 100%; height: 12px; background: #eadcee; border-radius: 999px; overflow: hidden; }
@@ -10563,7 +12888,7 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .hb-pager .btn { height: 46px; }
 .hb-article + .btn.wide, .hb-msg + .hb-pager { margin-top: 0; }
 @media (min-width: 700px) { .hb-cards { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .subnav a { flex: 1 1 0; white-space: normal; display: grid; place-items: center; padding: 8px 6px; font-size: .86rem; line-height: 1.2; min-height: 46px; } }
+@media (max-width: 480px) { .subnav .sub-top { padding: 8px 4px; gap: 4px; font-size: .84rem; line-height: 1.2; min-height: 46px; } }
 @media print { .subnav, .journey, #viewQuiz, #viewHandbook { display: none; } }
 
 /* ---------- Computer view: menu at the top left, for everyone ---------- */
@@ -10749,6 +13074,77 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .kind-pick { margin: 0 0 22px; }
 .kind-pick label { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 600; color: var(--muted); }
 .kind-pick select { width: 100%; font: inherit; font-weight: 600; padding: 12px 14px; border-radius: 12px; border: 1px solid currentColor; border-color: rgba(120,90,140,.35); background: #fff; color: inherit; }
+
+/* Portal: several ID cards (Student, Alumni, Staff) stacked, each titled and with its own download button */
+#cardMount { max-width: none; }
+.idc-one + .idc-one { margin-top: 28px; }
+.idc-one-title { margin: 0 0 10px; text-align: center; font-size: 1rem; color: var(--violet-deep); }
+
+/* Portal: live class */
+.cls-h { margin: 22px 0 8px; font-size: 1rem; color: var(--violet-deep); }
+.cls-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.cls-table th, .cls-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.cls-table th { color: var(--muted); font-weight: 700; }
+.cls-table caption { text-align: left; color: var(--muted); padding: 8px 0; }
+
+/* Portal: alumni signals */
+.sig-tools { margin: 6px 0 0; font-size: .9rem; }
+.sig-grid { display: grid; gap: 10px; }
+.sig-card { display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--line); border-left: 6px solid var(--violet-deep); }
+.sig-card.sig-sell { border-left-color: #c0392b; }
+.sig-card.sig-buy { border-left-color: #1e8449; }
+.sig-card span { color: var(--muted); font-size: .9rem; }
+.sig-tabs { display: flex; gap: 6px; margin: 14px 0 0; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow-x: auto; }
+.sig-tabs button { flex: 1 0 auto; white-space: nowrap; padding: 9px 14px; border: 0; border-radius: 12px; background: transparent; font: inherit; font-weight: 700; font-size: .9rem; color: var(--muted); cursor: pointer; }
+.sig-tabs button[aria-selected="true"] { background: var(--violet-deep); color: #fff; }
+.sig-tabs button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sig-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+.sig-chip { padding: 5px 10px; border-radius: 999px; background: var(--bone); border: 1px solid var(--line); font-size: .85rem; }
+.sig-chip-off { color: var(--muted); }
+
+/* Portal: bot trading */
+.bot-pane { margin-top: 14px; }
+.bot-form { display: grid; gap: 14px; }
+.bot-form .field { display: grid; gap: 4px; }
+.bot-form input[type="number"] { width: 100%; max-width: 220px; }
+.bot-groups { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.bot-groups legend { font-weight: 700; padding: 0 6px; }
+.bot-switch, .bot-accept { display: flex; gap: 8px; align-items: flex-start; font-size: .95rem; }
+.bot-accept { font-size: .85rem; color: var(--muted); }
+.bot-steps p { margin: 6px 0; font-size: .92rem; }
+.bot-key { margin-top: 12px; padding: 12px; border: 1px dashed var(--violet-deep); border-radius: 12px; display: grid; gap: 8px; }
+.bot-key code { word-break: break-all; font-size: .9rem; }
+.bot-total { font-weight: 700; margin: 4px 0; }
+.bot-up { color: #1e8449; }
+.bot-down { color: #c0392b; }
+.bot-activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .9rem; }
+.bot-activity .bot-ok { color: #1e8449; }
+.bot-activity .bot-error { color: #c0392b; }
+.bot-activity .bot-warn { color: #9a6700; }
+
+/* Portal: Funds (Trading > Funds, Alumni members) */
+#fundsMount { display: grid; gap: 16px; }
+#fundsMount .quizcard { margin: 0; }
+#fundsMount h3 { margin: 0 0 6px; }
+.fd-back { width: fit-content; height: 40px; padding: 0 16px; font-size: .9rem; }
+.fd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+.fd-stat { display: grid; gap: 2px; padding: 12px 14px; background: var(--bone); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+.fd-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fd-value { font-family: var(--display); font-size: 1.2rem; color: var(--violet-deep); overflow-wrap: anywhere; }
+.fd-sub { font-size: .8rem; color: var(--muted); }
+.fd-bigamount { font-family: var(--display); font-size: 2rem; font-weight: 700; color: var(--violet-deep); margin: 6px 0 2px; overflow-wrap: anywhere; }
+.fd-up { color: #1e8449; }
+.fd-down { color: #c0392b; }
+.fd-chart { margin-top: 6px; }
+.fd-svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.fd-line { fill: none; stroke: var(--violet); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.fd-area { fill: var(--purple-soft); opacity: .7; }
+.fd-dot { fill: var(--violet-deep); }
+.fd-form { margin-top: 10px; }
+.fd-form input[type="number"] { width: 100%; max-width: 240px; }
+.fd-form textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; resize: vertical; }
+.fd-withdraw .live { max-width: none; margin: 10px 0; }
+@media print { #viewFunds { display: none; } }
 ```
 
 #### `public/links.js`
@@ -10905,8 +13301,10 @@ const FIELDS = [
   { key: "x", label: "X (Twitter)", kind: "url", hint: "https://x.com/yourname" },
   { key: "telegram", label: "Telegram", kind: "url", hint: "https://t.me/yourname" },
   { key: "youtube", label: "YouTube", kind: "url", hint: "https://youtube.com/@yourchannel" },
-  { key: "communityWhatsapp", label: "WhatsApp community group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
-  { key: "communityTelegram", label: "Telegram community group link", kind: "url", hint: "https://t.me/+...", group: "community" },
+  { key: "communityWhatsapp", label: "Mentorship community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "communityTelegram", label: "Mentorship community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
+  { key: "tradersWhatsapp", label: "Traders community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "tradersTelegram", label: "Traders community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
@@ -10926,6 +13324,8 @@ const DEFAULTS = {
   // Empty on purpose: the student Community page shows a button only once someone with the Community access sets the group.
   communityWhatsapp: "",
   communityTelegram: "",
+  tradersWhatsapp: "",
+  tradersTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   certSignerReg: "",
@@ -11000,7 +13400,7 @@ function toRows(values) {
 
 // The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
 // handed to anyone who visits the site.
-const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram"];
+const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram", "tradersWhatsapp", "tradersTelegram"];
 // The certificate settings are not site links either: they are only sent with a certificate.
 function publicView(values) {
   const out = { ...values };
@@ -11009,7 +13409,7 @@ function publicView(values) {
 }
 
 // Which fields belong to which dashboard tab. The "Site links" tab (links access) has everything without a group;
-// the "Community" tab (community access) has the two student group links. Each tab saves only its own fields.
+// the "Community" tab (community access) has the student group links (Mentorship and Traders). Each tab saves only its own fields.
 const COMMUNITY_KEYS = FIELDS.filter((f) => f.group === "community").map((f) => f.key);
 const CERT_KEYS = FIELDS.filter((f) => f.group === "certificate").map((f) => f.key);
 const siteFields = () => FIELDS.filter((f) => !f.group);
@@ -11018,14 +13418,20 @@ const communityFields = () => FIELDS.filter((f) => f.group === "community");
 const pick = (values, keys) => Object.fromEntries(keys.map((k) => [k, (values && values[k]) || ""]));
 const siteKeys = () => siteFields().map((f) => f.key);
 
-// What the student Community page offers: only the groups someone set on the dashboard (no fallback).
+// What the student Mentorship community page offers: only the groups someone set on the dashboard (no fallback).
 function communityFor(values) {
   const v = values || {};
   return { whatsapp: v.communityWhatsapp || "", telegram: v.communityTelegram || "" };
 }
 
+// Same for the Traders community page (under Trading in the portal menu): its own two groups, no fallback.
+function tradersFor(values) {
+  const v = values || {};
+  return { whatsapp: v.tradersWhatsapp || "", telegram: v.tradersTelegram || "" };
+}
+
 module.exports = {
-  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor,
+  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor, tradersFor,
   siteFields, communityFields, pick, siteKeys, CERT_KEYS, certFields,
 };
 ```
@@ -11611,11 +14017,11 @@ const root = path.join(__dirname, "..");
 const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bot");
 
 const SITE_FILES = [
-  "server.js", "sheets.js", "staff.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
+  "server.js", "sheets.js", "staff.js", "fund.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
   "handbook-content.js", "handbook-progress.js", "pdflink.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
-  "public/portal.html", "public/portal.js", "public/handbook.js",
+  "public/portal.html", "public/portal.js", "public/handbook.js", "public/funds.js", "public/admin-funds.js",
   "public/status.html", "public/status.js", "public/lookup-kind.js",
   "public/card.js", "public/qr.js", "public/nav.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
@@ -11680,3 +14086,4 @@ console.log("PROJECT-STATUS.md written,", (result.length / 1024).toFixed(0), "KB
 ### Telegram quiz bot (separate repository)
 
 _Quiz bot folder not found when this file was built._
+

@@ -15,6 +15,7 @@ const quizcodes = require("./quizcodes");
 const attendanceLib = require("./attendance");
 const signalsLib = require("./signals");
 const botLib = require("./bot");
+const fundLib = require("./fund");
 const session = require("./session");
 const handbook = require("./handbook-content");
 const progress = require("./handbook-progress");
@@ -1467,18 +1468,22 @@ const botTrading = botLib.create(store, {
   },
 });
 
-async function alumniOnly(req, res, next) {
-  res.set("Cache-Control", "no-store");
-  try {
-    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
-    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
-    if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: "Bot trading is for Alumni members." });
-    next();
-  } catch (err) {
-    console.error("Alumni check failed:", err.message);
-    res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
-  }
+// Alumni-only gate for the portal pages under Trading. `message` is what a non-Alumni student is told.
+function alumniOnlyWith(message) {
+  return async function (req, res, next) {
+    res.set("Cache-Control", "no-store");
+    try {
+      const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === req.studentReg);
+      if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+      if (!idrules.idKinds(row).alumni) return res.status(403).json({ error: message });
+      next();
+    } catch (err) {
+      console.error("Alumni check failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
 }
+const alumniOnly = alumniOnlyWith("Bot trading is for Alumni members.");
 const botPortalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
@@ -1551,6 +1556,86 @@ app.post("/api/bot/report", botReportLimiter, async (req, res) => {
     res.status(500).type("text/plain").send("ERR|server problem");
   }
 });
+
+// ---- Funds (rules in fund.js): money pools Alumni members share in. The first is the Palliative Fund, which sponsors new
+// Alumni members to start trading. The copy-trading system will later report the fund's trading results through
+// fundService.performance(...), which is the one place a result enters the fund. Switch the whole feature off with FUNDS=off.
+const FUNDS_ON = !/^(0|off|false|no)$/i.test(process.env.FUNDS || "");
+const fundService = fundLib.create(store, {
+  currency: (process.env.FUND_CURRENCY || "USD").toUpperCase().slice(0, 5),
+  stamp: lagosTimestamp,
+  nameOf: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return row ? row[4] || "" : "";
+  },
+  isAlumni: async (reg) => {
+    const row = (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg);
+    return Boolean(row && idrules.idKinds(row).alumni);
+  },
+});
+const fundAlumniOnly = alumniOnlyWith("The Funds are for Alumni members.");
+const fundPortalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => req.studentReg,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a moment." },
+});
+function fundRoute(handler) {
+  return async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      if (!FUNDS_ON) return res.status(503).json({ error: "The Funds are switched off for now." });
+      await handler(req, res);
+    } catch (err) {
+      if (err instanceof fundLib.FundError) return res.status(err.status).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+      console.error("Fund request failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+}
+
+app.get("/api/portal/funds", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  res.json({ funds: await fundService.memberList(req.studentReg), currency: fundService.currency });
+}));
+app.get("/api/portal/funds/:id", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+app.post("/api/portal/funds/:id/withdrawals", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  await fundService.requestWithdrawal(req.params.id, req.studentReg, req.body);
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+app.post("/api/portal/funds/:id/withdrawals/:rid/cancel", fundPortalLimiter, studentAuth, fundAlumniOnly, fundRoute(async (req, res) => {
+  await fundService.cancelWithdrawal(req.params.id, req.studentReg, req.params.rid);
+  res.json(await fundService.memberView(req.params.id, req.studentReg));
+}));
+
+// Dashboard: any role given the "funds" access (admins and the owner have it). Each action answers with the fund's fresh view.
+const fundsAuth = requirePerm("funds");
+const adminFundView = async (id, res, extra) => res.json({ ...(await fundService.adminView(id)), ...(extra || {}) });
+app.get("/api/admin/funds", adminLimiter, fundsAuth, fundRoute(async (_req, res) => res.json({ funds: fundService.list(), currency: fundService.currency })));
+app.get("/api/admin/funds/:id", adminLimiter, fundsAuth, fundRoute(async (req, res) => adminFundView(req.params.id, res)));
+app.post("/api/admin/funds/:id/deposit", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.deposit(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/allocate", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.allocate(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/performance", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.performance(req.params.id, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/withdrawals/:rid/pay", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.payWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
+app.post("/api/admin/funds/:id/withdrawals/:rid/reject", adminLimiter, fundsAuth, fundRoute(async (req, res) => {
+  const done = await fundService.rejectWithdrawal(req.params.id, req.params.rid, req.body, req.admin.username);
+  await adminFundView(req.params.id, res, { done });
+}));
 
 // ---- Alumni signals: the Boom / Crash setup monitor (rules and Deriv connection in signals.js) ----
 // Off unless SIGNALS=on. Only students who hold the Alumni ID card can read it.

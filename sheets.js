@@ -6,6 +6,7 @@ const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 const attendance = require("./attendance");
 const bot = require("./bot");
+const fund = require("./fund");
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || "Students";
@@ -94,6 +95,16 @@ const BOTORD_LAST_COL = "L";
 const BOTTRD_TAB = process.env.GOOGLE_BOTTRADE_TAB || "Bot Trades";
 const BOTTRD_HEADERS = bot.TRADE_HEADERS;
 const BOTTRD_LAST_COL = "N";
+
+// Funds (see fund.js): the ledger of every deposit, sponsorship, trading result and withdrawal, and the members'
+// withdrawal requests. Managed from the portal's "Funds" page and the dashboard's "Funds" tab, never the Database view,
+// because the ledger is replayed from the top to work out every balance.
+const FUNDLED_TAB = process.env.GOOGLE_FUNDLEDGER_TAB || "Fund Ledger";
+const FUNDLED_HEADERS = fund.LEDGER_HEADERS;
+const FUNDLED_LAST_COL = "N";
+const FUNDWD_TAB = process.env.GOOGLE_FUNDWITHDRAWAL_TAB || "Fund Withdrawals";
+const FUNDWD_HEADERS = fund.WITHDRAWAL_HEADERS;
+const FUNDWD_LAST_COL = "N";
 
 // Handbook progress: one row per student (reg number, name, chapters read, count, total, percent, updated).
 const PROG_TAB = process.env.GOOGLE_PROGRESS_TAB || "Handbook Progress";
@@ -231,6 +242,11 @@ async function init() {
   await ensureHeaders(BOTORD_TAB, BOTORD_HEADERS, BOTORD_LAST_COL);
   await ensureTab(BOTTRD_TAB);
   await ensureHeaders(BOTTRD_TAB, BOTTRD_HEADERS, BOTTRD_LAST_COL);
+
+  await ensureTab(FUNDLED_TAB);
+  await ensureHeaders(FUNDLED_TAB, FUNDLED_HEADERS, FUNDLED_LAST_COL);
+  await ensureTab(FUNDWD_TAB);
+  await ensureHeaders(FUNDWD_TAB, FUNDWD_HEADERS, FUNDWD_LAST_COL);
 
   await ensureTab(PROG_TAB);
   await ensureHeaders(PROG_TAB, PROG_HEADERS, PROG_LAST_COL);
@@ -640,6 +656,9 @@ const EDITOR_TABS = {
   botaccounts: { title: BOTACC_TAB, headers: BOTACC_HEADERS, lastCol: BOTACC_LAST_COL },
   botorders: { title: BOTORD_TAB, headers: BOTORD_HEADERS, lastCol: BOTORD_LAST_COL },
   bottrades: { title: BOTTRD_TAB, headers: BOTTRD_HEADERS, lastCol: BOTTRD_LAST_COL },
+  // Internal only: the funds' ledger and withdrawal requests. Managed through fund.js, the portal's "Funds" page and the "Funds" dashboard tab.
+  fundledger: { title: FUNDLED_TAB, headers: FUNDLED_HEADERS, lastCol: FUNDLED_LAST_COL },
+  fundwithdrawals: { title: FUNDWD_TAB, headers: FUNDWD_HEADERS, lastCol: FUNDWD_LAST_COL },
   // Internal only: live classes and who attended. Managed through attendance.js and the "Attendance" dashboard tab.
   classes: { title: CLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
   attendance: { title: ATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },

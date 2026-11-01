@@ -224,6 +224,27 @@ Alumni Member), uncertified, staff members, gender, country, state, programme, y
 grade spread, every result with search, grade filter, latest/best per student, and a CSV download.
 No emails or phone numbers appear on the dashboard. If `ADMIN_PASSWORD` is not set the dashboard stays off.
 
+### Funds (Trading > Funds)
+
+A fund is a pool of money that Alumni members share in. The first is the **Palliative Fund**, which sponsors new Alumni members so they can start trading. Later the copy-trading system will trade the pool and report its results, so the fund grows and every member's share grows with it.
+
+**What an Alumni member sees** (portal, **Trading > Funds**): how much is in the fund, its growth since the start, **their own share in percent and their amount**, what was put in for them, what they withdrew, their gain, the fund's recent results and their own activity. They can **request a withdrawal** (an amount, or everything) and say where to send the money. Nobody sees another member's share.
+
+**How the share compounds.** The fund is cut into units. Money paid in buys units at the current unit value (it starts at 1.0000). A trading result changes the unit value, not anyone's units, so every amount moves by the same percentage. Someone who joins later pays today's unit value and does not take earlier profit.
+
+**What the admin does** (`/admin` > **Funds**, for the Owner, Admins and any role given the **Funds** access):
+
+1. **Add money.** With no registration number it goes to the fund **reserve**; with an Alumni member's number it goes straight into their share.
+2. **Sponsor an Alumni member.** Gives part of the reserve to that member.
+3. **Record a trading result.** A profit, a loss (with a minus), or the fund's new total value.
+4. **Withdrawal requests.** Send the money yourself first, then press **Mark paid**; only then does it leave the fund, at that day's unit value. **Reject** needs a reason the member sees.
+
+Records live on two sheet tabs the site creates on start: **Fund Ledger** (every deposit, sponsorship, result and withdrawal; balances are worked out by replaying it, so do not edit it by hand) and **Fund Withdrawals**. Neither appears in the Database view. A person with fund records cannot be deleted.
+
+Optional Render variables: `FUND_CURRENCY` (default `USD`) and `FUNDS=off` to switch the feature off. To add another fund, add it to `FUNDS` in `fund.js`.
+
+**For the copy-trading system:** report a result with `fundService.performance(fundId, { amount, source: "copytrading", ref })` (see `server.js`). `amount` is the profit (+) or loss (-); a `ref` such as a date or batch id makes sending the same result twice count once.
+
 ### Updating an existing deployment
 
 Redeploy. On startup the app adds the new columns, the Photos tab and the new dropdown values.
