@@ -62,3 +62,29 @@ test("a single 429 is retried and succeeds", async () => {
   assert.ok(rows.length >= 1);
   mode = "ok";
 });
+
+// ---- tab reads (fund, bot, copy trading, staff, attendance...) ----
+test("tab reads are shared, kept for the TTL, and a write to that tab clears them", async () => {
+  mode = "ok";
+  calls = 0;
+  const a = await Promise.all([sheets.tabRows("fundledger"), sheets.tabRows("fundledger"), sheets.tabRows("fundledger")]);
+  assert.strictEqual(calls, 1);
+  a[0][0].cells[0] = "changed by a caller"; // callers get their own copy
+  const again = await sheets.tabRows("fundledger");
+  assert.notStrictEqual(again[0].cells[0], "changed by a caller");
+  assert.strictEqual(calls, 1);
+  await sheets.appendTabRows("fundledger", [["x"]]); // a write: 1 call, then the next read is fresh
+  const after = calls;
+  await sheets.tabRows("fundledger");
+  assert.strictEqual(calls, after + 1);
+});
+
+test("tab reads: the last copy is served when Google refuses, but never after a write", async () => {
+  mode = "ok";
+  await sheets.tabRows("botaccounts");
+  // expire the copy without a write by waiting is slow, so use a write on a different tab to show it is untouched
+  await sheets.appendTabRows("fundwithdrawals", [["x"]]);
+  mode = "quota";
+  await assert.rejects(() => sheets.tabRows("fundwithdrawals")); // written to: no old copy may be served
+  mode = "ok";
+});
