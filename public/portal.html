@@ -68,6 +68,7 @@
               <div class="sub-menu" id="tradingMenu" hidden>
                 <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
                 <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
+                <a href="#/funds" data-view="funds" id="fundsLink" hidden>Funds</a>
                 <a href="#/traders" data-view="traders">Traders community</a>
               </div>
             </div>
@@ -287,6 +288,13 @@
             </section>
           </div>
 
+          <!-- View: Funds (Alumni members only): the Palliative Fund and any later fund -->
+          <div id="viewFunds" class="view" hidden>
+            <h2>Funds</h2>
+            <p class="lead">Money pools that grow through the ABEC-FX trading system. See how much is in a fund, and the share and amount that are yours.</p>
+            <div id="fundsMount" aria-live="polite"></div>
+          </div>
+
           <!-- View: Traders community (its own WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
           <div id="viewTraders" class="view" hidden>
             <h2>Traders community</h2>
@@ -378,6 +386,7 @@
   <script src="/certificate.js"></script>
   <script src="/handbook.js"></script>
   <script src="/workbook.js"></script>
+  <script src="/funds.js"></script>
   <script src="/photo.js"></script>
   <script src="/signature.js"></script>
   <script src="/portal.js"></script>

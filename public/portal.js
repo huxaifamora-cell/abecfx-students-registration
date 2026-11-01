@@ -61,7 +61,7 @@
     if (typeof stopSignals === "function") stopSignals();
     if (typeof stopBot === "function") stopBot();
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -157,6 +157,7 @@
     sigAllowed = isAlumni;
     botAllowed = isAlumni;
     document.getElementById("botLink").hidden = !isAlumni;
+    document.getElementById("fundsLink").hidden = !isAlumni;
     sigNote("");
     pendingSigNotice = !!d.signatureMissing;
     pendingPhotoNotice = !!d.photoRedo;
@@ -175,14 +176,14 @@
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
     currentView = "";
     route();
   }
 
   // ---- Portal menu: ID Card, Trading (Signals, Bot trading, Traders community) and Mentorship (Handbook, Workbook,
   // Community, Live class, Quiz). Pages keep their addresses: #/card, #/quiz, #/handbook/03, #/traders ... ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot"];
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds"];
   var currentView = "";
 
   // Dropdowns: tap or click Trading / Mentorship to open its list; one open at a time. They close when you pick a
@@ -219,7 +220,7 @@
   })();
 
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|workbook|community|traders|class|signals|bot)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community|traders|class|signals|bot|funds)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -248,6 +249,7 @@
     if (r.view === "class" && currentView !== "class") showClass();
     if (r.view === "signals" && currentView !== "signals") showSignals();
     if (r.view === "bot" && currentView !== "bot") showBot();
+    if (r.view === "funds" && currentView !== "funds") window.abecFunds.show();
     if (r.view !== "signals") stopSignals();
     if (r.view !== "bot") stopBot();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
@@ -258,6 +260,7 @@
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecFunds.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Live class: join Google Meet in its own window; time with that window open counts towards attendance ----
   var cls = { id: "", win: null, timer: null, minutes: 0 };

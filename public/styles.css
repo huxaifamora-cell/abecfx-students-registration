@@ -873,3 +873,27 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .bot-activity .bot-ok { color: #1e8449; }
 .bot-activity .bot-error { color: #c0392b; }
 .bot-activity .bot-warn { color: #9a6700; }
+
+/* Portal: Funds (Trading > Funds, Alumni members) */
+#fundsMount { display: grid; gap: 16px; }
+#fundsMount .quizcard { margin: 0; }
+#fundsMount h3 { margin: 0 0 6px; }
+.fd-back { width: fit-content; height: 40px; padding: 0 16px; font-size: .9rem; }
+.fd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+.fd-stat { display: grid; gap: 2px; padding: 12px 14px; background: var(--bone); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+.fd-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fd-value { font-family: var(--display); font-size: 1.2rem; color: var(--violet-deep); overflow-wrap: anywhere; }
+.fd-sub { font-size: .8rem; color: var(--muted); }
+.fd-bigamount { font-family: var(--display); font-size: 2rem; font-weight: 700; color: var(--violet-deep); margin: 6px 0 2px; overflow-wrap: anywhere; }
+.fd-up { color: #1e8449; }
+.fd-down { color: #c0392b; }
+.fd-chart { margin-top: 6px; }
+.fd-svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.fd-line { fill: none; stroke: var(--violet); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.fd-area { fill: var(--purple-soft); opacity: .7; }
+.fd-dot { fill: var(--violet-deep); }
+.fd-form { margin-top: 10px; }
+.fd-form input[type="number"] { width: 100%; max-width: 240px; }
+.fd-form textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; resize: vertical; }
+.fd-withdraw .live { max-width: none; margin: 10px 0; }
+@media print { #viewFunds { display: none; } }
