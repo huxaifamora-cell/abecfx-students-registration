@@ -182,13 +182,33 @@ function getClient() {
   return client;
 }
 
+// Google allows a limited number of Sheets reads per minute. A 429 means the request was refused (not run),
+// so it is safe to retry after a short pause, for reads and writes alike.
 async function call(path, options = {}) {
-  const res = await getClient().request({
-    url: `${API}/${SHEET_ID}${path}`,
-    ...options,
-  });
-  return res.data;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await getClient().request({
+        url: `${API}/${SHEET_ID}${path}`,
+        ...options,
+      });
+      return res.data;
+    } catch (err) {
+      const status = Number((err.response && err.response.status) || err.code);
+      if (status !== 429 || attempt >= 2) throw err;
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1) + Math.random() * 500));
+    }
+  }
 }
+
+// One shared read at a time per tab: if ten requests arrive while the cache is stale, only one goes to Google.
+const inflight = new Map();
+function once(key, fn) {
+  if (!inflight.has(key)) inflight.set(key, fn().finally(() => inflight.delete(key)));
+  return inflight.get(key);
+}
+// Never let a caller ask for fresher data than this. Our own writes still refresh at once (they reset the cache);
+// only edits made by hand in the Google Sheet take up to this long to show.
+const MIN_TTL_MS = Number(process.env.SHEETS_MIN_TTL_MS) || 20000;
 
 const range = (r, tab = TAB) => encodeURIComponent(`${tab}!${r}`);
 
@@ -383,10 +403,18 @@ async function readAll() {
 }
 
 // Short cache for the public lookup page so heavy use can't exhaust Google's read quota.
-let cache = { at: 0, rows: [] };
+let cache = { at: 0, rows: [], ok: false };
 async function readCached(ttlMs = 15000) {
+  ttlMs = Math.max(ttlMs, MIN_TTL_MS);
   if (Date.now() - cache.at > ttlMs) {
-    cache = { rows: await readAll(), at: Date.now() };
+    try {
+      cache = { rows: await once("students", readAll), at: Date.now(), ok: true };
+    } catch (err) {
+      if (!cache.ok) throw err;
+      // Google refused or is down: keep serving the last good copy and try again in about 10 seconds.
+      console.error("Sheets read failed, serving the last copy:", err.message);
+      cache.at = Date.now() - ttlMs + 10000;
+    }
   }
   return cache.rows;
 }
@@ -400,11 +428,18 @@ async function appendRow(row) {
 }
 
 // ---- Quiz results (one row per finished quiz attempt, written by the Telegram quiz bot) ----
-let quizCache = { at: 0, rows: [] };
+let quizCache = { at: 0, rows: [], ok: false };
 async function readQuiz(ttlMs = 15000) {
+  ttlMs = Math.max(ttlMs, MIN_TTL_MS);
   if (Date.now() - quizCache.at > ttlMs) {
-    const data = await call(`/values/${range(`A2:${QUIZ_LAST_COL}`, QUIZ_TAB)}`);
-    quizCache = { rows: data.values || [], at: Date.now() };
+    try {
+      const data = await once("quiz", () => call(`/values/${range(`A2:${QUIZ_LAST_COL}`, QUIZ_TAB)}`));
+      quizCache = { rows: data.values || [], at: Date.now(), ok: true };
+    } catch (err) {
+      if (!quizCache.ok) throw err;
+      console.error("Quiz read failed, serving the last copy:", err.message);
+      quizCache.at = Date.now() - ttlMs + 10000;
+    }
   }
   return quizCache.rows;
 }
@@ -418,11 +453,18 @@ async function appendQuiz(row) {
 }
 
 // ---- Handbook progress (one row per student; saved by the portal's "Mark as read" button) ----
-let progCache = { at: 0, rows: [] };
+let progCache = { at: 0, rows: [], ok: false };
 async function readProgress(ttlMs = 5000) {
+  ttlMs = Math.max(ttlMs, MIN_TTL_MS);
   if (Date.now() - progCache.at > ttlMs) {
-    const data = await call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`);
-    progCache = { rows: data.values || [], at: Date.now() };
+    try {
+      const data = await once("progress", () => call(`/values/${range(`A2:${PROG_LAST_COL}`, PROG_TAB)}`));
+      progCache = { rows: data.values || [], at: Date.now(), ok: true };
+    } catch (err) {
+      if (!progCache.ok) throw err;
+      console.error("Progress read failed, serving the last copy:", err.message);
+      progCache.at = Date.now() - ttlMs + 10000;
+    }
   }
   return progCache.rows;
 }
