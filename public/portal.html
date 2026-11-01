@@ -59,16 +59,29 @@
 
         <!-- Signed in -->
         <section id="home" hidden>
-          <!-- My portal submenu -->
+          <!-- Portal menu: ID Card, Trading and Mentorship (the last two open a dropdown) -->
           <nav class="subnav" id="subnav" aria-label="My portal">
-            <a href="#/card" data-view="card" aria-current="page">ID card</a>
-            <a href="#/class" data-view="class">Live class</a>
-            <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
-            <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
-            <a href="#/community" data-view="community">Community</a>
-            <a href="#/handbook" data-view="handbook">Handbook</a>
-            <a href="#/workbook" data-view="workbook">Workbook</a>
-            <a href="#/quiz" data-view="quiz">Quiz</a>
+            <a href="#/card" class="sub-top" data-group="card" data-view="card" aria-current="page">ID Card</a>
+
+            <div class="sub-group" data-group="trading">
+              <button type="button" class="sub-top sub-toggle" id="tradingToggle" aria-haspopup="true" aria-expanded="false" aria-controls="tradingMenu">Trading <span class="sub-caret" aria-hidden="true"></span></button>
+              <div class="sub-menu" id="tradingMenu" hidden>
+                <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
+                <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
+                <a href="#/traders" data-view="traders">Traders community</a>
+              </div>
+            </div>
+
+            <div class="sub-group sub-end" data-group="mentorship">
+              <button type="button" class="sub-top sub-toggle" id="mentorshipToggle" aria-haspopup="true" aria-expanded="false" aria-controls="mentorshipMenu">Mentorship <span class="sub-caret" aria-hidden="true"></span></button>
+              <div class="sub-menu" id="mentorshipMenu" hidden>
+                <a href="#/handbook" data-view="handbook">Handbook</a>
+                <a href="#/workbook" data-view="workbook">Workbook</a>
+                <a href="#/community" data-view="community">Community</a>
+                <a href="#/class" data-view="class">Live class</a>
+                <a href="#/quiz" data-view="quiz">Quiz</a>
+              </div>
+            </div>
           </nav>
 
           <!-- View: ID card -->
@@ -263,14 +276,25 @@
             <p class="cert-note">The bot follows fixed rules, not advice, and losses are possible. Only risk money you can afford to lose.</p>
           </div>
 
-          <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
+          <!-- View: Mentorship community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
           <div id="viewCommunity" class="view" hidden>
-            <h2>Community</h2>
-            <p class="lead">Open the ABEC-FX community to learn alongside other students and get updates from your mentors.</p>
+            <h2>Mentorship community</h2>
+            <p class="lead">Open the ABEC-FX mentorship community to learn alongside other students and get updates from your mentors.</p>
             <section class="quizcard communitycard" aria-label="Community links">
               <p class="live" id="communityMsg" role="status">Loading...</p>
               <a id="communityWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp community</a>
               <a id="communityTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram community</a>
+            </section>
+          </div>
+
+          <!-- View: Traders community (its own WhatsApp and Telegram groups, set on the dashboard's Community tab) -->
+          <div id="viewTraders" class="view" hidden>
+            <h2>Traders community</h2>
+            <p class="lead">Join the ABEC-FX traders community to share setups and trade alongside other traders.</p>
+            <section class="quizcard communitycard" aria-label="Traders community links">
+              <p class="live" id="tradersMsg" role="status">Loading...</p>
+              <a id="tradersWhatsapp" class="btn primary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp traders community</a>
+              <a id="tradersTelegram" class="btn ghost wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Open Telegram traders community</a>
             </section>
           </div>
 
