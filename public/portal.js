@@ -59,6 +59,7 @@
   function signedOut(message) {
     if (typeof stopClassBeat === "function") stopClassBeat();
     if (typeof stopSignals === "function") stopSignals();
+    if (typeof stopBot === "function") stopBot();
     closeQuiz(true);
     window.abecHandbook.reset(); window.abecWorkbook.reset();
     currentReg = "";
@@ -154,6 +155,8 @@
     var isAlumni = (d.cards || []).indexOf("alumni") >= 0;
     document.getElementById("signalsLink").hidden = !isAlumni;
     sigAllowed = isAlumni;
+    botAllowed = isAlumni;
+    document.getElementById("botLink").hidden = !isAlumni;
     sigNote("");
     pendingSigNotice = !!d.signatureMissing;
     pendingPhotoNotice = !!d.photoRedo;
@@ -178,11 +181,11 @@
   }
 
   // ---- My portal submenu: ID card, Quiz, Handbook (addresses #/card, #/quiz, #/handbook/03) ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "class", "signals"];
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "class", "signals", "bot"];
   var currentView = "";
 
   function parseRoute() {
-    var m = /^#\/(card|quiz|handbook|workbook|community|class|signals)(?:\/(\d{2}))?$/.exec(location.hash || "");
+    var m = /^#\/(card|quiz|handbook|workbook|community|class|signals|bot)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
 
@@ -203,7 +206,9 @@
     if (r.view === "community" && currentView !== "community") showCommunity();
     if (r.view === "class" && currentView !== "class") showClass();
     if (r.view === "signals" && currentView !== "signals") showSignals();
+    if (r.view === "bot" && currentView !== "bot") showBot();
     if (r.view !== "signals") stopSignals();
+    if (r.view !== "bot") stopBot();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
     if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
@@ -386,6 +391,172 @@
     loadSignals();
     sigTimer = setInterval(loadSignals, 5000);
   }
+
+  // ---- Bot trading (Alumni members): risk settings, account link, account details, open trades and history ----
+  var botAllowed = false, botTimer = null, botPane = "risk", botData = null, botBusy = false;
+  function $b(id) { return document.getElementById(id); }
+  function stopBot() { if (botTimer) { clearInterval(botTimer); botTimer = null; } }
+  function money(n, cur) { return (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? " " + cur : ""); }
+  function cell(row, value, cls) { var c = row.insertCell(); c.textContent = value; if (cls) c.className = cls; return c; }
+  function fillTable(t, head, rows, empty) {
+    t.replaceChildren();
+    if (!rows.length) { var cap = document.createElement("caption"); cap.textContent = empty; t.appendChild(cap); return; }
+    var hr = t.createTHead().insertRow();
+    head.forEach(function (h) { var th = document.createElement("th"); th.textContent = h; hr.appendChild(th); });
+    var body = t.createTBody();
+    rows.forEach(function (r) { var row = body.insertRow(); r.forEach(function (v) { if (v && v.cls) cell(row, v.t, v.cls); else cell(row, v); }); });
+  }
+  function pnl(n, cur) { return { t: (n > 0 ? "+" : "") + money(n, cur), cls: n > 0 ? "bot-up" : n < 0 ? "bot-down" : "" }; }
+  function when(iso) { return iso ? new Date(iso).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""; }
+
+  function showBotPane(name) {
+    botPane = name;
+    ["risk", "link", "account", "trades"].forEach(function (p) { $b("botPane-" + p).hidden = p !== name; });
+    var tabs = $b("botTabs").querySelectorAll("button");
+    for (var i = 0; i < tabs.length; i++) tabs[i].setAttribute("aria-selected", tabs[i].getAttribute("data-pane") === name ? "true" : "false");
+  }
+  $b("botTabs").addEventListener("click", function (e) { var p = e.target && e.target.getAttribute && e.target.getAttribute("data-pane"); if (p) showBotPane(p); });
+
+  function riskSummary() {
+    var s = botData && botData.settings ? botData.settings : {};
+    var cur = botData && botData.account && botData.account.currency ? botData.account.currency : "USD";
+    var sl = Number($b("bot-sl").value) || 0, pos = Number($b("bot-positions").value) || 0, day = Number($b("bot-daily").value) || 0;
+    $b("botRiskSummary").textContent = sl && pos
+      ? "If every stop loss is hit, one signal can cost up to " + money(sl * pos, cur) + " (" + pos + " x " + money(sl, cur) + "), and a full day of " + day + " signals up to " + money(sl * pos * day, cur) + "."
+      : "";
+  }
+  ["bot-sl", "bot-positions", "bot-daily"].forEach(function (id) { $b(id).addEventListener("input", riskSummary); });
+
+  function fillBotForm(d) {
+    var s = d.settings;
+    $b("bot-lot").value = s.lot; $b("bot-sl").value = s.sl; $b("bot-tp").value = s.tp; $b("bot-positions").value = s.positions; $b("bot-daily").value = s.daily;
+    var boxes = document.querySelectorAll("input[name=botGroup]");
+    for (var i = 0; i < boxes.length; i++) boxes[i].checked = s.groups.indexOf(boxes[i].value) >= 0;
+    $b("bot-on").checked = s.on;
+    $b("botAcceptRow").hidden = s.accepted;
+    var cur = (d.account && d.account.currency) || "USD";
+    var spans = document.querySelectorAll(".bot-cur");
+    for (var j = 0; j < spans.length; j++) spans[j].textContent = cur;
+    riskSummary();
+  }
+
+  function renderBot(d, keepForm) {
+    botData = d;
+    var st = $b("botStatus");
+    if (!d.enabled) st.textContent = "Bot trading is switched off on the server. Ask the admin to turn it on.";
+    else if (!d.linked) st.textContent = "Not linked yet. Open Account link to connect your MetaTrader 5 account.";
+    else if (!d.connected) st.textContent = "Your account is linked, but your MT5 connector is not reporting right now. Check that MT5 is open and the connector is on a chart.";
+    else st.textContent = (d.settings.on ? "Bot is ON. " : "Bot is OFF. ") + "Connected to account " + ((d.account && d.account.login) || "") + ". Today: " + d.today.used + " of " + d.today.max + " trades used.";
+    if (!keepForm) fillBotForm(d);
+
+    var ls = $b("botLinkState");
+    ls.textContent = !d.linked ? "Not linked." : d.connected ? "Linked and connected." : "Linked, waiting for the MT5 connector.";
+    $b("botLinkBtn").textContent = d.linked ? "Make a new key" : "Link account";
+    $b("botDisconnect").hidden = !d.linked;
+    $b("botSiteUrl").textContent = location.origin;
+
+    var a = d.account;
+    if (!a) fillTable($b("botAccount"), [], [], "No account details yet. They appear here once your MT5 connector reports.");
+    else {
+      var c = a.currency || "";
+      fillTable($b("botAccount"), ["Detail", "Value"], [
+        ["Account number", a.login], ["Name", a.name], ["Broker", a.company], ["Server", a.server],
+        ["Account type", a.real ? "Real" : "Demo"], ["Leverage", a.leverage ? "1:" + a.leverage : ""],
+        ["Balance", money(a.balance, c)], ["Equity", money(a.equity, c)], ["Margin used", money(a.margin, c)], ["Free margin", money(a.freeMargin, c)],
+        ["Floating profit / loss (whole account)", pnl(a.profit, c)], ["Last report", d.lastSeen ? when(d.lastSeen) : ""],
+      ], "");
+    }
+
+    var cur = (a && a.currency) || "";
+    var fl = $b("botFloating");
+    fl.textContent = "Floating profit / loss of the bot's open trades: " + (d.floating > 0 ? "+" : "") + money(d.floating, cur);
+    fl.className = "bot-total " + (d.floating > 0 ? "bot-up" : d.floating < 0 ? "bot-down" : "");
+    fillTable($b("botOpen"), ["Opened", "Market", "Type", "Lots", "Open price", "SL", "TP", "Profit / loss"],
+      d.positions.map(function (p) { return [when(p.openTime), p.symbol, p.type, p.lots, p.openPrice, p.sl || "-", p.tp || "-", pnl(p.profit + p.swap, cur)]; }), "No open bot trades.");
+    $b("botHistoryTotal").textContent = d.history.length ? "Closed trades shown: " + d.history.length + ". Their total profit / loss: " + (d.historyProfit > 0 ? "+" : "") + money(d.historyProfit, cur) + "." : "";
+    fillTable($b("botHistory"), ["Closed", "Market", "Type", "Lots", "Open price", "Close price", "Profit / loss"],
+      d.history.map(function (t) { return [when(t.closeTime), t.symbol, t.type, t.lots, t.openPrice, t.closePrice, pnl(t.profit + t.swap, cur)]; }), "No closed bot trades yet.");
+    var ul = $b("botActivity");
+    ul.replaceChildren();
+    if (!d.activity.length) { var li0 = document.createElement("li"); li0.textContent = "Nothing yet."; ul.appendChild(li0); }
+    d.activity.forEach(function (e) { var li = document.createElement("li"); li.className = "bot-" + e.kind; li.textContent = when(e.at) + " - " + e.message; ul.appendChild(li); });
+  }
+
+  function botFetch(url, method, body) {
+    var o = { method: method || "GET", headers: {} };
+    if (body) { o.headers["Content-Type"] = "application/json"; o.body = JSON.stringify(body); }
+    return authFetch(url, o).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (r.status === 401) { stopBot(); signedOut(b.error); throw new Error("signed out"); }
+        if (!r.ok) { var e = new Error(b.error || "Something went wrong."); e.fields = b.errors; throw e; }
+        return b;
+      });
+    });
+  }
+  function loadBot(keepForm) {
+    return botFetch("/api/portal/bot").then(function (d) { renderBot(d, keepForm); })
+      .catch(function (err) { if (err.message !== "signed out") $b("botStatus").textContent = err.message; });
+  }
+  function showBot() {
+    stopBot();
+    if (!botAllowed) { $b("botStatus").textContent = "Bot trading is for Alumni members."; return; }
+    $b("botStatus").textContent = "Loading...";
+    loadBot(false);
+    // The live parts (connection, open trades) refresh by themselves; the form is left alone so typing is not lost.
+    botTimer = setInterval(function () { if (!botBusy) loadBot(true); }, 5000);
+  }
+
+  $b("botForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    ["lot", "sl", "tp", "positions", "daily", "groups", "acceptRisk"].forEach(function (k) { $b("bot-e-" + k).textContent = ""; });
+    $b("botMsg").textContent = "";
+    var groups = [].slice.call(document.querySelectorAll("input[name=botGroup]")).filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
+    var btn = $b("botSave");
+    btn.disabled = true; botBusy = true;
+    botFetch("/api/portal/bot/settings", "PUT", {
+      lot: $b("bot-lot").value, sl: $b("bot-sl").value, tp: $b("bot-tp").value, positions: $b("bot-positions").value, daily: $b("bot-daily").value,
+      groups: groups, on: $b("bot-on").checked, acceptRisk: $b("bot-accept").checked,
+    }).then(function (d) { renderBot(d, false); $b("botMsg").textContent = "Saved."; })
+      .catch(function (err) {
+        if (err.message === "signed out") return;
+        var f = err.fields || {};
+        ["lot", "sl", "tp", "positions", "daily", "groups", "acceptRisk"].forEach(function (k) { $b("bot-e-" + k).textContent = f[k] || ""; });
+        $b("botMsg").textContent = err.fields ? "Please fix the highlighted fields." : err.message;
+      }).then(function () { btn.disabled = false; botBusy = false; });
+  });
+
+  $b("botLinkBtn").addEventListener("click", function () {
+    var d = botData;
+    if (d && d.linked && !window.confirm("Making a new key stops the connector you have now. You will need to paste the new key into MT5. Continue?")) return;
+    $b("botLinkMsg").textContent = "";
+    botFetch("/api/portal/bot/link", "POST", {}).then(function (r) {
+      $b("botKey").textContent = r.key;
+      $b("botKeyBox").hidden = false;
+      return loadBot(true);
+    }).catch(function (err) { if (err.message !== "signed out") $b("botLinkMsg").textContent = err.message; });
+  });
+  $b("botKeyCopy").addEventListener("click", function () {
+    var key = $b("botKey").textContent;
+    var done = function () { $b("botKeyCopy").textContent = "Copied"; setTimeout(function () { $b("botKeyCopy").textContent = "Copy key"; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(key).then(done, function () {});
+  });
+  $b("botDisconnect").addEventListener("click", function () {
+    if (!window.confirm("Disconnect your account? The bot switches off and the connector stops working until you link again. Trades already open stay open in MT5.")) return;
+    botFetch("/api/portal/bot/disconnect", "POST", {}).then(function (d) { $b("botKeyBox").hidden = true; renderBot(d, false); $b("botLinkMsg").textContent = "Disconnected."; })
+      .catch(function (err) { if (err.message !== "signed out") $b("botLinkMsg").textContent = err.message; });
+  });
+  $b("botDownload").addEventListener("click", function () {
+    // The file is only for signed-in Alumni members, so it is fetched with the sign-in and saved from the page.
+    authFetch("/api/portal/bot/connector").then(function (r) {
+      if (!r.ok) throw new Error("The connector could not be downloaded.");
+      return r.blob();
+    }).then(function (blob) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ABECFX_Bot_Connector.mq5";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }).catch(function (err) { $b("botLinkMsg").textContent = err.message; });
+  });
 
   // ---- Community: the WhatsApp and Telegram groups set on the dashboard, opened in a new tab ----
   function safeHttps(u) {

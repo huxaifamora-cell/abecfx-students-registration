@@ -64,6 +64,7 @@
             <a href="#/card" data-view="card" aria-current="page">ID card</a>
             <a href="#/class" data-view="class">Live class</a>
             <a href="#/signals" data-view="signals" id="signalsLink" hidden>Signals</a>
+            <a href="#/bot" data-view="bot" id="botLink" hidden>Bot trading</a>
             <a href="#/community" data-view="community">Community</a>
             <a href="#/handbook" data-view="handbook">Handbook</a>
             <a href="#/workbook" data-view="workbook">Workbook</a>
@@ -186,6 +187,80 @@
               <div class="hb-tablewrap"><table class="cls-table" id="sigRecent"></table></div>
             </section>
             <p class="cert-note">These are trade setups from a fixed set of rules, not financial advice. Always manage your own risk.</p>
+          </div>
+
+          <!-- View: Bot trading (Alumni members only) -->
+          <div id="viewBot" class="view" hidden>
+            <h2>Bot trading</h2>
+            <p class="lead">Let the bot open the Signals for you on your own MetaTrader 5 account, inside the risk limits you set here.</p>
+            <p class="live" id="botStatus" role="status">Loading...</p>
+            <nav class="sig-tabs" id="botTabs" role="tablist" aria-label="Bot trading sections">
+              <button type="button" role="tab" data-pane="risk" aria-selected="true">Risk management</button>
+              <button type="button" role="tab" data-pane="link" aria-selected="false">Account link</button>
+              <button type="button" role="tab" data-pane="account" aria-selected="false">Account details</button>
+              <button type="button" role="tab" data-pane="trades" aria-selected="false">Trades</button>
+            </nav>
+
+            <section id="botPane-risk" class="bot-pane" aria-label="Risk management">
+              <form id="botForm" class="bot-form" novalidate>
+                <div class="field"><label for="bot-lot">Lot size (per position)</label><input id="bot-lot" type="number" step="0.01" min="0.01" inputmode="decimal" /><p class="formErr" id="bot-e-lot" role="alert"></p></div>
+                <div class="field"><label for="bot-sl">Stop loss (<span class="bot-cur">USD</span> per position)</label><input id="bot-sl" type="number" step="0.01" min="1" inputmode="decimal" /><span class="hint">The most each position can lose before it closes. Required.</span><p class="formErr" id="bot-e-sl" role="alert"></p></div>
+                <div class="field"><label for="bot-tp">Take profit (<span class="bot-cur">USD</span> per position)</label><input id="bot-tp" type="number" step="0.01" min="0" inputmode="decimal" /><span class="hint">Closes the position when it has made this much. 0 means no take profit.</span><p class="formErr" id="bot-e-tp" role="alert"></p></div>
+                <div class="field"><label for="bot-positions">Positions per trade</label><input id="bot-positions" type="number" step="1" min="1" inputmode="numeric" /><span class="hint">How many positions the bot opens for each signal.</span><p class="formErr" id="bot-e-positions" role="alert"></p></div>
+                <div class="field"><label for="bot-daily">Max daily trades</label><input id="bot-daily" type="number" step="1" min="1" inputmode="numeric" /><span class="hint">The most signals the bot will trade in one day (Lagos time).</span><p class="formErr" id="bot-e-daily" role="alert"></p></div>
+                <fieldset class="bot-groups"><legend>Index types to trade</legend>
+                  <label><input type="checkbox" name="botGroup" value="boom" /> Boom</label>
+                  <label><input type="checkbox" name="botGroup" value="crash" /> Crash</label>
+                  <label><input type="checkbox" name="botGroup" value="jump" /> Jump</label>
+                  <label><input type="checkbox" name="botGroup" value="step" /> Step</label>
+                  <label><input type="checkbox" name="botGroup" value="volatility" /> Volatility</label>
+                  <p class="formErr" id="bot-e-groups" role="alert"></p>
+                </fieldset>
+                <p class="cert-note" id="botRiskSummary"></p>
+                <label class="bot-switch"><input type="checkbox" id="bot-on" /> <b>Bot is on</b> (it opens trades for new signals)</label>
+                <label class="bot-accept" id="botAcceptRow"><input type="checkbox" id="bot-accept" /> I understand that trading Boom, Crash and other synthetic indices is high risk, that the bot can lose money, including on a real account, and that I am responsible for every trade it opens.</label>
+                <p class="formErr" id="bot-e-acceptRisk" role="alert"></p>
+                <button type="submit" class="btn primary wide" id="botSave">Save risk settings</button>
+                <p class="formErr" id="botMsg" role="status"></p>
+              </form>
+            </section>
+
+            <section id="botPane-link" class="bot-pane" aria-label="Account link" hidden>
+              <p class="live" id="botLinkState"></p>
+              <div class="bot-steps">
+                <p><b>1.</b> Press <b>Link account</b> to make your connection key.</p>
+                <p><b>2.</b> Press <b>Download connector</b> and put the file in MT5 (File &gt; Open Data Folder &gt; MQL5 &gt; Experts), then compile it in MetaEditor (F7) and restart MT5 or refresh the Navigator.</p>
+                <p><b>3.</b> In MT5, go to Tools &gt; Options &gt; Expert Advisors, tick <b>Allow WebRequest</b> and add <b id="botSiteUrl"></b>. Make sure <b>Algo Trading</b> is on (green).</p>
+                <p><b>4.</b> Drag <b>ABECFX_Bot_Connector</b> onto any chart, paste your key into <b>InpBotKey</b>, and press OK. Keep MT5 open (a VPS is best).</p>
+              </div>
+              <div class="pass-actions">
+                <button type="button" class="btn primary" id="botLinkBtn">Link account</button>
+                <button type="button" class="btn ghost" id="botDownload">Download connector</button>
+                <button type="button" class="btn ghost" id="botDisconnect">Disconnect account</button>
+              </div>
+              <div class="bot-key" id="botKeyBox" hidden>
+                <p class="cert-note">Your connection key. It is shown only now. Copy it and paste it into the connector.</p>
+                <code id="botKey"></code>
+                <button type="button" class="btn ghost" id="botKeyCopy">Copy key</button>
+              </div>
+              <p class="formErr" id="botLinkMsg" role="status"></p>
+            </section>
+
+            <section id="botPane-account" class="bot-pane" aria-label="Account details" hidden>
+              <div class="hb-tablewrap"><table class="cls-table" id="botAccount"></table></div>
+            </section>
+
+            <section id="botPane-trades" class="bot-pane" aria-label="Trades" hidden>
+              <p class="bot-total" id="botFloating"></p>
+              <h3 class="cls-h">Open trades</h3>
+              <div class="hb-tablewrap"><table class="cls-table" id="botOpen"></table></div>
+              <h3 class="cls-h">Trade history</h3>
+              <p class="cert-note" id="botHistoryTotal"></p>
+              <div class="hb-tablewrap"><table class="cls-table" id="botHistory"></table></div>
+              <h3 class="cls-h">Bot activity</h3>
+              <ul class="bot-activity" id="botActivity"></ul>
+            </section>
+            <p class="cert-note">The bot follows fixed rules, not advice, and losses are possible. Only risk money you can afford to lose.</p>
           </div>
 
           <!-- View: Community (the WhatsApp and Telegram groups, set on the dashboard's Community tab) -->

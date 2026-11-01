@@ -827,3 +827,23 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .sig-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
 .sig-chip { padding: 5px 10px; border-radius: 999px; background: var(--bone); border: 1px solid var(--line); font-size: .85rem; }
 .sig-chip-off { color: var(--muted); }
+
+/* Portal: bot trading */
+.bot-pane { margin-top: 14px; }
+.bot-form { display: grid; gap: 14px; }
+.bot-form .field { display: grid; gap: 4px; }
+.bot-form input[type="number"] { width: 100%; max-width: 220px; }
+.bot-groups { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.bot-groups legend { font-weight: 700; padding: 0 6px; }
+.bot-switch, .bot-accept { display: flex; gap: 8px; align-items: flex-start; font-size: .95rem; }
+.bot-accept { font-size: .85rem; color: var(--muted); }
+.bot-steps p { margin: 6px 0; font-size: .92rem; }
+.bot-key { margin-top: 12px; padding: 12px; border: 1px dashed var(--violet-deep); border-radius: 12px; display: grid; gap: 8px; }
+.bot-key code { word-break: break-all; font-size: .9rem; }
+.bot-total { font-weight: 700; margin: 4px 0; }
+.bot-up { color: #1e8449; }
+.bot-down { color: #c0392b; }
+.bot-activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .9rem; }
+.bot-activity .bot-ok { color: #1e8449; }
+.bot-activity .bot-error { color: #c0392b; }
+.bot-activity .bot-warn { color: #9a6700; }
