@@ -238,7 +238,27 @@ const genOf = (k) => gens.get(k) || 0;
 
 const range = (r, tab = TAB) => encodeURIComponent(`${tab}!${r}`);
 
+// While init() runs it reads the list of tabs and every header row ONCE (initCtx) instead of once per tab. With about
+// 35 tabs, one metadata read plus one header read per tab used up Google's 60 reads a minute at every start-up and
+// made the real requests fail with "Quota exceeded". Outside init() nothing is cached here.
+let initCtx = null; // { tabs: Map title -> { sheetId, title }, heads: Map title -> first row }
+
+async function loadInitCtx() {
+  const meta = await call("?fields=sheets.properties(sheetId,title)");
+  const tabs = new Map();
+  for (const sh of meta.sheets || []) tabs.set(sh.properties.title, sh.properties);
+  const heads = new Map();
+  const titles = [...tabs.keys()];
+  for (let i = 0; i < titles.length; i += 25) {
+    const chunk = titles.slice(i, i + 25);
+    const data = await call(`/values:batchGet?${chunk.map((t) => "ranges=" + range("1:1", t)).join("&")}`);
+    (data.valueRanges || []).forEach((vr, k) => heads.set(chunk[k], (vr.values && vr.values[0]) || []));
+  }
+  return { tabs, heads };
+}
+
 async function findTab(title) {
+  if (initCtx) return initCtx.tabs.get(title);
   const meta = await call("?fields=sheets.properties(sheetId,title)");
   return (meta.sheets || []).map((s) => s.properties).find((p) => p.title === title);
 }
@@ -246,23 +266,30 @@ async function findTab(title) {
 async function ensureTab(title) {
   let tab = await findTab(title);
   if (!tab) {
-    await call(":batchUpdate", {
+    const res = await call(":batchUpdate", {
       method: "POST",
       data: { requests: [{ addSheet: { properties: { title } } }] },
     });
-    tab = await findTab(title);
+    const made = res && res.replies && res.replies[0] && res.replies[0].addSheet && res.replies[0].addSheet.properties;
+    if (initCtx && made) { initCtx.tabs.set(title, made); initCtx.heads.set(title, []); tab = made; }
+    else tab = await findTab(title);
   }
   return tab;
 }
 
 async function ensureHeaders(tab, headers, lastCol) {
-  const head = await call(`/values/${range(`A1:${lastCol}1`, tab)}`);
-  const current = (head.values && head.values[0]) || [];
+  let current;
+  if (initCtx && initCtx.heads.has(tab)) current = initCtx.heads.get(tab);
+  else {
+    const head = await call(`/values/${range(`A1:${lastCol}1`, tab)}`);
+    current = (head.values && head.values[0]) || [];
+  }
   if (headers.some((h, i) => current[i] !== h)) {
     await call(`/values/${range(`A1:${lastCol}1`, tab)}?valueInputOption=RAW`, {
       method: "PUT",
       data: { values: [headers] },
     });
+    if (initCtx) initCtx.heads.set(tab, headers.slice());
   }
 }
 
@@ -276,9 +303,23 @@ async function renameLegacyStaffTab() {
     method: "POST",
     data: { requests: [{ updateSheetProperties: { properties: { sheetId: old.sheetId, title: "Staff" }, fields: "title" } }] },
   });
+  if (initCtx) {
+    initCtx.tabs.delete("Team");
+    initCtx.tabs.set("Staff", { sheetId: old.sheetId, title: "Staff" });
+    initCtx.heads.set("Staff", initCtx.heads.get("Team") || []);
+  }
 }
 
 async function init() {
+  initCtx = await loadInitCtx();
+  try {
+    await initTabs();
+  } finally {
+    initCtx = null;
+  }
+}
+
+async function initTabs() {
   const students = await ensureTab(TAB);
   await ensureHeaders(TAB, HEADERS, LAST_COL);
 
