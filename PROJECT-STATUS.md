@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 2 Nov 2026, 20:58 (Lagos time), after change 17 (Multi-FX: a supplementary course under Mentorship, unlocked with a one-time code, with handbook, workbook, community, live class and quiz). Change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 2 Nov 2026, 21:08 (Lagos time), after change 17 (Multi-FX: a supplementary course under Mentorship, unlocked with a one-time code, with handbook, workbook, community, live class and quiz). Change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -108,6 +108,7 @@
 | 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Staff Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old staff member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
 | 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Staff ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|staff`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Staff ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then staff) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Staff ID card's QR opens the Staff ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
 | 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Staff Member, Alumni Member) beside Status; the role box shows only while Staff Member is ticked; **Not a student** is refused unless Staff Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then staff), so they add up to the total; the **Staff** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
+| 2026-11-02 | **Mentorship menu now has two courses: ABEC-FX and MULTI-FX.** The Mentorship dropdown shows an **ABEC-FX** heading with Handbook, Workbook, Community, Live class, Quiz, then a **MULTI-FX** heading with its own Handbook, Workbook, Community, Live class, Quiz (`#/multifx/handbook` and so on; the Multi-FX page keeps its own tabs too, and shows the code box until unlocked). Page addresses of the main course are unchanged. Files: `public/portal.html`, `public/portal.js` (highlights the right Multi-FX entry), `public/styles.css`. Owner action: push those three files and `status/STATUS-SOURCE.md`, `PROJECT-STATUS.md`. |
 | 2026-11-02 | **Fix: "Quota exceeded for ... Read requests per minute" after a restart.** `init()` in `sheets.js` read the tab list and then each tab's header row one tab at a time, about 70 reads for ~35 tabs, over Google's 60 reads a minute, so portal card, Alumni check and links reads failed right after every start. It now reads the tab list once and all header rows in one batch (about 3 reads), and uses the id Google returns when it creates a tab. New test `test/sheets-init.test.js`. Owner action: push `sheets.js`, `test/sheets-init.test.js`, `status/STATUS-SOURCE.md`, `PROJECT-STATUS.md`. If the error shows once right after the deploy, wait a minute and it clears. |
 | 2026-11-02 | **Change 17: Multi-FX supplementary course.** New `multifxcodes.js`, `multifx.js`, `multifx-content.js`, `multifx-quiz.js`, `multifx-routes.js`, `public/multifx.js`, `public/admin-multifx.js`, `private/multifx-handbook.pdf`; `attendance.js` (tab names can be chosen, so Multi-FX has its own class series); `pdflink.js` (links are bound to a purpose); `sheets.js` (six new tabs); `server.js` (mounts the routes); `staff.js` (new **Multi-FX** access); `links.js` (Multi-FX community fields); `admin-database.js` (delete cascade and registration-number changes cover the new tabs); portal and dashboard pages and styles; `test/staff.test.js` updated; 12 new tests. |
 | 2026-11-01 | **Change 15: a new Funds page under Trading (Alumni members only), first fund = Palliative Fund.** Menu: Trading > Funds (hidden for anyone without the Alumni ID card; a non-Alumni who opens `#/funds` is told it is for Alumni members). The page shows the fund's total, its growth since the start (with a small chart), the member's own share in percent, their amount, what was put in for them, what they withdrew and their gain, a table of the fund's recent results, their own activity and their withdrawal requests. More funds can be added later in one place (`FUNDS` in `fund.js`); the page lists them and opens one | Owner request. **Assumed:** only Alumni members see Funds (as for Signals and Bot trading); a member sees the fund as a whole and **only their own** share, never another member's. The Palliative Fund description on the page is a **draft I wrote**; replace it in `fund.js`. |
@@ -343,7 +344,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 2 Nov 2026, 20:58 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 2 Nov 2026, 21:08 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -8251,12 +8252,18 @@ _missing_
             <div class="sub-group sub-end" data-group="mentorship">
               <button type="button" class="sub-top sub-toggle" id="mentorshipToggle" aria-haspopup="true" aria-expanded="false" aria-controls="mentorshipMenu">Mentorship <span class="sub-caret" aria-hidden="true"></span></button>
               <div class="sub-menu" id="mentorshipMenu" hidden>
+                <p class="sub-head" id="subHeadAbec">ABEC-FX</p>
                 <a href="#/handbook" data-view="handbook">Handbook</a>
                 <a href="#/workbook" data-view="workbook">Workbook</a>
                 <a href="#/community" data-view="community">Community</a>
                 <a href="#/class" data-view="class">Live class</a>
                 <a href="#/quiz" data-view="quiz">Quiz</a>
-                <a href="#/multifx" data-view="multifx">Multi-FX</a>
+                <p class="sub-head" id="subHeadMfx">MULTI-FX</p>
+                <a href="#/multifx/handbook" data-view="multifx" data-tab="handbook">Handbook</a>
+                <a href="#/multifx/workbook" data-view="multifx" data-tab="workbook">Workbook</a>
+                <a href="#/multifx/community" data-view="multifx" data-tab="community">Community</a>
+                <a href="#/multifx/class" data-view="multifx" data-tab="class">Live class</a>
+                <a href="#/multifx/quiz" data-view="multifx" data-tab="quiz">Quiz</a>
               </div>
             </div>
           </nav>
@@ -8910,7 +8917,9 @@ _missing_
     });
     var links = document.querySelectorAll("#subnav a[data-view]");
     for (var i = 0; i < links.length; i++) {
-      if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
+      var tab = links[i].getAttribute("data-tab"); // Multi-FX entries are one page with five tabs
+      var here = links[i].getAttribute("data-view") === r.view && (!tab || tab === (r.tab || "handbook"));
+      if (here) links[i].setAttribute("aria-current", "page");
       else links[i].removeAttribute("aria-current");
     }
     // a dropdown button is lit while the page you are on sits under it
@@ -16115,6 +16124,14 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .mfx-rq { font-weight: 700; }
 .mfx-why { color: var(--muted); font-size: .92rem; }
 .hb-table th { text-align: left; white-space: nowrap; vertical-align: top; }
+
+/* Mentorship menu: two courses, each with its own pages */
+.sub-head { margin: 6px 14px 2px; padding-top: 6px; font-size: .72rem; font-weight: 800; letter-spacing: .08em; color: var(--violet); opacity: .75; }
+.sub-head:first-child { margin-top: 2px; padding-top: 0; }
+.sub-head ~ .sub-head { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
+.sub-head + a { }
+#mentorshipMenu { max-height: min(70vh, 460px); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 700px) { #mentorshipMenu { max-height: 44vh; } }
 ```
 
 #### `public/links.js`
