@@ -7,6 +7,12 @@ const HEADERS = {
   students: ["Reg Number", "Registered At (Lagos)", "Country", "Programme Type", "Full Name", "Email", "WhatsApp Number", "Gender", "Mentorship Code", "Status", "Status Date", "ID Issue Date", "State / Region", "Date of Birth", "Staff Role", "Photo To Redo (type Yes: the student must send a new passport photo)", "Staff Member (Yes gives a Staff ID card)", "Alumni Member (Yes gives an Alumni ID card)"],
   codes: ["Mentorship Code", "Created At (Lagos)", "Used By (Reg Number)", "Used At (Lagos)"],
   quizcodes: ["Quiz Code", "Created At (Lagos)", "Created By", "For (Reg Number, optional)", "Status", "Used By (Reg Number)", "Unlocked At (Lagos)", "Completed At (Lagos)", "Revoked (By, At)"],
+  mfxcodes: ["Multi-FX Code", "Created At (Lagos)", "Created By", "For (Reg Number, optional)", "Status", "Used By (Reg Number)", "Redeemed At (Lagos)", "Revoked (By, At)"],
+  mfxprogress: ["Reg Number", "Full Name", "Handbook Sections Read", "Handbook Read (count)", "Workbooks Done", "Workbooks Done (count)", "Total Sections", "Updated At (Lagos)"],
+  mfxmedia: ["Section", "Section title", "YouTube video address", "Extra link title", "Extra link (https)"],
+  mfxquiz: ["Submitted At (Lagos)", "Reg Number", "Full Name", "Score", "Total Questions", "Percent", "Grade", "Attempt", "Attempt ID", "Breakdown (JSON)", "Submitted (UTC)"],
+  mfxclasses: ["Class ID", "Title", "Meet Link", "Started At (Lagos)", "Started (UTC)", "Ended At (Lagos)", "Ended (UTC)", "Started By"],
+  mfxattendance: ["Class ID", "Reg Number", "Minutes Present (added)", "Recorded At (Lagos)"],
   classes: ["Class ID", "Title", "Meet Link", "Started At (Lagos)", "Started (UTC)", "Ended At (Lagos)", "Ended (UTC)", "Started By"],
   attendance: ["Class ID", "Reg Number", "Minutes Present (added)", "Recorded At (Lagos)"],
   botaccounts: ["Reg Number", "Key Hash (do not edit)", "Linked At (Lagos)", "Bot On", "Lot Size", "Stop Loss (account currency)", "Take Profit (account currency, 0 = none)", "Positions Per Trade", "Max Daily Trades", "Index Types", "Risk Accepted At (Lagos)", "Updated At (Lagos)", "Last Account Details (do not edit)"],
@@ -40,7 +46,7 @@ function student(n, over = {}) {
 
 function createMemoryStore(seed = {}) {
   const fit = (row, w) => { const r = (row || []).map((c) => (c == null ? "" : String(c))); while (r.length < w) r.push(""); return r.slice(0, w); };
-  const data = { students: [], codes: [], quizcodes: [], classes: [], attendance: [], botaccounts: [], botorders: [], bottrades: [], fundledger: [], fundwithdrawals: [], copymasters: [], copyfollows: [], copytrades: [], copyorders: [], hostingrequests: [], quiz: [], progress: [], links: [], videos: [], photos: [], signatures: [], dobchanges: [], staff: [], roles: [] };
+  const data = { students: [], codes: [], quizcodes: [], mfxcodes: [], mfxprogress: [], mfxmedia: [], mfxquiz: [], mfxclasses: [], mfxattendance: [], classes: [], attendance: [], botaccounts: [], botorders: [], bottrades: [], fundledger: [], fundwithdrawals: [], copymasters: [], copyfollows: [], copytrades: [], copyorders: [], hostingrequests: [], quiz: [], progress: [], links: [], videos: [], photos: [], signatures: [], dobchanges: [], staff: [], roles: [] };
   for (const k of Object.keys(seed)) data[k] = seed[k].map((r) => r.slice());
   const width = (key) => HEADERS[key].length;
   const calls = []; // what was written, for the tests to look at
