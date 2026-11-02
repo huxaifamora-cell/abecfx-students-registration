@@ -10,10 +10,11 @@ const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bo
 
 const SITE_FILES = [
   "server.js", "sheets.js", "staff.js", "fund.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
-  "handbook-content.js", "handbook-progress.js", "pdflink.js",
+  "handbook-content.js", "handbook-progress.js", "pdflink.js", "attendance.js",
+  "multifx.js", "multifxcodes.js", "multifx-content.js", "multifx-quiz.js", "multifx-routes.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
-  "public/portal.html", "public/portal.js", "public/handbook.js", "public/funds.js", "public/admin-funds.js",
+  "public/portal.html", "public/portal.js", "public/handbook.js", "public/funds.js", "public/admin-funds.js", "public/multifx.js", "public/admin-multifx.js",
   "public/status.html", "public/status.js", "public/lookup-kind.js",
   "public/card.js", "public/qr.js", "public/nav.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
@@ -21,7 +22,7 @@ const SITE_FILES = [
   "certificate.js", "public/certificate.js", "public/certificate.html", "public/certificate-page.js",
   "status/build.js",
 ];
-const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf", "public/certificate-art.js"];
+const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf", "private/multifx-handbook.pdf", "public/certificate-art.js"];
 const QUIZ_FILES = ["bot.js", "webapp/embed.js", "package.json", "env.example", "render.yaml"];
 
 const LANG = { js: "js", json: "json", html: "html", css: "css", yaml: "yaml", example: "bash", md: "md" };
