@@ -12,6 +12,9 @@
 //   Attendance  rows of "this student was present for N more minutes" (added up when a report is made).
 //
 // Only ONE class can be live at a time. A class is live from "Start class" until "End class" on the dashboard.
+//
+// The same rules run a second, separate series of classes (the Multi-FX course): create() takes
+// `opts.tabs = { classes, attendance }`, the store keys of that series' two tabs. The default is the main course.
 const crypto = require("crypto");
 
 const CLASS_HEADERS = ["Class ID", "Title", "Meet Link", "Started At (Lagos)", "Started (UTC)", "Ended At (Lagos)", "Ended (UTC)", "Started By"];
@@ -61,6 +64,7 @@ function create(store, opts = {}) {
   const stamp = opts.now || (() => new Date().toISOString());
   const nowMs = opts.nowMs || (() => Date.now());
   const percent = opts.presentPercent || PRESENT_PERCENT;
+  const TAB = { classes: "classes", attendance: "attendance", ...(opts.tabs || {}) };
   let chain = Promise.resolve();
   // Changes to the class list go one at a time.
   const queued = (task) => {
@@ -77,7 +81,7 @@ function create(store, opts = {}) {
   const flushed = new Map(); // classId -> reg -> how many of those minutes are already in the sheet
 
   async function readClasses() {
-    return fromClassRows(await store.tabRows("classes"));
+    return fromClassRows(await store.tabRows(TAB.classes));
   }
   async function live() {
     if (liveCache.at && nowMs() - liveCache.at < LIVE_TTL) return liveCache.cls;
@@ -116,7 +120,7 @@ function create(store, opts = {}) {
       }
     }
     if (!rows.length) return 0;
-    await store.appendTabRows("attendance", rows);
+    await store.appendTabRows(TAB.attendance, rows);
     for (const [classId, reg, size] of marks) {
       if (!flushed.has(classId)) flushed.set(classId, new Map());
       flushed.get(classId).set(reg, size);
@@ -127,7 +131,7 @@ function create(store, opts = {}) {
   // Minutes per student for one class: what is in the sheet plus what is still waiting to be written.
   async function minutesFor(classId) {
     const totals = new Map();
-    for (const { cells } of await store.tabRows("attendance")) {
+    for (const { cells } of await store.tabRows(TAB.attendance)) {
       if (String(cells[ATT_COL.classId] || "").trim() !== classId) continue;
       const reg = normReg(cells[ATT_COL.reg]);
       const m = parseInt(cells[ATT_COL.minutes], 10);
@@ -161,7 +165,7 @@ function create(store, opts = {}) {
     const classes = (await readClasses()).slice().reverse();
     const liveClass = classes.find((c) => !c.endedUtc) || null;
     const sums = new Map();
-    for (const { cells } of await store.tabRows("attendance")) {
+    for (const { cells } of await store.tabRows(TAB.attendance)) {
       if (normReg(cells[ATT_COL.reg]) !== reg) continue;
       const id = String(cells[ATT_COL.classId] || "").trim();
       const m = parseInt(cells[ATT_COL.minutes], 10);
@@ -195,7 +199,7 @@ function create(store, opts = {}) {
       forgetLive();
       if (await live()) throw new AttendanceError(409, "A class is already live. End it before starting another.");
       const id = "CL-" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
-      await store.appendTabRows("classes", [[id, title, link, stamp(), new Date(nowMs()).toISOString(), "", "", (actor && actor.username) || ""]]);
+      await store.appendTabRows(TAB.classes, [[id, title, link, stamp(), new Date(nowMs()).toISOString(), "", "", (actor && actor.username) || ""]]);
       forgetLive();
       return publicClass((await live()) || { id, title, startedAt: stamp(), startedUtc: new Date(nowMs()).toISOString() });
     });
@@ -207,7 +211,7 @@ function create(store, opts = {}) {
       const cls = await live();
       if (!cls) throw new AttendanceError(409, "No class is live right now.");
       await flush();
-      await store.writeTabCells("classes", cls.n, { [CLASS_COL.endedAt]: stamp(), [CLASS_COL.endedUtc]: new Date(nowMs()).toISOString() });
+      await store.writeTabCells(TAB.classes, cls.n, { [CLASS_COL.endedAt]: stamp(), [CLASS_COL.endedUtc]: new Date(nowMs()).toISOString() });
       seen.delete(cls.id);
       flushed.delete(cls.id);
       forgetLive();
@@ -219,7 +223,7 @@ function create(store, opts = {}) {
     const classes = (await readClasses()).slice().reverse();
     const attendees = new Map();
     const sums = new Map();
-    for (const { cells } of await store.tabRows("attendance")) {
+    for (const { cells } of await store.tabRows(TAB.attendance)) {
       const id = String(cells[ATT_COL.classId] || "").trim();
       const reg = normReg(cells[ATT_COL.reg]);
       const m = parseInt(cells[ATT_COL.minutes], 10);

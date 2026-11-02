@@ -164,6 +164,16 @@ Telegram account to take the quiz for a registration number keeps it, so nobody 
 someone else's number (to move a number to a new Telegram account, clear the **Telegram ID** cells for it in
 the Quiz Results tab); double submits are ignored.
 
+### Multi-FX course (supplementary, under Mentorship)
+
+- **What it is:** a second course with its own handbook (PDF), workbook (a video and an extra link per section), community, live class and quiz. Students open it from **Mentorship > Multi-FX**.
+- **Locked by default.** A student needs a one-time code. In `/admin` open **Multi-FX** and make codes (optionally for one registration number). One code unlocks one student for good on every device; cancelling a used code locks that student again.
+- **Who manages it:** the owner, any Admin, and any role given the **Multi-FX** access (Staff > Create role).
+- **Workbook videos and links** are set on the same dashboard tab. **Group links** are set on the **Community** tab (Multi-FX WhatsApp and Telegram).
+- **Live classes** have their own start/end and attendance, separate from the main course.
+- **Sheet tabs added on start:** Multi-FX Codes, Multi-FX Progress, Multi-FX Workbook Media, Multi-FX Quiz Results, Multi-FX Classes, Multi-FX Attendance.
+- **Content** lives in `multifx-content.js` (handbook text and workbooks) and `multifx-quiz.js` (question bank); edit those files to change the wording or questions.
+
 ### One-time quiz codes
 
 The quiz is locked until a student enters a one-time code (like `QZ-7K4M-9PXR`).

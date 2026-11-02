@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 1 Nov 2026, 23:51 (Lagos time), after change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 2 Nov 2026, 20:32 (Lagos time), after change 17 (Multi-FX: a supplementary course under Mentorship, unlocked with a one-time code, with handbook, workbook, community, live class and quiz). Change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -40,6 +40,7 @@
 18. **Change 15 (owner, 1 Nov 2026): Funds under Trading. The first fund is the Palliative Fund, a fund that sponsors new Alumni members to start trading.** It is meant to connect to the trading bot and, later, the copy-trading system, which will be used to grow the fund. Alumni members can see how much is in the fund and the percentage and amount that is theirs through compounding, and they can request a withdrawal [DONE, awaiting live check. The copy-trading connection is not built yet; the fund is ready for it].
 
 19. **Change 16 (owner, 1 Nov 2026): copy trading, the primary feature for Alumni members, everything through the Google Sheet database.** Owner's choices: any mentor or staff member can be a master and alumni choose who to follow; each alumnus sets their own fixed lot size; followers mirror the master's close and any stop loss / take profit change [BUILT, awaiting live check, see section 3].
+20. **Change 17 (owner, 1 Nov 2026): a supplementary course, Multi-FX, under Mentorship.** Locked until the student enters a one-time code from an admin. It has a PDF handbook (12 sections from the Multi-FX Trading Strategy Guide), a workbook (a video and an optional extra link per section), a community page, a live class and a quiz, like the main course [DONE, awaiting live check].
 
 ## 2. Decisions
 
@@ -101,14 +102,13 @@
 | 2026-10-18 | **Guard rails.** (1) Nobody can give access they do not have themselves: not when creating or editing a role, and not when giving a role to a person (the role list shows only roles you may hand out). (2) Nobody can change or delete the role they hold. (3) A role that is still held by someone cannot be deleted (the editor is told how many people hold it). (4) Someone cannot change, disable, re-role, reset the password of or remove a person whose access is bigger than their own. (5) Unknown access names in the sheet are ignored, `view` is forced on, and a row in the Roles tab can never override a built-in role | Stops a person with the Staff switch from making themselves, or a friend, more powerful than they are. The owner has everything, so none of this limits the owner. |
 | 2026-10-18 | A person whose role no longer exists (deleted by hand in the sheet) cannot sign in and any open session stops working | Same as an unknown role before. |
 | 2026-10-18 | **One-time quiz codes (change 11).** The quiz is locked until a student enters a code. A code is `QZ-XXXX-XXXX`, made on a new **Quiz codes** dashboard tab by an Owner, an Admin, or any custom role given the new **Quiz codes** access (the built-in Editor and Moderator do not have it; make a role such as "Quiz supervisor" for that). Life of a code: Unused > **Unlocked** (a student entered it; their quiz stays open, on any device, until it is finished) > **Completed** (their result was saved; the quiz locks again) or **Revoked** (cancelled by a person in charge). A code can be made for one registration number only (optional). A student can have one open quiz at a time. The website, not the browser, enforces this: the portal quiz pass (`/api/quiz/session`) is only given while unlocked, and a result is only saved while unlocked, so an old quiz page left open cannot be used for a second attempt. Codes are on a new **Quiz Codes** sheet tab and are deliberately NOT in the Database tab, so only the Quiz codes access can make them. A wrong code counts against that student (8 wrong codes per 15 minutes), not their network | Code: `quizcodes.js`, `server.js`, `sheets.js`, `staff.js`, `public/portal.*`, `public/admin.*`. |
-| 2026-11-01 | **Change 16: the same quota fix for every other tab.** Render log then showed "Fund request failed: Quota exceeded ... Read requests". The Fund, Bot trading, Copy trading, Attendance, Staff and Quiz-code code all read their tabs through `tabRows`, which went to Google on every call (an Alumni member's MT5 connector alone caused about 3 reads every 5 seconds). `tabRows` in `sheets.js` now keeps each tab for 15 seconds (`SHEETS_TAB_TTL_MS`), shares one read between simultaneous callers, and gives every caller its own copy of the rows. **Every write the site makes to a tab clears that tab's copy at once**, and a read that began before a write is never kept. If Google refuses, the last copy is served only if no write happened since it was read, so a fund balance or a code check never runs on data known to be out of date. `readCached`, `readQuiz` and `readProgress` still honour a request for a read that is fresh right now (0), which `saveProgress` uses | Edits made by hand in the Google Sheet show within 15 seconds on these tabs. Lower `SHEETS_TAB_TTL_MS` on Render if that matters more than quota. Assumed: the site runs as one instance on Render (as now); with two instances each would clear only its own copy. |
-| 2026-11-01 | **Change 15: Google Sheets read-quota fix.** Render log showed "Alumni check failed: Quota exceeded for quota metric 'Read requests' ... per minute per user". Cause: the student list was re-read from Google every 5 seconds (about 15 routes ask for it that way), nothing stopped a crowd of requests all reading at the same instant when the copy went stale, the Alumni members' MT5 connectors report every 5 seconds each, and one refusal from Google became a 500 for the student. Fix in `sheets.js`: (1) **no read is fresher than 20 seconds** (`SHEETS_MIN_TTL_MS`, default 20000); the site's own writes still refresh at once; (2) **one shared read at a time** per tab; (3) a **429 is retried** twice after a short pause; (4) if Google still refuses, the **last good copy is served** and a retry follows in about 10 seconds. Applies to Students, Quiz results and Handbook progress | Edits made by hand in the Google Sheet can take up to 20 seconds to show. Set `SHEETS_MIN_TTL_MS` lower on Render if that matters more than quota. If the error keeps appearing with many Alumni members linked, raise `InpPollSeconds` in the MT5 connector or ask Google for more read quota in Cloud Console. |
 | 2026-10-26 | **Change 12: the certificate uses the real design of the owner's approved certificate image.** (1) **Background:** the purple band and black block top left, the thin purple line and white stripe, the big purple panel, the bottom purple and black strips, the black bar under the title and the black CAC tag are drawn as vector shapes whose corners were **measured from the owner's image** (a pixel check against the image differs only on one-pixel edges). The canvas is now 1280 x 909, the size of that image (was 1280 x 905). (2) **Emblem:** the bull-horn logo is the real `logo-purple.png`, and the gold seal is the **real seal picture cut out of the owner's image** (laurels, stars, four ribbon tails), with its printed "2026" painted out so the page prints each certificate's own year on it. Both live in `public/certificate-art.js` as embedded pictures, so they also appear in the PNG and PDF downloads. (3) "Certificate", "OF COMPLETION", the organisation name under the logo, the stamp, the certificate number and the CAC tag moved to the places they have in the image. The wording of the certificate, the signature block and the dynamic fields are unchanged | Owner request ("use the actual designs of the background, and the emblem"). **Assumed:** "emblem" means both the bull-horn logo and the gold seal. The seal picture is only about 175 px wide in the owner's image, so it is a little soft when printed large; a separate high-resolution copy of the seal (PNG with transparent background) can replace the picture in `certificate-art.js` without any other change. The words "ADEBASS BASE / EDGE CONSULT" under the logo are drawn as text, not cut from the image (the image copy is too small to stay sharp). The PDF now keeps the picture's own proportions on the A4 page (centred, a thin white margin top and bottom). |
 | 2026-10-26 | **The "Find a student" page is renamed "Check ID"** (menu pill on portal, register and the page itself, page title and heading, the portal button, the check button, dashboard note and README). The address stays `/status`, so every printed QR code keeps working | Owner request, since the page now covers student, alumni and staff ID cards and certificates. |
 | 2026-10-26 | **Change 13: one person, up to three ID cards.** The Students sheet keeps **column J "Status"** for the Student ID: **Uncertified**, **Certified** or the new **Not a student** (no Student ID). Two new tick columns: **Q "Staff Member"** and **R "Alumni Member"** (dropdown: Yes or empty). Student ID card = Uncertified or Certified; Staff ID card = Q is Yes; Alumni ID card = R is Yes; **Certificate = Certified only** (unchanged rule, now independent of the other ticks, so a Certified student who is also a staff member keeps the certificate). Rules live in `idrules.js` (`idKinds`, `idCards`, `kindStatus`, `primaryStatus`) | Owner request ("a person can be a student whether certified or uncertified and still be a staff member ... a person can be a staff member without having a student ID ... this depends on the status ticked by admin"). **Assumed:** Alumni is also a tick that can sit beside a student standing (the owner described students and staff; alumni was handled the same way). A Certified student who is Alumni keeps their certificate. |
 | 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Staff Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old staff member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
 | 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Staff ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|staff`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Staff ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then staff) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Staff ID card's QR opens the Staff ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
 | 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Staff Member, Alumni Member) beside Status; the role box shows only while Staff Member is ticked; **Not a student** is refused unless Staff Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then staff), so they add up to the total; the **Staff** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
+| 2026-11-02 | **Change 17: Multi-FX supplementary course.** New `multifxcodes.js`, `multifx.js`, `multifx-content.js`, `multifx-quiz.js`, `multifx-routes.js`, `public/multifx.js`, `public/admin-multifx.js`, `private/multifx-handbook.pdf`; `attendance.js` (tab names can be chosen, so Multi-FX has its own class series); `pdflink.js` (links are bound to a purpose); `sheets.js` (six new tabs); `server.js` (mounts the routes); `staff.js` (new **Multi-FX** access); `links.js` (Multi-FX community fields); `admin-database.js` (delete cascade and registration-number changes cover the new tabs); portal and dashboard pages and styles; `test/staff.test.js` updated; 12 new tests. |
 | 2026-11-01 | **Change 15: a new Funds page under Trading (Alumni members only), first fund = Palliative Fund.** Menu: Trading > Funds (hidden for anyone without the Alumni ID card; a non-Alumni who opens `#/funds` is told it is for Alumni members). The page shows the fund's total, its growth since the start (with a small chart), the member's own share in percent, their amount, what was put in for them, what they withdrew and their gain, a table of the fund's recent results, their own activity and their withdrawal requests. More funds can be added later in one place (`FUNDS` in `fund.js`); the page lists them and opens one | Owner request. **Assumed:** only Alumni members see Funds (as for Signals and Bot trading); a member sees the fund as a whole and **only their own** share, never another member's. The Palliative Fund description on the page is a **draft I wrote**; replace it in `fund.js`. |
 | 2026-11-01 | **How a member's share and amount compound: units, like a unit trust.** The fund is cut into units. Money paid in buys units at the current unit value (it starts at 1.0000). A trading result changes the unit value, never anyone's units, so every member's amount moves by the same percentage and the profit already made keeps compounding. Someone who joins later pays today's unit value and does not take earlier profit; a loss is shared in proportion. A member's percentage = their units / all units | Owner asked for "the percentage and amount that is theirs through compounding". This is the standard fair way to share a pool that members join and leave at different times; a simple "percent of money put in" would be wrong as soon as anyone joins or withdraws after the first result. |
 | 2026-11-01 | **The fund keeps one append-only ledger** on a new sheet tab **Fund Ledger** (deposit, sponsorship, result, withdrawal). Every balance is worked out by replaying it from the top, so the sheet is the single source of truth. A second new tab, **Fund Withdrawals**, holds the requests. Neither tab appears in the Database view (hand edits would corrupt the balances). A ledger row typed wrongly by hand is skipped and listed under the fund in the dashboard | Keeps the numbers auditable and impossible to drift. |
@@ -186,6 +186,7 @@
 **Change 1 (mentorship code) checks:** `server.js` and `sheets.js` pass a Node syntax check only. The code logic was **not run** against a mock or real sheet, and the registration page was not opened in a browser. **Change 2 (private portal) checks:** `session.js` was run: valid token accepted; wrong key, forged registration number, expired token, no secret and junk all rejected; a quiz pass is not accepted as a sign-in. `server.js`, `portal.js` and `app.js` pass a Node syntax check. The routes and the sign-in page were **not run** (no Express here) and not opened in a browser. **Change 3 (submenu, handbook, progress) checks:** the real `server.js` and `sheets.js` were run against an in-memory stand-in for Google's Sheets web interface (the three data files `countries.js`, `countryCodes.js`, `states.json` were small stand-ins): **50 checks passed** (sign-in required everywhere, forged and expired tokens, 0% to 100% maths, one row per student, 13 simultaneous saves, another student's number in the body ignored, bad chapter ids refused, hand-edited cell tolerated, PDF link valid / forged / changed / older than 10 minutes / a sign-in token refused, the PDF and `handbook-content.js` not reachable as public files, existing routes still work). **44 checks passed in a real Chromium browser** (submenu, views, chapters, tables, mark/unmark, progress after reload, deep links, sign-out and the next student on the same browser, phone width 375 px with no sideways scroll, no security-policy or script errors). The handbook text was compared with the PDF's text by a script: all 339 text items found, and for the two-column card boxes every word is in the PDF. **Not tested:** real Google Sheets (the text-vs-number handling of a value like `00,01` in a real sheet is untested; it is saved as plain text), Render, a real phone, the in-portal quiz inside the new Quiz view with the real quiz service (the quiz code itself is unchanged), and the ID card page images (logo and flags were not available in the test copy). **Change 4 (clickable statistics) checks:** the real `server.js`, `stats.js` and `sheets.js` against the in-memory Google stand-in, with 10 test students (two years, several months, blank gender/country/state, one undated, one non-date text) and 5 quiz results (one student with two attempts, one result whose student row does not exist): **88 checks passed**, including every one of the 59 counts on the dashboard equalling the length of its list (status, gender, country, state, programme, year, every month and running total, undated, quiz tiles, every grade), a student's old grade not being counted once they have a newer attempt, empty months opening an empty list, wrong or missing password refused, unknown kinds, months, statuses and grades refused, a script tag in the value refused, and no email, phone or mentorship code anywhere in a response. **46 checks passed in a real Chromium browser**: all 6 + 4 tiles, every bar, month columns by mouse and keyboard, chart dots, growth table cells, search, CSV (header, rows, no emails, file name), Escape and focus return, two quick clicks, 375 px phone width, sign out, and no security-policy or script errors. **Not tested:** real Google Sheets and Render; a list of thousands of rows (the page shows the first 500, the CSV has up to 5000); a real phone. **Change 5 (menu at the top left) checks:** the real pages in a real Chromium browser: **35 checks passed**. On portal (signed out and signed in), register and find a student at 1280x800: the menu is in the top-left and top half, in the order logo, menu, headline, as one row of three, inside the panel, no sideways scroll, the current page still highlighted. On a long handbook chapter scrolled down 1500 px the menu did not move and the panel stays pinned at the top of the window. Also 901x700, 1024x768, 1440x900, 1920x1080 and a short 1280x560 window (menu top left, nothing overflows), and a 375 px phone (tab bar still fixed at the bottom, full width, panel not pinned). No script or security-policy errors; screenshots reviewed. **Not tested:** real Safari/Firefox, a real phone or tablet, the website on Render. **Change 6 (site links) checks:** `links.js` validation and the public pages, About/Contact pop-ups and the admin "Site links" tab were run in a real Chromium browser against a small stand-in server that uses the real `links.js`, `public/*` files (all three pages show 6 icons + Deriv button, bad address refused, save shows on the next page load, phone width 375 px has no sideways scroll). **Change 7 (chapter videos) checks:** `videos.js` address parsing (watch, youtu.be, shorts, non-YouTube and channel addresses refused) and the handbook reader and admin tab in a real Chromium browser against the stand-in server (12 fields, bad address refused, save, player embedded for a chapter with a video, "coming soon" for one without, none on the Introduction, list marks the video, phone width no sideways scroll). **Not tested:** actual YouTube playback (the sandbox blocks YouTube) and the real security policy. **Change 8 (date of birth) checks:** the date check was run on 8 cases (valid, today, tomorrow, 30 Feb, before 1920, wrong format, empty, month 13); in a real Chromium browser the field is required, cannot pick a future day, is sent with the form, and a server error shows under it. **Not run:** the real `server.js` and `sheets.js` changes (no `npm install` in the build sandbox; Node syntax check only), real Google Sheets, Render. **Not tested:** `npm install`, Render deploy, real Google Sheets, real Telegram, real flagcdn flags (the build sandbox blocks them). The in-portal quiz was tested with a small stand-in for the quiz page that uses the same element ids and sign-in/save code, **not the real 130 KB quiz page**; Express, helmet and the sheet were also stand-ins. First check on live Render: open the quiz from the portal and finish a quiz.
 
 **New (change 15, Funds):** `fund.js` (rules), a Funds page in the portal (`public/funds.js`) and a Funds tab in the dashboard (`public/admin-funds.js`). **Checked:** 17 unit tests in `test/fund.test.js` (units and compounding, a later joiner not taking earlier profit, sponsorship from the reserve, results by amount or new value, the copy-trading hook not double-counting, the withdrawal flow end to end including a half-finished payment being completed rather than repeated, a member never seeing another member's share, hand-typed bad rows skipped, two actions at once, the delete guard) and 1 test over HTTP in `test/fund-http.test.js` (Alumni only, dashboard access, the full flow through the real `server.js`). The two new pages were also run in a simulated browser against the real server: the member page drew the totals, share, chart and form; a withdrawal was requested through the form; the dashboard showed it, marked it paid and refused to sponsor a non-Alumni. **Not seen in a real browser** (no screenshots or phone check) and **not seen on live Render or against the real Google Sheet**. The copy-trading connection does not exist yet. **Existing tests:** 9 tests in the older suites (e.g. the Database "meta" list, locked columns, add-a-student defaults, community links, under-age date of birth, photo redo, certificate dashboard) already failed on the uploaded project before this change, for reasons unrelated to Funds, and still fail; `test/team.test.js` is a stale copy that cannot run. The change did not add a failure.
+- **New (change 17):** Multi-FX under Mentorship (`#/multifx`). Locked view with a code box; one code unlocks one student for good, on every device; cancelling a used code takes it away again. Handbook (12 sections, mark as read, "see this section in the PDF" at the right page from a private signed link that cannot open the main handbook), workbook (12 workbooks with video, extra link, key terms, self-check, tasks, mark done; the workbook text is a first draft for the owner to review), community (own WhatsApp and Telegram fields on the dashboard Community tab), live class (own series of classes and attendance, same half-class rule), quiz (44 questions, 20 per attempt, graded on the server, answers never sent to the browser, results on a new tab). Overall progress bar counts handbook and workbook equally. Dashboard **Multi-FX** tab (new access **Multi-FX**, automatic for Owner and Admin): make and cancel codes, set workbook videos and links, start and end classes with attendance, see quiz results. Checked with 12 new tests that run the real server over HTTP and with a headless browser at desktop and 375 px width. **Not seen on live Render or with the real Google Sheet**; tested with a stand-in for the web packages because npm could not be reached.
 
 ### Copy trading (built 1 Nov 2026, awaiting live check)
 
@@ -204,6 +205,9 @@
 0c. **Funds and copy trading are not connected yet.** The Funds notes say copy trading should report its results to the Palliative Fund through `fundService.performance(...)`. That is NOT built: it needs your answers to the open Funds questions first (which trades count, whose account, how results are totalled).
 0b. **Hosting and the Deriv API question.** Before switching `VPS_HOSTING` on, settle custody, broker terms, licensing and payment. A Deriv API version of copy trading would be a separate build: it needs a Deriv API app and a demo token to test against.
 0. **Copy trading: test on demo accounts, then on a small real one.** Set `COPY_TRADING=on`, make a master key for a Staff ID holder, run the connector on a demo master and a demo follower, and watch one trade open, change and close. Then decide: an admin screen for masters (list, block, see followers) and the master's performance chart.
+**Owner action for change 17 (Multi-FX):** push the new `multifx.js`, `multifx-content.js`, `multifx-quiz.js`, `multifx-routes.js`, `multifxcodes.js`, `private/multifx-handbook.pdf`, `public/multifx.js`, `public/admin-multifx.js`, `test/multifx.test.js`, and the changed `attendance.js`, `pdflink.js`, `server.js`, `sheets.js`, `staff.js`, `links.js`, `admin-database.js`, `public/handbook.js`, `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `test/staff.test.js`, `test/support/memory-store.js`, `status/STATUS-SOURCE.md`, `status/build.js`, `PROJECT-STATUS.md`, `README.md`, `env.example`. No new package and no required variable. On start the site adds six tabs: **Multi-FX Codes, Multi-FX Progress, Multi-FX Workbook Media, Multi-FX Quiz Results, Multi-FX Classes, Multi-FX Attendance**. Then: (1) `/admin` > Multi-FX > make a code; (2) sign in as a test student, Mentorship > Multi-FX: it shows the code box; enter the code and the five sections open; (3) set the two group links on the Community tab, a video on a workbook, start a class, take the quiz; (4) cancel the code and check the student is locked again. Give anyone else the **Multi-FX** access on the Staff tab. The PDF is 16.5 MB: check it fits your repository and Render limits.
+
+**Next for Multi-FX (not built):** review and correct the workbook text and the 44 quiz questions, which were written from the guide; add the videos.
 
 **Owner action for change 15 (Funds):** push the new `fund.js`, `public/funds.js`, `public/admin-funds.js`, `test/fund.test.js`, `test/fund-http.test.js`, and the changed `server.js`, `sheets.js`, `staff.js`, `admin-database.js`, `public/portal.html`, `public/portal.js`, `public/admin.html`, `public/admin.js`, `public/admin.css`, `public/styles.css`, `test/staff.test.js`, `test/support/memory-store.js`, `status/STATUS-SOURCE.md`, `status/build.js`, `PROJECT-STATUS.md` and `README.md`. No new package and no required variable (optional: `FUND_CURRENCY`, `FUNDS=off`). On start the site adds two tabs, **Fund Ledger** and **Fund Withdrawals**. Owner and Admin get the Funds tab automatically; give anyone else the **Funds** access on the Staff tab. Then try it with a test member: in `/admin` > Funds, **Add money** (no number) to fill the reserve, **Sponsor** an Alumni member, **Record a trading result**; sign in as that member, open **Trading > Funds**, check the amount and percentage, ask for a withdrawal, and **Mark paid** it. Use small test amounts first.
 
@@ -305,8 +309,6 @@
 | 2026-11-01 | **Central VPS for masters.** `docs/VPS-SETUP.md` (new); `copy.js`, `sheets.js` and both test memory stores (new column K "Hosted On ABEC-FX VPS (Yes/No)" on Copy Masters); `public/copytrading.js` (shows "(ABEC-FX VPS)"); `test/copy.test.js` (27 tests). |
 | 2026-11-01 | **Copy trading.** New `copy.js`; `server.js` (copy routes, the connector report now also carries copy orders, master keys `MK-`, `COPY_TRADING` switch, connector download for staff too); `sheets.js` (four new tabs); `public/copytrading.js`, `public/portal.html`, `public/portal.js` (Copy trading page); `private/bot/ABECFX_Bot_Connector.mq5` v1.10 (COPYOPEN / COPYMOD / COPYCLOSE and master mode); `env.example`; `test/copy.test.js` and both memory stores. |
 | (earlier, not logged at the time) | The code already had `signals.js` (Signals page and alerts), `bot.js` (Bot trading with the MT5 connector and its three sheet tabs) and `attendance.js` (live class attendance). They were never added to this file. |
-| 2026-11-01 | **Change 16: tab-read cache.** `sheets.js` (`tabRows` cached 15 s, shared, copies, cleared by every write; generation counters so a read begun before a write is never kept; `floorTtl` keeps 0 meaning fresh; signature, mentorship-code, links and videos writers now clear their tab); `test/sheets-quota.test.js` extended; `env.example`. Owner action: push `sheets.js`, `test/sheets-quota.test.js`, `env.example`. |
-| 2026-11-01 | **Change 15: Sheets read-quota fix.** `sheets.js` (`call` retries 429; `once` shares one in-flight read per tab; 20 s minimum cache age; last good copy served when Google refuses, for Students, Quiz and Progress); new `test/sheets-quota.test.js`. Owner action: push `sheets.js` and the new test file. |
 | 2026-10-26 | **Change 14: admin ID cards tab shows every card a person holds.** `server.js` (`/api/admin/id-cards` adds `allCards`, one card per Student / Alumni / Staff ID card the person holds); `public/admin.js` (clicking a name draws each card under the other with its own Download button; the list shows "2 ID cards" for people with several); `public/admin.html` (one mount box, old single Download button removed); `public/admin.css` (spacing between cards). Owner action: push those four files. |
 | 2026-10-26 | **Rename "Find a student" to "Check ID".** Text only in `public/status.html`, `public/status.js`, `public/certificate.html`, `public/register.html`, `public/portal.html`, `public/admin.html`, `public/card.js`, `public/lookup-kind.js`, `public/styles.css`, `server.js` (comments), `README.md` |
 | 2026-10-26 | **Change 13: find a student dropdown and multiple ID cards.** New helpers in `idrules.js`; `sheets.js` (new columns Q and R, Status list Uncertified / Certified / Not a student, Yes dropdowns); `server.js` (`cardFromRow` takes a card kind and returns `cards` and `certified`; `/api/lookup` accepts `kind`; the certificate signer's role is read from their Staff ID card); `stats.js` (tiles count every holder, bars count each person once); `admin-database.js` and `public/admin.js` (tick fields, role box, Not a student rule); `public/status.html`, `public/status.js`, `public/lookup-kind.js`, `public/certificate.html`, `public/card.js` (QR carries the card kind); tests updated and extended |
@@ -340,11 +342,11 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 1 Nov 2026, 23:51 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 2 Nov 2026, 20:32 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
-Not embedded (data): `countries.js` (2 KB), `countryCodes.js` (4 KB), `states.json` (49 KB), `private/handbook.pdf` (773 KB), `public/certificate-art.js` (412 KB).
+Not embedded (data): `countries.js` (2 KB), `countryCodes.js` (4 KB), `states.json` (49 KB), `private/handbook.pdf` (773 KB), `private/multifx-handbook.pdf` (16142 KB), `public/certificate-art.js` (412 KB).
 
 #### `server.js`
 
@@ -2216,6 +2218,11 @@ app.get("/api/admin/attendance/report", adminLimiter, attendanceAuth, attendance
   res.json({ ...out, people: people.concat(absent) });
 }));
 
+// ---- Multi-FX: a supplementary course unlocked with a one-time code (rules in multifx*.js, routes in multifx-routes.js) ----
+require("./multifx-routes").mount({
+  app, store, rateLimit, studentAuth, requirePerm, adminLimiter, lookupLimiter, lagosTimestamp, sessionSecret, pdfLink, links, attendanceLib, grading, clean,
+});
+
 // ---- Database view: the editor browses, adds, edits and deletes records from /admin ----
 // What may be changed, and the checks on every change, live in admin-database.js. Only a WRONG password counts
 // toward the lock-out here (a mistyped value must not lock the editor out of editing); a second limiter just
@@ -2293,6 +2300,8 @@ const videos = require("./videos");
 const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 const attendance = require("./attendance");
+const multifxcodes = require("./multifxcodes");
+const multifx = require("./multifx");
 const bot = require("./bot");
 const fund = require("./fund");
 const copy = require("./copy");
@@ -2373,6 +2382,25 @@ const CLASS_LAST_COL = "H";
 const ATT_TAB = process.env.GOOGLE_ATTENDANCE_TAB || "Attendance";
 const ATT_HEADERS = attendance.ATT_HEADERS;
 const ATT_LAST_COL = "D";
+
+// Multi-FX (see multifx.js, multifxcodes.js, multifx-quiz.js): the supplementary course unlocked with a one-time code.
+// Managed from the portal's Multi-FX section and the dashboard's "Multi-FX" tab, never through the Database view.
+const MFXCODE_TAB = process.env.GOOGLE_MFXCODE_TAB || "Multi-FX Codes";
+const MFXCODE_HEADERS = multifxcodes.HEADERS;
+const MFXCODE_LAST_COL = "H";
+const MFXPROG_TAB = process.env.GOOGLE_MFXPROGRESS_TAB || "Multi-FX Progress";
+const MFXPROG_HEADERS = multifx.PROGRESS_HEADERS;
+const MFXPROG_LAST_COL = "H";
+const MFXMEDIA_TAB = process.env.GOOGLE_MFXMEDIA_TAB || "Multi-FX Workbook Media";
+const MFXMEDIA_HEADERS = multifx.MEDIA_HEADERS;
+const MFXMEDIA_LAST_COL = "E";
+const MFXQUIZ_TAB = process.env.GOOGLE_MFXQUIZ_TAB || "Multi-FX Quiz Results";
+const MFXQUIZ_HEADERS = [
+  "Submitted At (Lagos)", "Reg Number", "Full Name", "Score", "Total Questions", "Percent", "Grade", "Attempt", "Attempt ID", "Breakdown (JSON)", "Submitted (UTC)",
+];
+const MFXQUIZ_LAST_COL = "K";
+const MFXCLASS_TAB = process.env.GOOGLE_MFXCLASS_TAB || "Multi-FX Classes";
+const MFXATT_TAB = process.env.GOOGLE_MFXATTENDANCE_TAB || "Multi-FX Attendance";
 
 // Bot trading (see bot.js): each member's connection key hash and risk settings, every order, and every closed trade.
 // Managed from the portal's "Bot trading" page, never through the Database view.
@@ -2572,6 +2600,19 @@ async function init() {
   await ensureTab(ATT_TAB);
   await ensureHeaders(ATT_TAB, ATT_HEADERS, ATT_LAST_COL);
 
+  const mfxCodes = await ensureTab(MFXCODE_TAB);
+  await ensureHeaders(MFXCODE_TAB, MFXCODE_HEADERS, MFXCODE_LAST_COL);
+  await ensureTab(MFXPROG_TAB);
+  await ensureHeaders(MFXPROG_TAB, MFXPROG_HEADERS, MFXPROG_LAST_COL);
+  await ensureTab(MFXMEDIA_TAB);
+  await ensureHeaders(MFXMEDIA_TAB, MFXMEDIA_HEADERS, MFXMEDIA_LAST_COL);
+  await ensureTab(MFXQUIZ_TAB);
+  await ensureHeaders(MFXQUIZ_TAB, MFXQUIZ_HEADERS, MFXQUIZ_LAST_COL);
+  await ensureTab(MFXCLASS_TAB);
+  await ensureHeaders(MFXCLASS_TAB, CLASS_HEADERS, CLASS_LAST_COL);
+  await ensureTab(MFXATT_TAB);
+  await ensureHeaders(MFXATT_TAB, ATT_HEADERS, ATT_LAST_COL);
+
   await ensureTab(BOTACC_TAB);
   await ensureHeaders(BOTACC_TAB, BOTACC_HEADERS, BOTACC_LAST_COL);
   await ensureTab(BOTORD_TAB);
@@ -2672,6 +2713,17 @@ async function init() {
             range: { sheetId: quizCodes.sheetId, startRowIndex: 1, startColumnIndex: 4, endColumnIndex: 5 },
             rule: {
               condition: { type: "ONE_OF_LIST", values: quizcodes.STATUS_LIST.map((x) => ({ userEnteredValue: x })) },
+              showCustomUi: true,
+              strict: true,
+            },
+          },
+        },
+        {
+          // Dropdown on the Multi-FX Codes Status column (column E), so a hand edit cannot invent a status.
+          setDataValidation: {
+            range: { sheetId: mfxCodes.sheetId, startRowIndex: 1, startColumnIndex: 4, endColumnIndex: 5 },
+            rule: {
+              condition: { type: "ONE_OF_LIST", values: multifxcodes.STATUS_LIST.map((x) => ({ userEnteredValue: x })) },
               showCustomUi: true,
               strict: true,
             },
@@ -3046,6 +3098,14 @@ const EDITOR_TABS = {
   copytrades: { title: COPYTRADE_TAB, headers: COPYTRADE_HEADERS, lastCol: COPYTRADE_LAST_COL },
   copyorders: { title: COPYORDER_TAB, headers: COPYORDER_HEADERS, lastCol: COPYORDER_LAST_COL },
   hostingrequests: { title: HOSTREQ_TAB, headers: HOSTREQ_HEADERS, lastCol: HOSTREQ_LAST_COL },
+  // Internal only: the Multi-FX course (unlock codes, progress, workbook videos, quiz results, live classes and attendance).
+  // Managed through multifx*.js, the portal's Multi-FX section and the "Multi-FX" dashboard tab, never the Database view.
+  mfxcodes: { title: MFXCODE_TAB, headers: MFXCODE_HEADERS, lastCol: MFXCODE_LAST_COL },
+  mfxprogress: { title: MFXPROG_TAB, headers: MFXPROG_HEADERS, lastCol: MFXPROG_LAST_COL },
+  mfxmedia: { title: MFXMEDIA_TAB, headers: MFXMEDIA_HEADERS, lastCol: MFXMEDIA_LAST_COL },
+  mfxquiz: { title: MFXQUIZ_TAB, headers: MFXQUIZ_HEADERS, lastCol: MFXQUIZ_LAST_COL },
+  mfxclasses: { title: MFXCLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
+  mfxattendance: { title: MFXATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },
   // Internal only: live classes and who attended. Managed through attendance.js and the "Attendance" dashboard tab.
   classes: { title: CLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
   attendance: { title: ATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },
@@ -3268,6 +3328,7 @@ const PERMS = [
   { key: "videos", label: "Chapter videos", help: "Add or change the YouTube video of each handbook chapter." },
   { key: "quizcodes", label: "Quiz codes", help: "Make and cancel the one-time codes students need to unlock the quiz." },
   { key: "attendance", label: "Attendance", help: "Start and end live classes and see who attended (present for at least half of the class)." },
+  { key: "multifx", label: "Multi-FX", help: "Make and cancel the one-time codes that unlock the Multi-FX course, run its live classes, set the workbook videos and see its quiz results." },
   { key: "certificates", label: "Certificates", help: "Set who signs the certificates (name, title and signature) and open or download any student's certificate." },
   { key: "funds", label: "Funds", help: "Record money paid into a fund, give sponsorships to Alumni members, record the fund's trading results and pay or reject withdrawal requests." },
   { key: "hosting", label: "VPS hosting", help: "See members' requests to have their connector hosted on the ABEC-FX VPS, approve or decline them, track the VPS slot and make their connector key." },
@@ -4710,6 +4771,9 @@ function create(store) {
         await store.deleteTabRowsByReg("dobchanges", reg, 0);
         await store.deleteTabRowsByReg("quiz", reg, 1);
         await store.deleteTabRowsByReg("progress", reg, 0);
+        await store.deleteTabRowsByReg("mfxprogress", reg, 0);
+        await store.deleteTabRowsByReg("mfxquiz", reg, 1);
+        await store.deleteTabRowsByReg("mfxattendance", reg, 1);
         await store.deleteTabRowsByReg("attendance", reg, 1);
         await store.deleteTabRowsByReg("botaccounts", reg, 0);
         await store.deleteTabRowsByReg("botorders", reg, 0);
@@ -4916,7 +4980,7 @@ function create(store) {
   }
 
   // Every place a registration number is stored besides the Students tab: [tab, column index].
-  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1], ["botaccounts", 0], ["botorders", 0], ["bottrades", 0], ["copyfollows", 0], ["copyorders", 0], ["copymasters", 1], ["hostingrequests", 1], ["fundledger", 4], ["fundwithdrawals", 2]];
+  const REG_REFS = [["photos", 0], ["signatures", 0], ["dobchanges", 0], ["quiz", 1], ["progress", 0], ["codes", 2], ["quizcodes", 3], ["quizcodes", 5], ["attendance", 1], ["mfxcodes", 3], ["mfxcodes", 5], ["mfxprogress", 0], ["mfxquiz", 1], ["mfxattendance", 1], ["botaccounts", 0], ["botorders", 0], ["bottrades", 0], ["copyfollows", 0], ["copyorders", 0], ["copymasters", 1], ["hostingrequests", 1], ["fundledger", 4], ["fundwithdrawals", 2]];
 
   // A new number must not already appear anywhere as someone else's (including a deleted student's records).
   async function regConflict(newReg) {
@@ -5946,21 +6010,23 @@ const crypto = require("crypto");
 
 const TTL_MS = 10 * 60 * 1000;
 
-function mac(payload, secret) {
-  return crypto.createHmac("sha256", secret).update("handbookpdf." + payload).digest("base64url");
+// `purpose` keeps links apart: a link made for the main handbook can never open another course's PDF
+// (the Multi-FX handbook uses its own purpose). The default is the main handbook, so existing links are unchanged.
+function mac(payload, secret, purpose = "handbookpdf") {
+  return crypto.createHmac("sha256", secret).update(purpose + "." + payload).digest("base64url");
 }
 
-function sign(reg, secret, now = Date.now()) {
+function sign(reg, secret, now = Date.now(), purpose = "handbookpdf") {
   const payload = Buffer.from(JSON.stringify({ r: reg, e: now + TTL_MS })).toString("base64url");
-  return payload + "." + mac(payload, secret);
+  return payload + "." + mac(payload, secret, purpose);
 }
 
 // Returns the registration number, or null when the link is wrong, changed or expired.
-function verify(token, secret, now = Date.now()) {
+function verify(token, secret, now = Date.now(), purpose = "handbookpdf") {
   if (typeof token !== "string" || token.length > 600 || !secret) return null;
   const [payload, sig, extra] = token.split(".");
   if (!payload || !sig || extra !== undefined) return null;
-  const a = Buffer.from(mac(payload, secret));
+  const a = Buffer.from(mac(payload, secret, purpose));
   const b = Buffer.from(sig);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   try {
@@ -5973,6 +6039,1547 @@ function verify(token, secret, now = Date.now()) {
 }
 
 module.exports = { sign, verify, TTL_MS };
+```
+
+#### `attendance.js`
+
+```js
+// Live-class attendance: a student counts as present when they were in the Google Meet class for at least
+// PRESENT_PERCENT (50%) of its length.
+//
+// How time is measured: the portal opens the class's Meet link in its own window and, while that window is still
+// open, sends a "heartbeat" every 30 seconds. Each heartbeat is a vote for the current minute, so two tabs or
+// two devices never count a minute twice. Minutes are kept in memory while the class runs and written to the
+// sheet in one batch every few minutes (and when the class is ended), so a busy class does not use up Google's
+// write limits.
+//
+// Two sheet tabs (see sheets.js):
+//   Classes     one row per class: id, title, Meet link, when it started and ended, and who started it.
+//   Attendance  rows of "this student was present for N more minutes" (added up when a report is made).
+//
+// Only ONE class can be live at a time. A class is live from "Start class" until "End class" on the dashboard.
+//
+// The same rules run a second, separate series of classes (the Multi-FX course): create() takes
+// `opts.tabs = { classes, attendance }`, the store keys of that series' two tabs. The default is the main course.
+const crypto = require("crypto");
+
+const CLASS_HEADERS = ["Class ID", "Title", "Meet Link", "Started At (Lagos)", "Started (UTC)", "Ended At (Lagos)", "Ended (UTC)", "Started By"];
+const CLASS_COL = { id: 0, title: 1, link: 2, startedAt: 3, startedUtc: 4, endedAt: 5, endedUtc: 6, by: 7 };
+const ATT_HEADERS = ["Class ID", "Reg Number", "Minutes Present (added)", "Recorded At (Lagos)"];
+const ATT_COL = { classId: 0, reg: 1, minutes: 2, at: 3 };
+
+const PRESENT_PERCENT = 50;
+const MEET_LINK = /^https:\/\/meet\.google\.com\/[a-z0-9][a-z0-9?=&_.%-]*$/i;
+
+class AttendanceError extends Error {
+  constructor(status, message, fields) {
+    super(message);
+    this.status = status;
+    if (fields) this.fields = fields;
+  }
+}
+
+const normReg = (v) => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+const oneLine = (v, max) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+
+function fromClassRows(rows) {
+  return rows
+    .map(({ n, cells }) => ({
+      n,
+      id: String(cells[CLASS_COL.id] || "").trim(),
+      title: cells[CLASS_COL.title] || "",
+      link: cells[CLASS_COL.link] || "",
+      startedAt: cells[CLASS_COL.startedAt] || "",
+      startedUtc: String(cells[CLASS_COL.startedUtc] || "").trim(),
+      endedAt: cells[CLASS_COL.endedAt] || "",
+      endedUtc: String(cells[CLASS_COL.endedUtc] || "").trim(),
+      by: cells[CLASS_COL.by] || "",
+    }))
+    .filter((c) => c.id);
+}
+
+// Percent of the class a student was present, from minutes present and the class length in minutes.
+function percentOf(minutes, lengthMinutes) {
+  if (!(lengthMinutes > 0)) return 0;
+  return Math.max(0, Math.min(100, Math.round((minutes / lengthMinutes) * 100)));
+}
+
+// `store` needs tabRows / appendTabRows / writeTabCells for the "classes" and "attendance" tabs.
+// Options: now() gives the Lagos time text, nowMs() the current time in milliseconds (the tests pass their own).
+function create(store, opts = {}) {
+  const stamp = opts.now || (() => new Date().toISOString());
+  const nowMs = opts.nowMs || (() => Date.now());
+  const percent = opts.presentPercent || PRESENT_PERCENT;
+  const TAB = { classes: "classes", attendance: "attendance", ...(opts.tabs || {}) };
+  let chain = Promise.resolve();
+  // Changes to the class list go one at a time.
+  const queued = (task) => {
+    const run = chain.then(task, task);
+    chain = run.catch(() => {});
+    return run;
+  };
+
+  // The live class is remembered for a few seconds so heartbeats (many per second in a big class) do not read the sheet.
+  let liveCache = { at: 0, cls: null };
+  const LIVE_TTL = 10 * 1000;
+  // Minutes seen for the live class that are not written to the sheet yet: classId -> reg -> Set of minute numbers.
+  const seen = new Map();
+  const flushed = new Map(); // classId -> reg -> how many of those minutes are already in the sheet
+
+  async function readClasses() {
+    return fromClassRows(await store.tabRows(TAB.classes));
+  }
+  async function live() {
+    if (liveCache.at && nowMs() - liveCache.at < LIVE_TTL) return liveCache.cls;
+    const cls = (await readClasses()).find((c) => !c.endedUtc) || null;
+    liveCache = { at: nowMs(), cls };
+    return cls;
+  }
+  const forgetLive = () => { liveCache = { at: 0, cls: null }; };
+
+  const minutesOf = (m) => (m ? m.size : 0);
+
+  // ---------- Students ----------
+
+  // A heartbeat from a student whose Meet window is open. Returns { live, minutes } for their portal.
+  async function heartbeat(regInput, classId) {
+    const reg = normReg(regInput);
+    const cls = await live();
+    if (!cls || cls.id !== String(classId || "")) return { live: false, minutes: 0 };
+    if (!seen.has(cls.id)) seen.set(cls.id, new Map());
+    const byReg = seen.get(cls.id);
+    if (!byReg.has(reg)) byReg.set(reg, new Set());
+    byReg.get(reg).add(Math.floor(nowMs() / 60000));
+    return { live: true, minutes: byReg.get(reg).size };
+  }
+
+  // Write the minutes gathered since the last flush: one row per student, all in one request.
+  async function flush() {
+    const rows = [];
+    const at = stamp();
+    const marks = [];
+    for (const [classId, byReg] of seen) {
+      const done = flushed.get(classId) || new Map();
+      for (const [reg, set] of byReg) {
+        const delta = set.size - (done.get(reg) || 0);
+        if (delta > 0) { rows.push([classId, reg, String(delta), at]); marks.push([classId, reg, set.size]); }
+      }
+    }
+    if (!rows.length) return 0;
+    await store.appendTabRows(TAB.attendance, rows);
+    for (const [classId, reg, size] of marks) {
+      if (!flushed.has(classId)) flushed.set(classId, new Map());
+      flushed.get(classId).set(reg, size);
+    }
+    return rows.length;
+  }
+
+  // Minutes per student for one class: what is in the sheet plus what is still waiting to be written.
+  async function minutesFor(classId) {
+    const totals = new Map();
+    for (const { cells } of await store.tabRows(TAB.attendance)) {
+      if (String(cells[ATT_COL.classId] || "").trim() !== classId) continue;
+      const reg = normReg(cells[ATT_COL.reg]);
+      const m = parseInt(cells[ATT_COL.minutes], 10);
+      if (reg && m > 0) totals.set(reg, (totals.get(reg) || 0) + m);
+    }
+    const byReg = seen.get(classId);
+    if (byReg) {
+      const done = flushed.get(classId) || new Map();
+      for (const [reg, set] of byReg) {
+        const pending = set.size - (done.get(reg) || 0);
+        if (pending > 0) totals.set(reg, (totals.get(reg) || 0) + pending);
+      }
+    }
+    return totals;
+  }
+
+  const lengthMinutes = (c) => {
+    const start = Date.parse(c.startedUtc);
+    const end = c.endedUtc ? Date.parse(c.endedUtc) : nowMs();
+    if (Number.isNaN(start) || Number.isNaN(end)) return 0;
+    return Math.max(1, Math.round((end - start) / 60000));
+  };
+
+  const publicClass = (c) => ({
+    id: c.id, title: c.title, startedAt: c.startedAt, endedAt: c.endedAt, live: !c.endedUtc, lengthMinutes: lengthMinutes(c),
+  });
+
+  // What a student sees: the live class (with its Meet link) and their own record of every class.
+  async function forStudent(regInput) {
+    const reg = normReg(regInput);
+    const classes = (await readClasses()).slice().reverse();
+    const liveClass = classes.find((c) => !c.endedUtc) || null;
+    const sums = new Map();
+    for (const { cells } of await store.tabRows(TAB.attendance)) {
+      if (normReg(cells[ATT_COL.reg]) !== reg) continue;
+      const id = String(cells[ATT_COL.classId] || "").trim();
+      const m = parseInt(cells[ATT_COL.minutes], 10);
+      if (m > 0) sums.set(id, (sums.get(id) || 0) + m);
+    }
+    const history = classes.slice(0, 30).map((c) => {
+      const pending = seen.get(c.id) && seen.get(c.id).get(reg) ? seen.get(c.id).get(reg).size - ((flushed.get(c.id) || new Map()).get(reg) || 0) : 0;
+      const minutes = (sums.get(c.id) || 0) + Math.max(0, pending);
+      const length = lengthMinutes(c);
+      const pct = percentOf(minutes, length);
+      return { ...publicClass(c), minutes: Math.min(minutes, length), percent: pct, present: pct >= percent };
+    });
+    return {
+      threshold: percent,
+      live: liveClass ? { id: liveClass.id, title: liveClass.title, link: liveClass.link, startedAt: liveClass.startedAt } : null,
+      history,
+    };
+  }
+
+  // ---------- The dashboard (admin, or a role given the "attendance" access) ----------
+
+  function start(input, actor) {
+    return queued(async () => {
+      const b = input || {};
+      const title = oneLine(b.title, 100);
+      const link = String(b.link == null ? "" : b.link).trim();
+      const errors = {};
+      if (!title) errors.title = "Enter a name for the class, e.g. Week 3: Risk management.";
+      if (!MEET_LINK.test(link) || link.length > 200) errors.link = "Paste the Google Meet link, e.g. https://meet.google.com/abc-defg-hij";
+      if (Object.keys(errors).length) throw new AttendanceError(400, "Please fix the highlighted fields.", errors);
+      forgetLive();
+      if (await live()) throw new AttendanceError(409, "A class is already live. End it before starting another.");
+      const id = "CL-" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
+      await store.appendTabRows(TAB.classes, [[id, title, link, stamp(), new Date(nowMs()).toISOString(), "", "", (actor && actor.username) || ""]]);
+      forgetLive();
+      return publicClass((await live()) || { id, title, startedAt: stamp(), startedUtc: new Date(nowMs()).toISOString() });
+    });
+  }
+
+  function end(actor) {
+    return queued(async () => {
+      forgetLive();
+      const cls = await live();
+      if (!cls) throw new AttendanceError(409, "No class is live right now.");
+      await flush();
+      await store.writeTabCells(TAB.classes, cls.n, { [CLASS_COL.endedAt]: stamp(), [CLASS_COL.endedUtc]: new Date(nowMs()).toISOString() });
+      seen.delete(cls.id);
+      flushed.delete(cls.id);
+      forgetLive();
+      return { ended: true, id: cls.id };
+    });
+  }
+
+  async function list() {
+    const classes = (await readClasses()).slice().reverse();
+    const attendees = new Map();
+    const sums = new Map();
+    for (const { cells } of await store.tabRows(TAB.attendance)) {
+      const id = String(cells[ATT_COL.classId] || "").trim();
+      const reg = normReg(cells[ATT_COL.reg]);
+      const m = parseInt(cells[ATT_COL.minutes], 10);
+      if (!id || !reg || !(m > 0)) continue;
+      if (!sums.has(id)) sums.set(id, new Map());
+      sums.get(id).set(reg, (sums.get(id).get(reg) || 0) + m);
+    }
+    for (const c of classes) {
+      const length = lengthMinutes(c);
+      const m = sums.get(c.id) || new Map();
+      if (seen.get(c.id)) {
+        const done = flushed.get(c.id) || new Map();
+        for (const [reg, set] of seen.get(c.id)) m.set(reg, (m.get(reg) || 0) + Math.max(0, set.size - (done.get(reg) || 0)));
+      }
+      attendees.set(c.id, { joined: m.size, present: [...m.values()].filter((x) => percentOf(x, length) >= percent).length });
+    }
+    return {
+      threshold: percent,
+      classes: classes.map((c) => ({ ...publicClass(c), meetLink: c.link, startedBy: c.by, ...(attendees.get(c.id) || { joined: 0, present: 0 }) })),
+    };
+  }
+
+  // Everyone who was in one class, with minutes, percent and Present / Absent.
+  async function report(classId) {
+    const cls = (await readClasses()).find((c) => c.id === String(classId || ""));
+    if (!cls) throw new AttendanceError(404, "That class could not be found.");
+    const length = lengthMinutes(cls);
+    const totals = await minutesFor(cls.id);
+    const people = [...totals.entries()].map(([reg, m]) => {
+      const minutes = Math.min(m, length);
+      const pct = percentOf(minutes, length);
+      return { reg, minutes, percent: pct, present: pct >= percent };
+    });
+    people.sort((a, b) => b.minutes - a.minutes || a.reg.localeCompare(b.reg));
+    return { class: publicClass(cls), threshold: percent, people };
+  }
+
+  return { heartbeat, flush, forStudent, start, end, list, report, live };
+}
+
+module.exports = { create, percentOf, CLASS_HEADERS, ATT_HEADERS, CLASS_COL, ATT_COL, PRESENT_PERCENT, MEET_LINK, AttendanceError };
+```
+
+#### `multifx.js`
+
+```js
+// Multi-FX: a student's progress, and the video / extra link of each workbook.
+//
+// Progress: two lists per student, saved on the "Multi-FX Progress" sheet tab (one row per student):
+//   handbook sections marked as read, and workbooks marked as done. Each is counted against the number of sections
+//   in multifx-content.js, so adding or removing a section needs no other change. The quiz is separate.
+//
+// Workbook media: the editor gives each workbook a YouTube video and, optionally, one extra link (a worksheet, a
+// Google Drive file, an article...). They are kept on the "Multi-FX Workbook Media" tab and edited on the dashboard.
+const { IDS } = require("./multifx-content");
+const { videoId } = require("./videos");
+
+const PROGRESS_HEADERS = [
+  "Reg Number", "Full Name", "Handbook Sections Read", "Handbook Read (count)", "Workbooks Done", "Workbooks Done (count)", "Total Sections", "Updated At (Lagos)",
+];
+const PCOL = { reg: 0, name: 1, read: 2, readCount: 3, done: 4, doneCount: 5, total: 6, at: 7 };
+
+const MEDIA_HEADERS = ["Section", "Section title", "YouTube video address", "Extra link title", "Extra link (https)"];
+const MCOL = { id: 0, title: 1, video: 2, linkTitle: 3, link: 4 };
+
+const normReg = (v) => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+const oneLine = (v, max) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+
+// "00, 01,3" -> ["00","01","03"]. Tolerates hand edits in the sheet. Always in section order, never an unknown id.
+function parseIds(cell) {
+  const out = new Set();
+  String(cell == null ? "" : cell).split(/[\s,;]+/).filter(Boolean).forEach((t) => {
+    const id = /^\d{1,2}$/.test(t) ? t.padStart(2, "0") : t;
+    if (IDS.includes(id)) out.add(id);
+  });
+  return IDS.filter((id) => out.has(id));
+}
+
+function summary(ids) {
+  const list = IDS.filter((id) => ids.includes(id));
+  return { ids: list, count: list.length, total: IDS.length, percent: IDS.length ? Math.round((list.length / IDS.length) * 100) : 0 };
+}
+
+// What a student sees: both lists and one overall percent (handbook and workbook count the same).
+function view(readIds, doneIds) {
+  const handbook = summary(readIds);
+  const workbook = summary(doneIds);
+  const total = handbook.total + workbook.total;
+  const percent = total ? Math.round(((handbook.count + workbook.count) / total) * 100) : 0;
+  return { handbook, workbook, percent };
+}
+
+// Clean a pasted extra link. Returns "" when empty, or { url } / { error }.
+function cleanLink(raw) {
+  const v = oneLine(raw, 400);
+  if (!v) return { url: "" };
+  let u;
+  try { u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : "https://" + v); } catch (e) { u = null; }
+  if (!u || u.protocol !== "https:" || !u.hostname.includes(".") || u.username || u.password) return { error: "Enter a full web address starting with https://" };
+  return { url: u.href };
+}
+
+// input: { "00": { video, linkTitle, link }, ... } -> { values, errors: { "00": { video?, link? } } }
+function sanitizeMedia(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const values = {};
+  const errors = {};
+  for (const id of IDS) {
+    const one = src[id] && typeof src[id] === "object" ? src[id] : {};
+    const e = {};
+    const out = { video: "", linkTitle: "", link: "" };
+    const rawVideo = oneLine(one.video, 300);
+    if (rawVideo) {
+      const vid = videoId(rawVideo);
+      if (!vid) e.video = "Paste a YouTube video address, e.g. https://youtu.be/abc123XYZ_0";
+      else out.video = "https://youtu.be/" + vid;
+    }
+    const l = cleanLink(one.link);
+    if (l.error) e.link = l.error; else out.link = l.url;
+    out.linkTitle = oneLine(one.linkTitle, 80) || (out.link ? "Open the extra material" : "");
+    if (!out.link) out.linkTitle = "";
+    values[id] = out;
+    if (Object.keys(e).length) errors[id] = e;
+  }
+  return { values, errors };
+}
+
+// `store` needs tabRows / appendTabRows / writeTabCells for the "mfxprogress" and "mfxmedia" tabs.
+function create(store, opts = {}) {
+  const stamp = opts.now || (() => new Date().toISOString());
+  const progressTtl = opts.progressTtl == null ? 4000 : opts.progressTtl;
+  const mediaTtl = opts.mediaTtl == null ? 30000 : opts.mediaTtl;
+  let pCache = { at: 0, rows: [] };
+  let mCache = { at: 0, values: null };
+  let chain = Promise.resolve();
+  const queued = (task) => {
+    const run = chain.then(task, task);
+    chain = run.catch(() => {});
+    return run;
+  };
+
+  async function progressRows(fresh) {
+    if (!fresh && pCache.at && Date.now() - pCache.at < progressTtl) return pCache.rows;
+    pCache = { at: Date.now(), rows: await store.tabRows("mfxprogress") };
+    return pCache.rows;
+  }
+  const rowOf = (rows, reg) => rows.find((r) => normReg(r.cells[PCOL.reg]) === reg) || null;
+
+  async function progressFor(regInput) {
+    const row = rowOf(await progressRows(false), normReg(regInput));
+    return view(row ? parseIds(row.cells[PCOL.read]) : [], row ? parseIds(row.cells[PCOL.done]) : []);
+  }
+
+  // kind: "handbook" (a section read) or "workbook" (a workbook done). Returns the student's new progress, or null for an unknown section.
+  function saveProgress(regInput, fullName, kind, id, on) {
+    return queued(async () => {
+      if (!IDS.includes(id) || (kind !== "handbook" && kind !== "workbook")) return null;
+      const reg = normReg(regInput);
+      const row = rowOf(await progressRows(true), reg); // fresh, so two devices never overwrite each other
+      const read = row ? parseIds(row.cells[PCOL.read]) : [];
+      const done = row ? parseIds(row.cells[PCOL.done]) : [];
+      const list = kind === "handbook" ? read : done;
+      const next = IDS.filter((x) => (x === id ? on : list.includes(x)));
+      if (kind === "handbook") read.splice(0, read.length, ...next); else done.splice(0, done.length, ...next);
+      if (!row && !on) return view(read, done); // nothing to un-mark and no row yet: do not create one
+      const r = summary(read);
+      const d = summary(done);
+      const cells = {
+        [PCOL.name]: fullName || "", [PCOL.read]: r.ids.join(","), [PCOL.readCount]: String(r.count),
+        [PCOL.done]: d.ids.join(","), [PCOL.doneCount]: String(d.count), [PCOL.total]: String(IDS.length), [PCOL.at]: stamp(),
+      };
+      if (row) {
+        // Only touch the sheet when something changed (tapping "mark as read" twice must not rewrite the row).
+        if (next.join(",") !== (kind === "handbook" ? parseIds(row.cells[PCOL.read]) : parseIds(row.cells[PCOL.done])).join(",")) {
+          await store.writeTabCells("mfxprogress", row.n, cells);
+        }
+      } else {
+        await store.appendTabRows("mfxprogress", [[reg, cells[PCOL.name], cells[PCOL.read], cells[PCOL.readCount], cells[PCOL.done], cells[PCOL.doneCount], cells[PCOL.total], cells[PCOL.at]]]);
+      }
+      pCache = { at: 0, rows: [] };
+      return view(read, done);
+    });
+  }
+
+  // ---------- Workbook media ----------
+  async function readMedia(fresh) {
+    if (!fresh && mCache.values && Date.now() - mCache.at < mediaTtl) return mCache.values;
+    const out = {};
+    for (const id of IDS) out[id] = { video: "", linkTitle: "", link: "" };
+    for (const { cells } of await store.tabRows("mfxmedia")) {
+      const k = String(cells[MCOL.id] || "").trim().padStart(2, "0");
+      if (!out[k]) continue;
+      out[k] = { video: String(cells[MCOL.video] || "").trim(), linkTitle: String(cells[MCOL.linkTitle] || "").trim(), link: String(cells[MCOL.link] || "").trim() };
+    }
+    // a hand-typed bad address is dropped, not shown
+    const clean = sanitizeMedia(out);
+    for (const id of IDS) {
+      const bad = clean.errors[id] || {};
+      if (bad.video) clean.values[id].video = "";
+      if (bad.link) { clean.values[id].link = ""; clean.values[id].linkTitle = ""; }
+    }
+    mCache = { at: Date.now(), values: clean.values };
+    return clean.values;
+  }
+
+  // Save every workbook's media at once. `titles` is { id: section title } for the sheet's second column.
+  function saveMedia(input, titles) {
+    return queued(async () => {
+      const { values, errors } = sanitizeMedia(input);
+      if (Object.keys(errors).length) { const err = new Error("Please fix the highlighted fields."); err.status = 400; err.fields = errors; throw err; }
+      const rows = await store.tabRows("mfxmedia");
+      const appendRows = [];
+      for (const id of IDS) {
+        const v = values[id];
+        const row = rows.find((r) => String(r.cells[MCOL.id] || "").trim().padStart(2, "0") === id);
+        const title = (titles && titles[id]) || "";
+        if (row) {
+          const changes = {};
+          if (row.cells[MCOL.title] !== title) changes[MCOL.title] = title;
+          if (row.cells[MCOL.video] !== v.video) changes[MCOL.video] = v.video;
+          if (row.cells[MCOL.linkTitle] !== v.linkTitle) changes[MCOL.linkTitle] = v.linkTitle;
+          if (row.cells[MCOL.link] !== v.link) changes[MCOL.link] = v.link;
+          if (Object.keys(changes).length) await store.writeTabCells("mfxmedia", row.n, changes);
+        } else if (v.video || v.link) {
+          appendRows.push([id, title, v.video, v.linkTitle, v.link]);
+        }
+      }
+      if (appendRows.length) await store.appendTabRows("mfxmedia", appendRows);
+      mCache = { at: 0, values: null };
+      return values;
+    });
+  }
+
+  // What a signed-in student gets: section id -> { video: the 11-character YouTube id or "", resource: { title, url } or null }.
+  function forStudents(values) {
+    const out = {};
+    for (const id of IDS) {
+      const v = (values && values[id]) || {};
+      out[id] = { video: videoId(v.video) || "", resource: v.link ? { title: v.linkTitle || "Open the extra material", url: v.link } : null };
+    }
+    return out;
+  }
+
+  return { progressFor, saveProgress, readMedia, saveMedia, forStudents };
+}
+
+module.exports = { create, parseIds, summary, view, sanitizeMedia, PROGRESS_HEADERS, PCOL, MEDIA_HEADERS, MCOL };
+```
+
+#### `multifxcodes.js`
+
+```js
+// One-time codes that unlock the Multi-FX course (a supplementary course under Mentorship).
+//
+// Life of a code (the "Status" column of the "Multi-FX Codes" sheet tab):
+//   Unused     made by an admin (or any role given the "multifx" access). Nobody has used it yet.
+//   Redeemed   a student entered it. THAT student now has Multi-FX (handbook, workbook, community, live class and
+//              quiz) on every device, for good. The code is spent: nobody else can use it.
+//   Revoked    cancelled by an admin. An Unused code can no longer be used; cancelling a Redeemed code takes Multi-FX
+//              away from the student who used it (for a refund or a misuse), and they would need a new code.
+//
+// Rules this file enforces (the website, not the browser, is the judge):
+//   - A code works once. A code made "for" one registration number cannot be used by anyone else.
+//   - A student who already has Multi-FX who enters another code is told so and the code is NOT spent.
+//   - Entering and cancelling codes go one at a time (a queue), so two students cannot spend the same code at once.
+//
+// Codes look like MF-7K4M-9PXR (no 0/O/1/I/L, so they are easy to read out loud). When a code is checked, capitals,
+// spaces and dashes do not matter: "mf 7k4m 9pxr" is the same code.
+const crypto = require("crypto");
+
+const HEADERS = [
+  "Multi-FX Code",
+  "Created At (Lagos)",
+  "Created By",
+  "For (Reg Number, optional)",
+  "Status",
+  "Used By (Reg Number)",
+  "Redeemed At (Lagos)",
+  "Revoked (By, At)",
+];
+const COL = { code: 0, createdAt: 1, createdBy: 2, forReg: 3, status: 4, usedBy: 5, redeemedAt: 6, revoked: 7 };
+
+const STATUS = { UNUSED: "Unused", REDEEMED: "Redeemed", REVOKED: "Revoked" };
+const STATUS_LIST = Object.values(STATUS);
+
+const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 31 characters: no 0, O, 1, I or L
+const MAX_AT_ONCE = 50;
+const REG_RE = /^ABECFX\/\d{2}\/\d{4}$/;
+
+// What a student sees when a code does not work. One message for "no such code", "already used", "cancelled" and
+// "meant for someone else", so nobody can use the form to find out which codes exist.
+const BAD_CODE = "This Multi-FX code is not valid or has already been used. Ask your mentor for a new one.";
+
+class MultifxCodeError extends Error {
+  constructor(status, message, fields) {
+    super(message);
+    this.status = status;
+    if (fields) this.fields = fields;
+  }
+}
+
+const normCode = (v) => String(v == null ? "" : v).slice(0, 60).toUpperCase().replace(/[^A-Z0-9]/g, "");
+const normReg = (v) => String(v == null ? "" : v).trim().toUpperCase().replace(/\s+/g, "");
+
+function makeCode(random = (n) => crypto.randomInt(n)) {
+  const pick = (len) => Array.from({ length: len }, () => ALPHABET[random(ALPHABET.length)]).join("");
+  return "MF-" + pick(4) + "-" + pick(4);
+}
+
+function statusOf(cells) {
+  const s = String(cells[COL.status] || "").trim().toLowerCase();
+  const found = STATUS_LIST.find((x) => x.toLowerCase() === s);
+  if (found) return found;
+  // A row typed in by hand with no status is a fresh code, unless it already names who used it.
+  return String(cells[COL.usedBy] || "").trim() ? STATUS.REDEEMED : STATUS.UNUSED;
+}
+
+function fromRows(rows) {
+  return rows
+    .map(({ n, cells }) => ({
+      n,
+      code: String(cells[COL.code] || "").trim(),
+      createdAt: cells[COL.createdAt] || "",
+      createdBy: cells[COL.createdBy] || "",
+      forReg: normReg(cells[COL.forReg]),
+      status: statusOf(cells),
+      usedBy: normReg(cells[COL.usedBy]),
+      redeemedAt: cells[COL.redeemedAt] || "",
+      revoked: cells[COL.revoked] || "",
+    }))
+    .filter((r) => r.code);
+}
+
+function publicCode(r) {
+  return {
+    code: r.code, status: r.status, forReg: r.forReg, createdAt: r.createdAt, createdBy: r.createdBy,
+    usedBy: r.usedBy, redeemedAt: r.redeemedAt, revoked: r.revoked,
+  };
+}
+
+// `store` needs tabRows / appendTabRows / writeTabCells for the "mfxcodes" tab (sheets.js, or the in-memory stand-in).
+// Options: now() gives the time text written to the sheet (Lagos time); studentExists(reg) is async;
+// cacheMs is how long a read may be re-used for "does this student have Multi-FX?" (anything that decides always reads fresh);
+// random(n) gives a whole number below n (the tests pass their own).
+function create(store, opts = {}) {
+  const stamp = opts.now || (() => new Date().toISOString());
+  const studentExists = opts.studentExists || null;
+  const cacheMs = opts.cacheMs == null ? 3000 : opts.cacheMs;
+  const random = opts.random || ((n) => crypto.randomInt(n));
+  let cache = { at: 0, rows: [] };
+  let chain = Promise.resolve();
+
+  const queued = (task) => {
+    const run = chain.then(task, task);
+    chain = run.catch(() => {});
+    return run;
+  };
+  const forget = () => { cache = { at: 0, rows: [] }; };
+  async function fresh() {
+    const rows = fromRows(await store.tabRows("mfxcodes"));
+    cache = { at: Date.now(), rows };
+    return rows;
+  }
+  async function recent() {
+    if (cache.at && Date.now() - cache.at < cacheMs) return cache.rows;
+    return fresh();
+  }
+  const openFor = (rows, reg) => rows.find((r) => r.status === STATUS.REDEEMED && r.usedBy === reg) || null;
+
+  // ---------- Students ----------
+
+  // Does this student have Multi-FX? { unlocked, since }. Pass { fresh: true } when the answer decides something.
+  async function accessFor(reg, o = {}) {
+    const rows = o.fresh ? await fresh() : await recent();
+    const open = openFor(rows, normReg(reg));
+    return { unlocked: Boolean(open), since: open ? open.redeemedAt : "" };
+  }
+
+  // A student enters a code. Unlocks Multi-FX, or throws a MultifxCodeError that is safe to show them.
+  function redeem(codeInput, regInput) {
+    return queued(async () => {
+      const reg = normReg(regInput);
+      const want = normCode(codeInput);
+      if (!want) throw new MultifxCodeError(400, "Enter your Multi-FX code.", { code: "Enter your Multi-FX code." });
+      const rows = await fresh();
+      if (openFor(rows, reg)) return { unlocked: true, already: true }; // never spend a second code
+      const row = rows.find((r) => normCode(r.code) === want) || null;
+      if (!row || row.status !== STATUS.UNUSED || (row.forReg && row.forReg !== reg)) {
+        throw new MultifxCodeError(400, BAD_CODE, { code: BAD_CODE });
+      }
+      await store.writeTabCells("mfxcodes", row.n, {
+        [COL.status]: STATUS.REDEEMED,
+        [COL.usedBy]: reg,
+        [COL.redeemedAt]: stamp(),
+      });
+      forget();
+      return { unlocked: true, already: false };
+    });
+  }
+
+  // ---------- The dashboard (an Owner, an Admin, or a role given the "multifx" access) ----------
+
+  // Make `count` new codes, optionally all for one registration number.
+  function generate(input, actor) {
+    return queued(async () => {
+      const b = input || {};
+      const count = Number(b.count);
+      const forReg = normReg(b.forReg);
+      const errors = {};
+      if (!Number.isInteger(count) || count < 1 || count > MAX_AT_ONCE) errors.count = "Choose how many codes to make (1 to " + MAX_AT_ONCE + ").";
+      if (forReg) {
+        if (!REG_RE.test(forReg)) errors.forReg = "Enter a registration number like ABECFX/26/0001, or leave it empty.";
+        else if (studentExists && !(await studentExists(forReg))) errors.forReg = "No student has this registration number.";
+      }
+      if (Object.keys(errors).length) throw new MultifxCodeError(400, "Please fix the highlighted fields.", errors);
+
+      const taken = new Set((await fresh()).map((r) => normCode(r.code)));
+      const at = stamp();
+      const by = (actor && actor.username) || "";
+      const made = [];
+      for (let i = 0; i < count; i++) {
+        let code;
+        let guard = 0;
+        do { code = makeCode(random); } while (taken.has(normCode(code)) && ++guard < 100);
+        if (taken.has(normCode(code))) throw new MultifxCodeError(500, "Could not make a new code. Please try again.");
+        taken.add(normCode(code));
+        made.push([code, at, by, forReg, STATUS.UNUSED, "", "", ""]);
+      }
+      await store.appendTabRows("mfxcodes", made);
+      forget();
+      return { codes: made.map((r) => ({ code: r[COL.code], createdAt: at, createdBy: by, forReg })) };
+    });
+  }
+
+  // Every code, newest first.
+  async function list() {
+    return (await fresh()).map(publicCode).reverse();
+  }
+
+  // The registration numbers that have Multi-FX right now.
+  async function unlockedRegs() {
+    return new Set((await fresh()).filter((r) => r.status === STATUS.REDEEMED && r.usedBy).map((r) => r.usedBy));
+  }
+
+  // Cancel a code. An unused code can no longer be used; a redeemed one takes Multi-FX away from its student.
+  function revoke(codeInput, actor) {
+    return queued(async () => {
+      const want = normCode(codeInput);
+      const row = want ? (await fresh()).find((r) => normCode(r.code) === want) : null;
+      if (!row) throw new MultifxCodeError(404, "That code could not be found.");
+      if (row.status === STATUS.REVOKED) return { code: row.code, status: STATUS.REVOKED, hadAccess: false, usedBy: row.usedBy };
+      const by = (actor && actor.username) || "";
+      await store.writeTabCells("mfxcodes", row.n, { [COL.status]: STATUS.REVOKED, [COL.revoked]: by + ", " + stamp() });
+      forget();
+      return { code: row.code, status: STATUS.REVOKED, hadAccess: row.status === STATUS.REDEEMED, usedBy: row.usedBy };
+    });
+  }
+
+  return { accessFor, redeem, generate, list, revoke, unlockedRegs };
+}
+
+module.exports = { create, makeCode, normCode, HEADERS, COL, STATUS, STATUS_LIST, MAX_AT_ONCE, BAD_CODE, MultifxCodeError };
+```
+
+#### `multifx-content.js`
+
+```js
+// The Multi-FX course content: the handbook sections and the workbook for each section.
+//
+// Handbook: the text is taken from the owner's PDF "Multi FX Trading Strategy Guide" (private/multifx-handbook.pdf).
+// The charts, candlestick drawings and the annotated example screenshots stay in the PDF; every section says which
+// PDF pages to open for them. `pdf: [from, to]` are PDF page numbers (the number your PDF reader shows), which is
+// the printed page number + 2 because the cover and contents pages are not numbered.
+//
+// Workbook: a DRAFT written from the handbook text (key terms, a self-check with answers, practical tasks). Edit it here;
+// progress adjusts itself to the number of sections. The video and the extra link of each workbook are NOT here:
+// the editor sets them on the dashboard's Multi-FX tab.
+//
+// Block types (same as the main handbook): p, h, ul, ol, table (head + rows), cards, note, quote.
+
+const SECTIONS = [
+  {
+    id: "00", title: "Introduction", pdf: [5, 6],
+    tagline: "A strong foundation is one of the most valuable investments you can make in your trading journey.",
+    blocks: [
+      { t: "p", x: "Welcome to the Multi FX Volatility Index Trading Strategy Guide. Its purpose is to equip traders with the knowledge, skills and structured approach needed to understand and confidently apply a Volatility Index trading strategy." },
+      { t: "p", x: "Rather than focusing only on entry and exit signals, this guide stresses the principles behind every trading decision. A well-defined strategy, sound market knowledge, disciplined execution and effective risk management together build consistency and better decision-making." },
+      { t: "p", x: "The guide is centred on trading Volatility Indices with the Smart Money Concept, but success begins with the fundamentals of financial market analysis. The concepts that govern price movement, market structure, risk management and trading psychology are universal. They are the foundation of every successful trader, whatever market they trade." },
+      { t: "h", x: "How the guide is laid out" },
+      { t: "ol", items: [
+        "The fundamentals: forex, currency pairs, trading terms, reading charts, risk management and trading psychology.",
+        "A quick glossary of the words you will meet again and again.",
+        "Understanding candlestick charts.",
+        "Understanding Volatility Indices, the market this strategy is traded on.",
+        "The Smart Money Concept (SMC): structure, liquidity, order blocks, fair value gaps and more.",
+        "Practical setups, shown on real charts.",
+      ] },
+      { t: "p", x: "The objective is not simply to teach you a strategy, but to help you develop the analytical mindset, discipline and consistency needed to become a confident trader over the long term." },
+      { t: "note", x: "Take your time with each section before moving on. Study it, then do its workbook." },
+    ],
+  },
+  {
+    id: "01", title: "Introduction to Forex", pdf: [7, 7],
+    tagline: "The global market where one currency is exchanged for another.",
+    blocks: [
+      { t: "h", x: "What is Forex?" },
+      { t: "p", x: "Forex (foreign exchange or FX) is the global market where one currency is exchanged for another. It supports international trade, tourism, investment and cross-border payments. Unlike stock markets, Forex is an over-the-counter (OTC) market: trading happens electronically through banks and brokers rather than on a central exchange." },
+      { t: "h", x: "Example" },
+      { t: "p", x: "A traveller from Nigeria visiting the United Kingdom exchanges Nigerian Naira for British Pounds. Businesses importing goods also exchange currencies. Traders speculate on these exchange-rate movements to seek profits." },
+      { t: "h", x: "Key facts" },
+      { t: "p", x: "The Forex market operates 24 hours a day from Monday to Friday through the Sydney, Tokyo, London and New York trading sessions. It is the world's largest financial market by daily trading volume." },
+      { t: "h", x: "Key takeaways" },
+      { t: "ul", items: ["Understand the concepts before trading real money.", "Practise on a demo account.", "Follow a trading plan.", "Protect capital through risk management."] },
+    ],
+  },
+  {
+    id: "02", title: "Currency Pairs", pdf: [8, 8],
+    tagline: "Currencies are always quoted in pairs.",
+    blocks: [
+      { t: "h", x: "Base and quote currency" },
+      { t: "p", x: "In EUR/USD, EUR is the base currency and USD is the quote currency. If EUR/USD is 1.1500, one euro is worth 1.15 US dollars." },
+      { t: "h", x: "Major pairs" },
+      { t: "p", x: "Major pairs include EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD and NZD/USD. They generally have the highest liquidity and the lowest spreads." },
+      { t: "h", x: "Example" },
+      { t: "p", x: "If you buy EUR/USD at 1.1000 and sell at 1.1050, the price moved 50 pips in your favour." },
+      { t: "ul", items: ["Understand the concepts before trading real money.", "Practise on a demo account.", "Follow a trading plan.", "Protect capital through risk management."] },
+    ],
+  },
+  {
+    id: "03", title: "Essential Trading Terms", pdf: [9, 9],
+    tagline: "Four words every trader must understand: pip, spread, leverage and margin.",
+    blocks: [
+      { t: "cards", items: [
+        { h: "Pip", x: "A pip is usually the fourth decimal place in most currency pairs and represents a small price movement." },
+        { h: "Spread", x: "The difference between the bid and ask price. It is part of the cost of trading." },
+        { h: "Leverage", x: "Lets traders control larger positions with a smaller deposit. It can increase profits, but it also increases risk." },
+        { h: "Margin", x: "The amount of money required to open and maintain a leveraged position." },
+      ] },
+      { t: "note", x: "Leverage magnifies losses as much as it magnifies profits. Know your margin before you open a trade." },
+    ],
+  },
+  {
+    id: "04", title: "Reading Charts", pdf: [10, 10],
+    tagline: "Open, high, low, close, and the direction price is travelling.",
+    blocks: [
+      { t: "h", x: "Candlesticks" },
+      { t: "p", x: "Candlestick charts display the open, high, low and close prices for a chosen time period." },
+      { t: "h", x: "Trend" },
+      { t: "p", x: "An uptrend forms higher highs and higher lows. A downtrend forms lower highs and lower lows. A ranging market moves sideways." },
+      { t: "h", x: "Example" },
+      { t: "p", x: "Many traders wait for price to respect a support level before considering a buy opportunity." },
+    ],
+  },
+  {
+    id: "05", title: "Risk Management", pdf: [11, 11],
+    tagline: "Professional traders protect capital first.",
+    blocks: [
+      { t: "cards", items: [
+        { h: "Position sizing", x: "Professional traders typically risk only a small percentage of their account on each trade." },
+        { h: "Risk-to-reward", x: "A common objective is risking 1 unit to target at least 2 units of potential reward." },
+        { h: "Stop loss", x: "A stop-loss order limits your loss if price moves against your trade." },
+        { h: "Common mistakes", x: "Overleveraging, moving stop losses, revenge trading and risking too much on one trade." },
+      ] },
+      { t: "note", x: "Decide your risk before you enter, never after." },
+    ],
+  },
+  {
+    id: "06", title: "Trading Psychology", pdf: [12, 12],
+    tagline: "Discipline beats emotion.",
+    blocks: [
+      { t: "cards", items: [
+        { h: "Discipline", x: "Successful trading depends on consistently following a trading plan rather than emotions." },
+        { h: "Fear and greed", x: "Fear causes traders to exit too early, while greed encourages holding positions too long." },
+        { h: "Trading journal", x: "Record every trade: why it was entered, the result and the lessons learned." },
+      ] },
+    ],
+  },
+  {
+    id: "07", title: "Quick Glossary", pdf: [13, 13],
+    tagline: "Five words to know before you go on.",
+    blocks: [
+      { t: "table", head: ["Term", "Meaning"], rows: [
+        ["Bid", "Price at which the market buys."],
+        ["Ask", "Price at which the market sells."],
+        ["Lot", "Standard trading volume."],
+        ["Liquidity", "Ease of buying or selling without significantly affecting price."],
+        ["Volatility", "Rate at which prices change."],
+      ] },
+    ],
+  },
+  {
+    id: "08", title: "Understanding Candlestick Charts", pdf: [14, 24],
+    tagline: "Every candlestick tells the story of the battle between buyers and sellers.",
+    blocks: [
+      { t: "p", x: "Candlestick charts are one of the most widely used tools in financial markets because they give a clear picture of price movement over a specific period. Whether you trade Volatility Indices, Forex, stocks or crypto, reading candlesticks is a skill every trader must develop." },
+      { t: "h", x: "What is a candlestick?" },
+      { t: "p", x: "A candlestick is a graphical representation of price movement over a specific period of time. It shows four prices:" },
+      { t: "ul", items: ["Open: the price at which the period began.", "High: the highest price reached during the period.", "Low: the lowest price reached during the period.", "Close: the price at which the period ended."] },
+      { t: "h", x: "Anatomy of a candlestick" },
+      { t: "cards", items: [
+        { h: "The body", x: "The distance between the open and the close. A long body means strong buying or selling pressure; a short body means limited movement and indecision." },
+        { h: "The wicks (shadows)", x: "The thin lines above and below the body. The upper wick shows the highest price reached before the market moved lower; the lower wick shows the lowest price reached before the market moved higher. Long wicks often show rejection of a price level." },
+      ] },
+      { t: "h", x: "Bullish and bearish candlesticks" },
+      { t: "cards", items: [
+        { h: "Bullish", x: "The close is higher than the open. Buyers were stronger than sellers in that period. Commonly shown in green, blue or white." },
+        { h: "Bearish", x: "The close is lower than the open. Sellers controlled the market in that period. Commonly shown in red or black." },
+      ] },
+      { t: "h", x: "What candlesticks tell you" },
+      { t: "ul", items: [
+        "A large bullish candle shows strong buying momentum.",
+        "A large bearish candle shows strong selling momentum.",
+        "A candle with long upper and lower wicks suggests uncertainty or indecision.",
+        "A small candle often means neither buyers nor sellers have taken control.",
+      ] },
+      { t: "p", x: "A single candlestick should never be used on its own to make a trading decision. Read it in the context of the overall trend, nearby support and resistance, and the broader market structure." },
+      { t: "h", x: "Candlestick timeframes" },
+      { t: "p", x: "Each candlestick covers a specific period, called a timeframe. A candle on the 1-minute chart can look completely different from the matching candle on the 1-hour or daily chart, because each timeframe summarises a different duration of price movement." },
+      { t: "h", x: "Types of candlesticks" },
+      { t: "p", x: "Rather than memorising patterns, focus on understanding the story each candlestick tells. No single candle guarantees the market's next move." },
+      { t: "table", head: ["Candle", "What it looks like", "What it suggests"], rows: [
+        ["Bullish", "Close above the open", "Buying pressure; often in an uptrend or at the start of a reversal"],
+        ["Bearish", "Close below the open", "Selling pressure; often in a downtrend or at the start of a bearish reversal"],
+        ["Long bullish", "Large body, little or no wicks", "Strong buying momentum; buyers in control"],
+        ["Long bearish", "Large body, small wicks", "Strong selling momentum; sellers in control"],
+        ["Doji", "Open and close equal or nearly equal; very small body", "Indecision; may come before a reversal or a continuation"],
+        ["Hammer", "Small body near the top, long lower wick, little or no upper wick, after a downtrend", "Rejection of lower prices; potential bullish reversal"],
+        ["Inverted hammer", "Small body, long upper wick, small or no lower wick, after a downtrend", "Buyers becoming active; possible bullish reversal if confirmed"],
+        ["Hanging man", "Looks exactly like the hammer but appears after an uptrend", "Buyers may be losing strength; possible bearish reversal"],
+        ["Shooting star", "Small body near the bottom, long upper wick, little or no lower wick, after an uptrend", "Rejection of higher prices; potential bearish reversal"],
+        ["Spinning top", "Small body with long upper and lower wicks", "Indecision and weak momentum; wait for confirmation"],
+        ["Marubozu", "Little or no wicks (bullish or bearish)", "Strong momentum and high conviction; often trend continuation"],
+      ] },
+      { t: "note", x: "No candlestick should be used as a standalone trading signal. Analyse it together with market structure, support and resistance, trend direction, volume (where available) and risk management. The highest-probability opportunities occur when candlestick signals line up with these other forms of analysis." },
+      { t: "h", x: "Key takeaways" },
+      { t: "ul", items: [
+        "A candlestick shows the Open, High, Low and Close (OHLC) of a trading period.",
+        "The body is the difference between the open and the close; the wicks show the highest and lowest prices reached.",
+        "Bullish candles show buying pressure; bearish candles show selling pressure.",
+        "Long-bodied candles show strong momentum; long wicks often show price rejection.",
+        "Indecision candles should always be confirmed before you take a trade.",
+        "Always combine candlestick analysis with market structure and sound risk management.",
+      ] },
+    ],
+  },
+  {
+    id: "09", title: "Understanding Volatility Indices", pdf: [25, 27],
+    tagline: "Synthetic markets that are open 24 hours a day, 7 days a week.",
+    blocks: [
+      { t: "p", x: "Before learning the strategy, understand the market you will trade. Volatility Indices are synthetic financial instruments designed to simulate different levels of market volatility." },
+      { t: "p", x: "Unlike Forex, stocks or commodities, they are not influenced by economic news, interest-rate decisions, geopolitical events or market sentiment. They are generated by a cryptographically secure Random Number Generator (RNG), so price movements reflect a chosen level of volatility while staying available 24/7. That continuous access lets traders apply technical analysis without interruptions from market closures." },
+      { t: "h", x: "Common Volatility Indices" },
+      { t: "ul", items: ["Volatility 10 Index", "Volatility 25 Index", "Volatility 50 Index", "Volatility 75 Index", "Volatility 100 Index"] },
+      { t: "p", x: "Each is also available in a 1-second version (for example Volatility 10 (1s) Index), which updates more frequently and produces faster price movements." },
+      { t: "h", x: "Understanding the numbers" },
+      { t: "p", x: "The number in the name is the index's constant volatility level." },
+      { t: "table", head: ["Index", "Simulated volatility", "Character"], rows: [
+        ["Volatility 10", "About 10%", "Generally smaller price fluctuations"],
+        ["Volatility 25", "25%", "Moderate price movement"],
+        ["Volatility 50", "50%", "A balance between stability and volatility"],
+        ["Volatility 75", "75%", "Larger and faster price swings"],
+        ["Volatility 100", "100%", "One of the most volatile synthetic indices; generally for experienced traders with strong risk management"],
+      ] },
+      { t: "p", x: "The 1-second variants follow the same volatility characteristics but update more often, which makes them attractive to short-term traders and scalpers." },
+      { t: "h", x: "Choosing the right Volatility Index" },
+      { t: "p", x: "There is no single best index. The right choice depends on your trading objectives, preferred timeframe and ability to manage risk. Traders who prefer slower, more controlled price action may like lower-volatility indices; those seeking larger moves often choose higher-volatility ones. Whichever you pick, technical analysis, disciplined execution and risk management stay the foundation of consistent trading." },
+    ],
+  },
+  {
+    id: "10", title: "Smart Money Concept (SMC)", pdf: [28, 42],
+    tagline: "A way of organising price information: structure, liquidity and the reaction around key zones.",
+    blocks: [
+      { t: "h", x: "Introduction" },
+      { t: "p", x: "Smart Money Concepts (SMC) is a price-action framework used to study market structure, liquidity, price imbalances and the areas where significant buying or selling may have influenced price." },
+      { t: "p", x: "The central idea is simple: instead of relying mainly on traditional indicators, SMC traders study how price moves from one area of liquidity to another, how market structure changes, and how price reacts around important zones." },
+      { t: "p", x: "SMC is commonly associated with the teachings of Michael J. Huddleston, known as The Inner Circle Trader (ICT), whose work popularised liquidity, market structure, order blocks and fair value gaps. Modern SMC is used broadly, and terminology and interpretation can differ from one educator to another." },
+      { t: "h", x: "The SMC framework" },
+      { t: "ol", items: ["Market structure", "Liquidity", "Order blocks", "Breaker blocks", "Fair value gaps", "Break of structure (BOS)", "Change of character (ChoCH)", "Premium and discount", "Accumulation and distribution", "Liquidity grabs", "Risk management"] },
+      { t: "p", x: "These concepts are not meant to be viewed on their own. The real value of SMC comes from combining them into a logical picture of what price is doing." },
+
+      { t: "h", x: "1. Market structure" },
+      { t: "p", x: "Market structure is the foundation of SMC. Price forms a sequence of Higher Highs (HH), Higher Lows (HL), Lower Highs (LH) and Lower Lows (LL)." },
+      { t: "cards", items: [
+        { h: "Uptrend", x: "HH → HL → HH → HL" },
+        { h: "Downtrend", x: "LL → LH → LL → LH" },
+      ] },
+      { t: "p", x: "By identifying these swings you can read the current directional structure. The aim is not to predict whether price will rise or fall, but to observe whether the existing structure is being respected or broken." },
+
+      { t: "h", x: "2. Liquidity" },
+      { t: "p", x: "Liquidity refers to areas where a large number of orders are likely to sit. Common examples:" },
+      { t: "ul", items: ["Previous highs", "Previous lows", "Equal highs", "Equal lows", "Obvious support and resistance areas", "Stop-loss clusters"] },
+      { t: "p", x: "Price may move toward these areas before its next significant move. A liquidity grab (or sweep) happens when price moves through an obvious high or low, triggers the orders around it, and then reverses. Do not assume every breakout is a genuine continuation: the reaction after the breakout matters." },
+
+      { t: "h", x: "3. Order blocks" },
+      { t: "p", x: "An order block is an area on the chart linked to a significant price move." },
+      { t: "cards", items: [
+        { h: "Bullish order block", x: "Commonly the final bearish candle before a strong bullish move." },
+        { h: "Bearish order block", x: "Commonly the final bullish candle before a strong bearish move." },
+      ] },
+      { t: "p", x: "Traders watch these areas because price may return to them later and react. An order block is not a guaranteed reversal zone: it is stronger when it lines up with market structure, liquidity and other confirmation." },
+
+      { t: "h", x: "4. Breaker blocks" },
+      { t: "p", x: "A breaker block develops when a previously respected order block fails and price breaks through its structure. These zones appear after a market-structure breakout, when critical liquidity levels could not be held. Price first makes a false move in one direction to collect liquidity, then abruptly reverses and breaks a key level." },
+      { t: "p", x: "For example, a bullish order block may first act as support. If price later breaks decisively below it, the same zone can become resistance when price returns. A breaker block helps you see how a former support or resistance area has changed its role." },
+
+      { t: "h", x: "5. Fair value gaps (FVG)" },
+      { t: "p", x: "A fair value gap is a price imbalance, commonly found with a three-candle formation: the second candle has a very large body, and the wicks of the first and third candles do not overlap. FVGs appear when price moves quickly without enough trading volume, and price tends to revisit the area to rebalance supply and demand." },
+      { t: "p", x: "In a bullish move, the gap between the high of the first candle and the low of the third candle forms a bullish FVG. An FVG is not automatically an entry signal: its location relative to structure, liquidity and the wider context matters." },
+
+      { t: "h", x: "6. Break of structure (BOS)" },
+      { t: "p", x: "A BOS happens when price breaks an important swing level in the direction of the prevailing structure: in an uptrend, a break above a previous Higher High; in a downtrend, a break below a previous Lower Low. It is commonly used as evidence that the structure may be continuing. The key is telling a meaningful structural break from a brief spike." },
+
+      { t: "h", x: "7. Change of character (ChoCH)" },
+      { t: "p", x: "A ChoCH is an early sign that price behaviour may be changing. Say the market has been making HH → HL → HH → HL. If price then breaks an important Higher Low, bullish structure may be weakening, and a transition could develop:" },
+      { t: "quote", x: "HH → HL → HH → break of HL → LH → LL" },
+      { t: "p", x: "ChoCH is about a change in how price behaves, not simply continuation. Still look for more confirmation, because one structural break does not guarantee a full reversal." },
+
+      { t: "h", x: "8. Premium and discount" },
+      { t: "p", x: "SMC traders divide a significant price range in two: the upper portion is premium and the lower portion is discount. The midpoint is called equilibrium. In a bullish context, traders look for buying opportunities in discount areas; in a bearish context, for selling opportunities in premium areas. This gives context for where a setup occurs, instead of treating every order block or liquidity level equally." },
+
+      { t: "h", x: "9. Accumulation and distribution" },
+      { t: "p", x: "SMC also considers how price behaves inside ranges. Accumulation is a period in which buying is believed to take place within a defined range before a potential move higher. Distribution is a period in which selling is believed to take place before a potential move lower. These ideas are closely related to the Wyckoff framework and are often combined with liquidity sweeps, market structure and breakouts." },
+
+      { t: "h", x: "10. Liquidity grabs" },
+      { t: "p", x: "Liquidity grabs are deliberate moves by large participants to force retail traders to close their positions early. The sharp moves happen near key levels where stop-loss orders gather, and those orders become the liquidity that large participants use to open positions at favourable prices." },
+      { t: "p", x: "After the protective orders are triggered, price makes a sharp reversal. Studying false breakouts helps you see the intentions of key participants, find better entry points, avoid false breakouts and reduce the risk of loss." },
+
+      { t: "h", x: "How the concepts work together" },
+      { t: "ol", items: [
+        "Identify the higher-timeframe structure. Is the market bullish, bearish or ranging?",
+        "Identify important liquidity. Where are the obvious highs, lows, equal highs or equal lows?",
+        "Wait for price to interact with liquidity. Does price sweep or break an important level?",
+        "Study the structure reaction. Does price produce a BOS or a ChoCH?",
+        "Identify relevant zones. Look for an order block, breaker block or FVG.",
+        "Consider premium or discount. Is the setup in a logical area of the range?",
+        "Look for confirmation. Do not enter simply because price touched a zone.",
+        "Define the risk before entering. Know where the setup becomes invalid and where the target lies.",
+      ] },
+
+      { t: "h", x: "11. SMC and risk management" },
+      { t: "p", x: "SMC does not remove trading risk. You can read an order block, FVG, liquidity sweep or structural break correctly and the trade can still fail, so risk management stays essential. A practical framework defines:" },
+      { t: "ul", items: ["Maximum risk per trade", "Stop-loss location", "Position size", "Trade invalidation level", "Target area", "Maximum number of trades", "Conditions under which no trade should be taken"] },
+      { t: "p", x: "The 1-2% risk-per-trade guideline often used in educational SMC material is a risk-management convention, not a universal rule. Choose risk levels that suit your capital, your strategy and your circumstances." },
+
+      { t: "h", x: "The SMC mindset" },
+      { t: "p", x: "SMC is not just a collection of terms such as BOS, ChoCH, FVG and order block. It is a way of organising price information. A trader asks:" },
+      { t: "ul", items: ["Where is price?", "What is the current structure?", "Where is liquidity?", "What happened when liquidity was reached?", "Did the structure change?", "Where are the relevant price zones?", "Where is the trade invalidated?", "What is the risk-to-reward profile?"] },
+      { t: "p", x: "Once these questions become part of your analysis, the chart becomes less about randomly searching for entries and more about understanding the sequence of price movement." },
+    ],
+  },
+  {
+    id: "11", title: "Practical Setups", pdf: [43, 47],
+    tagline: "The ideas of the guide, shown on real charts. Open the PDF to see the annotated screenshots.",
+    blocks: [
+      { t: "note", x: "The chart screenshots for these examples are in the PDF handbook (pages 44 to 47). Open them next to the explanations below." },
+      { t: "h", x: "Example 1 (before and after)" },
+      { t: "p", x: "The first example shows the same chart before and after the move, so you can compare the setup with what price did next." },
+      { t: "h", x: "Example 2" },
+      { t: "quote", x: "Structure forms → liquidity is created → price sweeps the low → price enters the demand zone → buy setup" },
+      { t: "p", x: "Reason for the buy? Price swept the previous low into the 696 to 697 demand zone, giving a bullish setup for a move higher." },
+      { t: "h", x: "Example 3" },
+      { t: "h", x: "What does \"sweep\" mean?" },
+      { t: "p", x: "A sweep is when price briefly moves beyond an obvious previous high or low, often taking out the orders around that level, before reversing. On the left side of the chart, price pushes above a previous high. The idea being illustrated:" },
+      { t: "quote", x: "Old high → price pushes above it → liquidity is taken → price reverses" },
+      { t: "p", x: "For a beginner, think of it as price cleaning out the orders around an obvious level. A sweep by itself is not necessarily a reason to enter a trade: you normally want additional confirmation." },
+      { t: "h", x: "What does \"break\" mean?" },
+      { t: "p", x: "The Break labels point to places where price breaks an important previous swing or structure level. For example:" },
+      { t: "quote", x: "Higher high → higher low → price breaks below the previous low" },
+      { t: "p", x: "That can indicate that the previous upward structure has changed. It is often called a break of structure (BOS) or, depending on the trader's terminology, a market structure break." },
+      { t: "h", x: "What is \"inducement liquidity\"?" },
+      { t: "p", x: "This is a more advanced concept. Price creates an obvious swing or setup that attracts traders into positions, creating liquidity around that area. In the screenshot, the Inducement Liquidity label sits around an intermediate price structure before the larger move. As a beginner, remember: inducement is an area that may attract traders before price makes the larger move." },
+      { t: "note", x: "N/B: Do not treat every small swing as inducement. It must make sense within the broader market structure." },
+    ],
+  },
+];
+
+// ---------- Workbook (draft): one per handbook section ----------
+// terms: [term, meaning]   check: [question, answer]   tasks: things to do on a chart or on paper
+const WORKBOOKS = [
+  {
+    id: "00", goal: "Set your mindset and your working method before you start.",
+    terms: [["Strategy", "A defined set of rules for when to trade, where to enter and where to exit."], ["Discipline", "Following your plan consistently instead of acting on emotion."], ["Universal concepts", "Structure, risk management and psychology apply in every market."]],
+    check: [
+      ["Why does the guide begin with fundamentals before the strategy?", "Because the concepts of price movement, market structure, risk and psychology are universal. They explain not only how the strategy works but why it works."],
+      ["Is the aim of this guide only to give entry and exit signals?", "No. It aims to build the analytical mindset, discipline and consistency needed to trade well over the long term."],
+    ],
+    tasks: ["Write down, in your own words, why you want to trade Volatility Indices and what a good first three months would look like.", "Open a demo account and note its name and starting balance. You will use it for every practical task in this workbook."],
+  },
+  {
+    id: "01", goal: "Explain what forex is and when it trades.",
+    terms: [["Forex (FX)", "The global market where one currency is exchanged for another."], ["OTC market", "Over-the-counter: trading happens electronically through banks and brokers, not on a central exchange."], ["Trading sessions", "Sydney, Tokyo, London and New York. Together they keep forex open 24 hours a day, Monday to Friday."]],
+    check: [
+      ["Why is forex called an over-the-counter market?", "Because trades are made electronically between banks and brokers instead of on one central exchange."],
+      ["Name the four trading sessions.", "Sydney, Tokyo, London and New York."],
+      ["Give one real-life reason people exchange currencies besides trading.", "Travel, imports and exports, investment or cross-border payments."],
+    ],
+    tasks: ["List the four sessions and the time each one opens in your own time zone.", "Write two sentences explaining forex to a friend who has never heard of it."],
+  },
+  {
+    id: "02", goal: "Read a currency pair and count pips.",
+    terms: [["Base currency", "The first currency in a pair (EUR in EUR/USD)."], ["Quote currency", "The second currency in a pair (USD in EUR/USD). It is the currency the price is expressed in."], ["Major pairs", "EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD and NZD/USD."]],
+    check: [
+      ["If EUR/USD is 1.1500, what does that mean?", "One euro is worth 1.15 US dollars."],
+      ["You buy EUR/USD at 1.1000 and sell at 1.1050. How many pips did you gain?", "50 pips."],
+      ["Why do many traders prefer major pairs?", "They generally have the highest liquidity and the lowest spreads."],
+    ],
+    tasks: ["For three major pairs, write down which currency is the base and which is the quote.", "On your demo account, find the current price of EUR/USD and work out what a 20-pip move would be in price terms."],
+  },
+  {
+    id: "03", goal: "Define pip, spread, leverage and margin, and see how they affect cost and risk.",
+    terms: [["Pip", "A small price movement, usually the fourth decimal place."], ["Spread", "The difference between the bid and ask price; part of the cost of trading."], ["Leverage", "Controlling a larger position with a smaller deposit. It magnifies profits and losses."], ["Margin", "The money required to open and maintain a leveraged position."]],
+    check: [
+      ["What is the spread, and why does it matter?", "It is the gap between the bid and the ask price. You start every trade slightly behind because of it, so it is a cost."],
+      ["Does leverage only increase profits?", "No. It increases risk too, because losses are magnified in the same way."],
+      ["What is margin?", "The amount needed to open and maintain a leveraged position."],
+    ],
+    tasks: ["On your demo account, open the specification of one instrument and write down its spread and the margin needed for 0.01 lot.", "Explain in two sentences why a trader with high leverage can lose their account faster."],
+  },
+  {
+    id: "04", goal: "Tell an uptrend from a downtrend and a range.",
+    terms: [["Uptrend", "Higher highs and higher lows."], ["Downtrend", "Lower highs and lower lows."], ["Range", "Price moving sideways."], ["Support", "A price area where buyers have stepped in before."]],
+    check: [
+      ["What makes an uptrend?", "A sequence of higher highs and higher lows."],
+      ["What does a ranging market look like?", "Price moving sideways without making clear higher or lower swings."],
+      ["What do many traders wait for before considering a buy at support?", "For price to respect the support level."],
+    ],
+    tasks: ["Open a Volatility 75 chart on the 1-hour timeframe. Mark the last three swing highs and swing lows and label the market uptrend, downtrend or range.", "Repeat on the 15-minute chart. Does the trend agree with the 1-hour chart?"],
+  },
+  {
+    id: "05", goal: "Set a risk plan before you take any trade.",
+    terms: [["Position sizing", "Choosing a trade size so that a loss is a small percentage of your account."], ["Risk-to-reward", "What you stand to gain compared with what you risk. A common aim is at least 1:2."], ["Stop loss", "An order that limits your loss if price moves against you."], ["Revenge trading", "Trading to win back a loss instead of following your plan."]],
+    check: [
+      ["What does a 1:2 risk-to-reward ratio mean?", "You risk 1 unit to try to gain at least 2."],
+      ["Name three common risk-management mistakes.", "Overleveraging, moving stop losses, revenge trading, or risking too much on one trade."],
+      ["Why is a stop loss placed before the trade, not after?", "So the maximum loss is decided calmly in advance and not by emotion in the middle of the trade."],
+    ],
+    tasks: ["Write your own risk rules: the percentage you will risk per trade, the maximum trades per day and the daily loss at which you stop.", "Take a made-up 1,000 demo account. Work out the money you would risk at 1% and the target for a 1:2 trade."],
+  },
+  {
+    id: "06", goal: "Spot fear and greed in yourself and start a trading journal.",
+    terms: [["Discipline", "Following the plan, not the feeling."], ["Fear", "Makes traders exit too early."], ["Greed", "Makes traders hold too long or take too much risk."], ["Trading journal", "A record of every trade: reason, result and lesson."]],
+    check: [
+      ["How does fear usually damage a trade?", "It makes traders close winning trades too early."],
+      ["How does greed usually damage a trade?", "It encourages holding positions too long."],
+      ["What should a journal entry contain?", "Why the trade was entered, the result and what you learned."],
+    ],
+    tasks: ["Create a journal page with these columns: date, instrument, reason for entry, risk, result, lesson, how I felt.", "Fill in three demo trades, and for each one write whether you followed your plan."],
+  },
+  {
+    id: "07", goal: "Know the basic trading vocabulary by heart.",
+    terms: [["Bid", "Price at which the market buys."], ["Ask", "Price at which the market sells."], ["Lot", "Standard trading volume."], ["Liquidity", "Ease of buying or selling without significantly affecting price."], ["Volatility", "The rate at which prices change."]],
+    check: [
+      ["Which price do you pay when you buy: bid or ask?", "The ask, because it is the price at which the market sells."],
+      ["What is liquidity?", "How easily you can buy or sell without moving the price much."],
+      ["What is volatility?", "How fast and how far prices change."],
+    ],
+    tasks: ["Make a flashcard for each of the five terms and test yourself until you can answer without looking.", "Find the bid, the ask and the spread of one instrument on your demo platform."],
+  },
+  {
+    id: "08", goal: "Read any candlestick and say what it suggests, in context.",
+    terms: [["OHLC", "Open, High, Low, Close: the four prices a candle shows."], ["Body", "The distance between open and close."], ["Wick (shadow)", "The thin line above or below the body showing the extreme price reached."], ["Doji", "A candle where open and close are nearly equal; indecision."], ["Marubozu", "A candle with little or no wicks; strong conviction."]],
+    check: [
+      ["How do you know a candle is bullish?", "Its close is higher than its open."],
+      ["What do long wicks often indicate?", "Rejection of a price level."],
+      ["Hammer and hanging man look the same. How do they differ?", "A hammer appears after a downtrend and suggests a bullish reversal; a hanging man appears after an uptrend and suggests a possible bearish reversal."],
+      ["Why should a candlestick not be used alone as a signal?", "Because it must be read with market structure, support and resistance, trend direction and risk management."],
+    ],
+    tasks: ["On a chart, find and mark one example each of a long bullish candle, a long bearish candle, a doji, a hammer or shooting star, and a marubozu.", "For each candle you marked, write what it suggests and what extra confirmation you would need before trading it."],
+  },
+  {
+    id: "09", goal: "Describe how Volatility Indices work and pick a suitable one.",
+    terms: [["Volatility Index", "A synthetic instrument that simulates a constant level of volatility."], ["RNG", "Random Number Generator. A cryptographically secure one produces the price movement."], ["1-second index", "A version of an index that updates every second, so price moves faster."]],
+    check: [
+      ["What generates the price of a Volatility Index?", "A cryptographically secure Random Number Generator."],
+      ["Do economic news and interest-rate decisions move these indices?", "No. They are not influenced by news, geopolitics or sentiment."],
+      ["What does the 75 in Volatility 75 stand for?", "Its constant simulated volatility level of 75%."],
+      ["Who are the 1-second indices attractive to?", "Short-term traders and scalpers."],
+    ],
+    tasks: ["Open Volatility 10 and Volatility 100 on the same timeframe and compare the size of the candles. Write down what you notice.", "Choose the index you will study first, and write two sentences on why it matches your risk tolerance."],
+  },
+  {
+    id: "10", goal: "Name every SMC concept and walk through the eight-step analysis.",
+    terms: [["Market structure", "The sequence of HH, HL, LH and LL swings."], ["Liquidity", "Areas where many orders sit: previous highs and lows, equal highs and lows, stop-loss clusters."], ["Order block", "The final opposite candle before a strong move."], ["Breaker block", "An order block that failed and changed its role."], ["Fair value gap", "A three-candle imbalance where the wicks of candles 1 and 3 do not overlap."], ["BOS", "A break of a swing level in the direction of the structure."], ["ChoCH", "An early sign of a change in price behaviour."], ["Premium / discount", "The upper and lower halves of a range, split at equilibrium."]],
+    check: [
+      ["What is the difference between BOS and ChoCH?", "A BOS breaks a swing level in the direction of the prevailing structure (continuation). A ChoCH is an early break against it, hinting that behaviour is changing."],
+      ["Where is a bullish order block usually found?", "At the final bearish candle before a strong bullish move."],
+      ["What is a liquidity sweep?", "Price moves through an obvious high or low, triggers the orders there, then reverses."],
+      ["Where do bullish traders look to buy: premium or discount?", "In discount areas."],
+      ["Does finding an FVG or order block guarantee a profitable trade?", "No. They need to line up with structure and liquidity, and risk management is still essential."],
+    ],
+    tasks: ["Take one chart and run the eight steps in order: higher-timeframe structure, liquidity, interaction with liquidity, BOS or ChoCH, zone, premium or discount, confirmation, risk. Write one line for each.", "Mark every fair value gap you can find on a 15-minute chart and note whether price later returned to it.", "Draw the range of the last swing and mark equilibrium. Is the current price in premium or discount?"],
+  },
+  {
+    id: "11", goal: "Explain a setup on a real chart from start to finish.",
+    terms: [["Sweep", "Price briefly moves beyond an obvious high or low, then reverses."], ["Break", "Price breaks an important swing or structure level."], ["Inducement liquidity", "A small, obvious swing that attracts traders before the larger move."], ["Demand zone", "A price area where buying interest is expected."]],
+    check: [
+      ["Put Example 2 in order.", "Structure forms, liquidity is created, price sweeps the low, price enters the demand zone, buy setup."],
+      ["Is a sweep alone a reason to enter?", "No. You normally want additional confirmation."],
+      ["What is the beginner's way to remember inducement?", "An area that may attract traders before price makes the larger move."],
+    ],
+    tasks: ["Find one setup of your own on a demo chart, screenshot it, and mark the structure, the liquidity, the sweep, the zone and the invalidation level.", "Write the reason for the trade in one sentence, the way Example 2 does, and what would prove you wrong."],
+  },
+];
+
+const IDS = SECTIONS.map((s) => s.id);
+
+// What the handbook screen needs for the list (without the long blocks).
+const FINAL = {
+  title: "You have finished the Multi-FX handbook",
+  paragraphs: [
+    "You now know the fundamentals, the Volatility Indices and the Smart Money Concept framework.",
+    "Do the workbooks, attend the live classes, then test yourself with the quiz. Always define your risk before you enter a trade.",
+  ],
+};
+
+module.exports = { SECTIONS, WORKBOOKS, IDS, FINAL };
+```
+
+#### `multifx-quiz.js`
+
+```js
+// The Multi-FX quiz: a bank of multiple-choice questions written from the Multi-FX handbook (DRAFT: edit or add
+// questions in BANK below; give every question its own short id and never reuse an id for a different question).
+//
+// How an attempt works (the website, not the browser, is the judge):
+//   1. The student asks for an attempt. We pick PER_ATTEMPT questions at random, shuffle each question's options, and
+//      send them WITHOUT the answers, together with a signed "attempt token". The token holds the student, the
+//      question ids, how the options were shuffled, an attempt id and an expiry. Nothing is stored yet.
+//   2. The student sends back the token and the option they chose for each question. We check the token's signature
+//      (so nobody can change the questions or the shuffle), grade the answers here, save the result, and only then
+//      show the correct answers with the explanation.
+//   3. An attempt id is saved with the result, so the same attempt can be submitted only once.
+const crypto = require("crypto");
+
+const PER_ATTEMPT = 20;
+const TOKEN_TTL_MS = 2 * 60 * 60 * 1000; // an attempt must be finished within 2 hours
+
+// s = the handbook section the question comes from (see multifx-content.js), a = index of the correct option.
+const BANK = [
+  { id: "f01", s: "01", q: "What is forex?", o: ["The global market where one currency is exchanged for another", "A stock exchange in London", "A bank savings product", "A type of cryptocurrency"], a: 0, why: "Forex (foreign exchange) is the global market where currencies are exchanged for one another." },
+  { id: "f02", s: "01", q: "Forex is called an over-the-counter (OTC) market because:", o: ["It trades only on weekends", "Trading happens electronically through banks and brokers, not on a central exchange", "Only banks are allowed to trade", "Prices never change"], a: 1, why: "There is no single central exchange: trading is done electronically through banks and brokers." },
+  { id: "f03", s: "02", q: "In EUR/USD, which is the base currency?", o: ["USD", "EUR", "Both", "Neither"], a: 1, why: "The first currency of a pair is the base (EUR); the second (USD) is the quote currency." },
+  { id: "f04", s: "02", q: "You buy EUR/USD at 1.1000 and sell at 1.1050. How many pips did price move in your favour?", o: ["5 pips", "10 pips", "50 pips", "500 pips"], a: 2, why: "1.1050 minus 1.1000 is 0.0050, which is 50 pips." },
+  { id: "f05", s: "03", q: "What is the spread?", o: ["The profit of a trade", "The difference between the bid and ask price", "The size of a lot", "The deposit needed for leverage"], a: 1, why: "The spread is the gap between the bid and ask price and is part of the cost of trading." },
+  { id: "f06", s: "03", q: "Leverage lets a trader control a larger position with a smaller deposit. What else does it do?", o: ["It removes risk", "It guarantees profit", "It increases risk as well as potential profit", "It lowers the spread"], a: 2, why: "Leverage magnifies both gains and losses, so it increases risk." },
+  { id: "f07", s: "04", q: "An uptrend is made of:", o: ["Lower highs and lower lows", "Higher highs and higher lows", "Equal highs and equal lows", "Only bullish candles"], a: 1, why: "An uptrend forms higher highs and higher lows; a downtrend forms lower highs and lower lows." },
+  { id: "f08", s: "04", q: "A ranging market is one that:", o: ["Moves sideways", "Only moves up", "Only moves down", "Is closed"], a: 0, why: "A ranging market moves sideways without making clear higher or lower swings." },
+  { id: "f09", s: "05", q: "A common risk-to-reward objective is to risk 1 unit to target at least:", o: ["0.5 units", "1 unit", "2 units", "10 units"], a: 2, why: "Many traders aim for at least a 1:2 risk-to-reward ratio." },
+  { id: "f10", s: "05", q: "What does a stop-loss order do?", o: ["Locks in a profit", "Limits your loss if price moves against the trade", "Opens a second trade", "Lowers the spread"], a: 1, why: "A stop loss limits the loss if price moves against your trade." },
+  { id: "f11", s: "05", q: "Which of these is a common risk-management mistake?", o: ["Deciding the stop loss before entering", "Risking a small percentage per trade", "Moving your stop loss further away after the trade goes against you", "Keeping a trading journal"], a: 2, why: "Moving stop losses, overleveraging, revenge trading and risking too much on one trade are common mistakes." },
+  { id: "f12", s: "06", q: "According to the guide, fear in trading typically causes traders to:", o: ["Hold positions too long", "Exit too early", "Ignore their stop loss", "Trade larger lots"], a: 1, why: "Fear causes traders to exit too early, while greed encourages holding positions too long." },
+  { id: "f13", s: "06", q: "A trading journal should record:", o: ["Only winning trades", "Why the trade was entered, the result and the lessons learned", "Only the account balance", "Other traders' opinions"], a: 1, why: "Record every trade: the reason for entry, the result and what you learned." },
+  { id: "f14", s: "07", q: "Liquidity means:", o: ["The rate at which prices change", "The ease of buying or selling without significantly affecting price", "The price at which the market buys", "A standard trading volume"], a: 1, why: "Liquidity is how easily you can buy or sell without moving the price much. Volatility is the rate of price change." },
+
+  { id: "c01", s: "08", q: "Which four prices does a candlestick show?", o: ["Open, high, low, close", "Bid, ask, spread, lot", "Support, resistance, trend, range", "Buy, sell, stop, target"], a: 0, why: "A candlestick shows the Open, High, Low and Close (OHLC) of a period." },
+  { id: "c02", s: "08", q: "The body of a candlestick represents:", o: ["The highest price reached", "The distance between the open and the close", "The lowest price reached", "The trading volume"], a: 1, why: "The body is the distance between the opening and closing prices; the wicks show the extremes." },
+  { id: "c03", s: "08", q: "A bullish candlestick forms when:", o: ["The close is higher than the open", "The close is lower than the open", "The open equals the high", "It is displayed in red"], a: 0, why: "A bullish candle closes above its open, showing that buyers were stronger in that period." },
+  { id: "c04", s: "08", q: "A candle with a very small body and open and close almost equal is called a:", o: ["Marubozu", "Hammer", "Doji", "Shooting star"], a: 2, why: "A doji shows indecision: neither buyers nor sellers gained control." },
+  { id: "c05", s: "08", q: "Long wicks on a candle often indicate:", o: ["Rejection of a price level", "Strong trend continuation with no resistance", "That the market is closed", "A guaranteed reversal"], a: 0, why: "Long wicks often show that price was pushed away from a level, which is called rejection." },
+  { id: "c06", s: "08", q: "A hammer is a bullish reversal candle that usually appears:", o: ["After an uptrend", "After a downtrend", "Only on the daily chart", "Only in a range"], a: 1, why: "A hammer (small body at the top, long lower wick) appears after a downtrend and suggests rejection of lower prices." },
+  { id: "c07", s: "08", q: "A candle that looks exactly like a hammer but appears after an uptrend is a:", o: ["Hanging man", "Shooting star", "Inverted hammer", "Spinning top"], a: 0, why: "The hanging man looks like the hammer but appears after an uptrend and warns of a possible bearish reversal." },
+  { id: "c08", s: "08", q: "A shooting star has a small body near the bottom and:", o: ["A long lower wick", "No wicks at all", "A long upper wick", "Two equal wicks"], a: 2, why: "A shooting star has a long upper wick: buyers pushed price up but sellers forced it back down." },
+  { id: "c09", s: "08", q: "A Marubozu candle has:", o: ["Little or no wicks and signals strong momentum", "Very long wicks on both sides", "No body", "Equal open and close"], a: 0, why: "A marubozu has little or no wicks: strong buying or selling throughout the period." },
+  { id: "c10", s: "08", q: "How should a single candlestick signal be used?", o: ["As a standalone trading signal", "Together with market structure, support and resistance, trend and risk management", "Only when it is green", "It should be ignored completely"], a: 1, why: "No candlestick should be used alone. The best opportunities appear when candle signals line up with other analysis." },
+
+  { id: "v01", s: "09", q: "Volatility Indices are generated by:", o: ["Economic news", "A cryptographically secure Random Number Generator", "Central bank decisions", "Real company profits"], a: 1, why: "They are synthetic: a secure RNG creates price movement at a set level of volatility." },
+  { id: "v02", s: "09", q: "Volatility Indices are available to trade:", o: ["Monday to Friday only", "Only during the London session", "24 hours a day, 7 days a week", "Only on public holidays"], a: 2, why: "Because they do not depend on real-world markets, they trade 24/7." },
+  { id: "v03", s: "09", q: "The number in a name such as Volatility 75 represents:", o: ["The price of the index", "Its constant volatility level", "The number of trades per day", "The minimum lot size"], a: 1, why: "The number is the index's constant simulated volatility level (75%)." },
+  { id: "v04", s: "09", q: "What is special about the 1-second (1s) versions of Volatility Indices?", o: ["They only move once per second and are slower", "They update more frequently and produce faster price movement", "They have no volatility", "They are only for beginners"], a: 1, why: "The 1s versions follow the same volatility level but update more often, which suits short-term traders." },
+
+  { id: "s01", s: "10", q: "Which sequence describes a bullish market structure?", o: ["LL, LH, LL, LH", "HH, HL, HH, HL", "HH, LL, HH, LL", "HL, LL, HL, LL"], a: 1, why: "An uptrend forms HH → HL → HH → HL." },
+  { id: "s02", s: "10", q: "In SMC, liquidity refers to:", o: ["The amount of money in your account", "Areas where a large number of orders are likely to sit, such as previous highs and lows", "The speed of the internet connection", "The number of candles on a chart"], a: 1, why: "Liquidity sits at previous highs and lows, equal highs and lows, obvious support and resistance and stop-loss clusters." },
+  { id: "s03", s: "10", q: "A liquidity sweep happens when price:", o: ["Never reaches an obvious high or low", "Moves through an obvious high or low, triggers the orders there, then reverses", "Moves sideways for a week", "Gaps up at the open"], a: 1, why: "Price takes out the orders around an obvious level and then reverses." },
+  { id: "s04", s: "10", q: "A bullish order block is commonly identified at:", o: ["The final bearish candle before a strong bullish move", "The first bullish candle after a doji", "The highest candle on the chart", "Any green candle"], a: 0, why: "A bullish order block is commonly the last bearish candle before a strong move up." },
+  { id: "s05", s: "10", q: "A breaker block develops when:", o: ["An order block holds for a long time", "A previously respected order block fails and price breaks through it", "Price never touches a zone", "Two dojis appear together"], a: 1, why: "When an order block fails, the zone can change its role (support becomes resistance, or the reverse)." },
+  { id: "s06", s: "10", q: "A fair value gap (FVG) is commonly identified with:", o: ["One candle", "A three-candle formation where the wicks of the first and third candles do not overlap", "A 200-period average", "A news release"], a: 1, why: "An FVG is a price imbalance left when the second candle moves aggressively and candles one and three do not overlap." },
+  { id: "s07", s: "10", q: "In an uptrend, a break of structure (BOS) is price breaking:", o: ["Below the previous higher low only", "Above a previous higher high", "Sideways", "Below the previous lower low"], a: 1, why: "A BOS is a break of a swing level in the direction of the prevailing structure; in an uptrend, above a previous higher high." },
+  { id: "s08", s: "10", q: "A change of character (ChoCH) is:", o: ["A change of broker", "An early sign that price behaviour may be changing, such as breaking an important higher low in an uptrend", "The same as a stop loss", "Any candle that closes red"], a: 1, why: "ChoCH is about a change in how price behaves, so look for more confirmation before assuming a full reversal." },
+  { id: "s09", s: "10", q: "In a bullish context, SMC traders look for buying opportunities in:", o: ["Premium areas", "Discount areas", "Anywhere", "Only at equilibrium"], a: 1, why: "In a bullish context traders look to buy in the discount (lower) part of a range, and to sell in premium areas in a bearish context." },
+  { id: "s10", s: "10", q: "What is accumulation?", o: ["A period in which buying is believed to take place in a range before a potential move higher", "A period in which sellers take over after a rally", "Adding to a losing trade", "Saving profits in a bank"], a: 0, why: "Accumulation is buying activity inside a defined range before a potential expansion higher; distribution is the selling equivalent." },
+  { id: "s11", s: "10", q: "In the eight-step SMC analysis, the first step is to:", o: ["Enter the trade", "Identify the higher-timeframe structure", "Place the take profit", "Draw a Fibonacci tool"], a: 1, why: "You start with the bigger picture: is the market bullish, bearish or ranging?" },
+  { id: "s12", s: "10", q: "Why should you not enter just because price touched a zone?", o: ["Zones never work", "You should look for confirmation, because a touch alone is not a signal", "Price never returns to zones", "It is against the broker's rules"], a: 1, why: "Look for confirmation. An order block or FVG is not automatically an entry signal." },
+  { id: "s13", s: "10", q: "The guide says the 1-2% risk-per-trade guideline is:", o: ["A universal law", "A risk-management convention, not a universal rule; choose a level that suits you", "Illegal in some countries", "Only for Forex"], a: 1, why: "Risk levels should suit your capital, strategy and circumstances." },
+
+  { id: "p01", s: "11", q: "What is a \"sweep\" in the practical examples?", o: ["Price briefly moves beyond an obvious previous high or low, then reverses", "A sudden news event", "Closing all trades at once", "A very small candle"], a: 0, why: "A sweep takes the orders around an obvious level and then price reverses." },
+  { id: "p02", s: "11", q: "In Example 2, why is it a buy setup?", o: ["Price broke above resistance on high volume", "Price swept the previous low into a demand zone, giving a bullish setup for a move higher", "A doji appeared at the top of the range", "The spread was small"], a: 1, why: "The sequence was: structure forms, liquidity is created, price sweeps the low, price enters the demand zone, buy setup." },
+  { id: "p03", s: "11", q: "How does the guide describe inducement liquidity for a beginner?", o: ["An area that may attract traders before price makes the larger move", "A broker fee", "A guaranteed reversal point", "Any small swing, always"], a: 0, why: "The guide also warns: do not treat every small swing as inducement; it must make sense within the broader structure." },
+];
+
+const BANK_BY_ID = new Map(BANK.map((q) => [q.id, q]));
+
+// ---- self-check at load: a bad question here would silently mark students wrong ----
+(function check() {
+  const seen = new Set();
+  for (const q of BANK) {
+    if (!/^[a-z]\d{2}$/.test(q.id) || seen.has(q.id)) throw new Error("multifx-quiz: bad or duplicate id " + q.id);
+    seen.add(q.id);
+    if (!Array.isArray(q.o) || q.o.length !== 4 || new Set(q.o).size !== 4) throw new Error("multifx-quiz: " + q.id + " needs 4 different options");
+    if (!Number.isInteger(q.a) || q.a < 0 || q.a > 3) throw new Error("multifx-quiz: " + q.id + " has no correct option");
+  }
+  if (BANK.length < PER_ATTEMPT) throw new Error("multifx-quiz: the bank has fewer questions than one attempt needs");
+})();
+
+function mac(payload, secret) {
+  return crypto.createHmac("sha256", secret).update("multifxquiz." + payload).digest("base64url");
+}
+
+function shuffled(n, random) {
+  const a = Array.from({ length: n }, (_v, i) => i);
+  for (let i = n - 1; i > 0; i--) { const j = random(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// Start an attempt for `reg`. Returns { token, attemptId, total, questions: [{ id, section, q, options }] } (no answers).
+function startAttempt(reg, secret, o = {}) {
+  const random = o.random || ((n) => crypto.randomInt(n));
+  const now = o.now == null ? Date.now() : o.now;
+  const count = Math.min(o.count || PER_ATTEMPT, BANK.length);
+  const picked = shuffled(BANK.length, random).slice(0, count).map((i) => BANK[i]);
+  const attemptId = crypto.randomBytes(8).toString("hex");
+  const plan = picked.map((q) => [q.id, shuffled(4, random)]); // plan[i][1][j] = original index of the option shown in slot j
+  const payload = Buffer.from(JSON.stringify({ r: reg, n: attemptId, e: now + TOKEN_TTL_MS, p: plan })).toString("base64url");
+  return {
+    token: payload + "." + mac(payload, secret),
+    attemptId,
+    total: picked.length,
+    questions: picked.map((q, i) => ({ id: q.id, section: q.s, q: q.q, options: plan[i][1].map((orig) => q.o[orig]) })),
+  };
+}
+
+// Returns the signed attempt { reg, attemptId, plan } or null when the token is not ours, was changed, or has expired.
+function readToken(token, secret, now = Date.now()) {
+  if (typeof token !== "string" || token.length > 4000 || !secret) return null;
+  const [payload, sig, extra] = token.split(".");
+  if (!payload || !sig || extra !== undefined) return null;
+  const a = Buffer.from(mac(payload, secret));
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!(d.e > now) || !/^ABECFX\/\d{2}\/\d{4}$/.test(d.r) || !/^[0-9a-f]{16}$/.test(d.n) || !Array.isArray(d.p)) return null;
+    return { reg: d.r, attemptId: d.n, plan: d.p };
+  } catch (e) {
+    return null;
+  }
+}
+
+// answers[i] is the slot (0-3) the student chose for question i, or null for no answer.
+// Returns { score, total, breakdown: { section: [right, asked] }, review: [...] } or null when the answers do not fit the attempt.
+function grade(attempt, answers) {
+  if (!attempt || !Array.isArray(answers) || answers.length !== attempt.plan.length) return null;
+  let score = 0;
+  const breakdown = {};
+  const review = [];
+  for (let i = 0; i < attempt.plan.length; i++) {
+    const [id, perm] = attempt.plan[i];
+    const q = BANK_BY_ID.get(id);
+    if (!q || !Array.isArray(perm) || perm.length !== 4) return null;
+    const a = answers[i];
+    const chosen = Number.isInteger(a) && a >= 0 && a <= 3 ? a : null;
+    const correctSlot = perm.indexOf(q.a);
+    const right = chosen === correctSlot;
+    if (right) score++;
+    if (!breakdown[q.s]) breakdown[q.s] = [0, 0];
+    breakdown[q.s][1]++;
+    if (right) breakdown[q.s][0]++;
+    review.push({ id, section: q.s, q: q.q, options: perm.map((orig) => q.o[orig]), chosen, correct: correctSlot, right, why: q.why });
+  }
+  return { score, total: attempt.plan.length, breakdown, review };
+}
+
+module.exports = { BANK, PER_ATTEMPT, TOKEN_TTL_MS, startAttempt, readToken, grade };
+```
+
+#### `multifx-routes.js`
+
+```js
+// The Multi-FX course routes (a supplementary course under Mentorship, unlocked with a one-time code).
+// server.js calls mount() once with the pieces it already has (sign-in checks, limiters, the sheet).
+//
+// Student routes live under /api/portal/multifx. Everything except "status" and "unlock" needs the student to have
+// Multi-FX unlocked; the website decides that on every request (a cancelled code takes effect within seconds).
+// Dashboard routes live under /api/admin/multifx and need the "multifx" access.
+const path = require("path");
+const multifxcodes = require("./multifxcodes");
+const multifxLib = require("./multifx");
+const content = require("./multifx-content");
+const quiz = require("./multifx-quiz");
+
+const LOCKED_MESSAGE = "Multi-FX is locked. Enter the one-time Multi-FX code from your mentor or ABEC-FX to open it.";
+
+function mount(d) {
+  const { app, store, rateLimit, studentAuth, requirePerm, adminLimiter, lookupLimiter, lagosTimestamp, sessionSecret, pdfLink, links, attendanceLib, grading, clean } = d;
+  const PURPOSE = "multifxpdf";
+
+  const codes = multifxcodes.create(store, {
+    now: lagosTimestamp,
+    studentExists: async (reg) => (await store.readCached(5000)).some((r) => (r[0] || "").toUpperCase() === reg),
+  });
+  const course = multifxLib.create(store, { now: lagosTimestamp });
+  const classes = attendanceLib.create(store, { now: lagosTimestamp, tabs: { classes: "mfxclasses", attendance: "mfxattendance" } });
+  setInterval(() => { classes.flush().catch((e) => console.error("Multi-FX attendance save failed:", e.message)); }, 3 * 60 * 1000).unref();
+
+  const multifxAuth = requirePerm("multifx");
+  const titles = Object.fromEntries(content.SECTIONS.map((s) => [s.id, s.title]));
+  const studentRow = async (reg) => (await store.readCached(5000)).find((r) => (r[0] || "").toUpperCase() === reg) || null;
+
+  // ---- limiters ----
+  const byStudent = (req) => req.studentReg;
+  const unlockLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, max: 8, skipSuccessfulRequests: true, keyGenerator: byStudent,
+    standardHeaders: true, legacyHeaders: false, message: { error: "Too many wrong codes. Please wait a few minutes and try again." },
+  });
+  const readLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 200, keyGenerator: byStudent, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests. Please try again in a few minutes." } });
+  const saveLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 120, keyGenerator: byStudent, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests. Please try again in a few minutes." } });
+  const quizLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 40, keyGenerator: byStudent, standardHeaders: true, legacyHeaders: false, message: { error: "Too many quiz requests. Please try again later." } });
+  const beatLimiter = rateLimit({ windowMs: 60 * 1000, max: 8, keyGenerator: byStudent, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests." } });
+  const pdfLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests." } });
+
+  // ---- wrappers ----
+  function handle(handler) {
+    return async (req, res) => {
+      res.set("Cache-Control", "no-store");
+      try {
+        await handler(req, res);
+      } catch (err) {
+        if (err instanceof multifxcodes.MultifxCodeError || err instanceof attendanceLib.AttendanceError || err.status) {
+          return res.status(err.status || 400).json({ error: err.message, ...(err.fields ? { errors: err.fields } : {}) });
+        }
+        console.error("Multi-FX request failed:", err.message);
+        res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+      }
+    };
+  }
+  // Only for students who have Multi-FX. `fresh` makes it read the sheet instead of a few-seconds-old copy.
+  const gate = (fresh) => async (req, res, next) => {
+    try {
+      const access = await codes.accessFor(req.studentReg, { fresh: !!fresh });
+      if (!access.unlocked) return res.status(403).json({ error: LOCKED_MESSAGE, locked: true });
+      next();
+    } catch (err) {
+      console.error("Multi-FX access check failed:", err.message);
+      res.status(500).json({ error: "Something went wrong on our side. Please try again shortly." });
+    }
+  };
+  const P = "/api/portal/multifx";
+  const A = "/api/admin/multifx";
+
+  // ================= Students =================
+
+  // Does this student have Multi-FX? Also the overall progress when they do.
+  app.get(P, lookupLimiter, studentAuth, handle(async (req, res) => {
+    const access = await codes.accessFor(req.studentReg);
+    if (!access.unlocked) return res.json({ unlocked: false });
+    res.json({ unlocked: true, progress: await course.progressFor(req.studentReg) });
+  }));
+
+  // A student enters the one-time code.
+  app.post(P + "/unlock", studentAuth, unlockLimiter, handle(async (req, res) => {
+    if (!(await studentRow(req.studentReg))) return res.status(404).json({ error: "No student found with that registration number." });
+    res.json(await codes.redeem((req.body || {}).code, req.studentReg));
+  }));
+
+  // The handbook: every section with its text, and the student's progress.
+  app.get(P + "/handbook", readLimiter, studentAuth, gate(false), handle(async (req, res) => {
+    res.json({ sections: content.SECTIONS, final: content.FINAL, progress: await course.progressFor(req.studentReg) });
+  }));
+
+  // Mark a handbook section as read, or a workbook as done (or undo it).
+  app.post(P + "/progress", saveLimiter, studentAuth, gate(false), handle(async (req, res) => {
+    const b = req.body || {};
+    if (typeof b.done !== "boolean") return res.status(400).json({ error: "That could not be saved." });
+    const row = await studentRow(req.studentReg);
+    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+    const out = await course.saveProgress(req.studentReg, row[4] || "", String(b.kind), clean(b.id, 4), b.done);
+    if (!out) return res.status(400).json({ error: "That section could not be found." });
+    res.json(out);
+  }));
+
+  // The handbook PDF: a short-lived signed link, made only for a student who has Multi-FX.
+  app.get(P + "/pdf-link", readLimiter, studentAuth, gate(true), handle(async (req, res) => {
+    res.json({ url: "/multifx-handbook.pdf?t=" + encodeURIComponent(pdfLink.sign(req.studentReg, sessionSecret(), Date.now(), PURPOSE)) });
+  }));
+
+  app.get("/multifx-handbook.pdf", pdfLimiter, async (req, res) => {
+    const secret = sessionSecret();
+    const reg = secret ? pdfLink.verify(String(req.query.t || ""), secret, Date.now(), PURPOSE) : null;
+    if (!reg) return res.status(401).type("text/plain").send("This link has expired. Open Multi-FX in your student portal and try again.");
+    try {
+      if (!(await codes.accessFor(reg, { fresh: true })).unlocked) return res.status(403).type("text/plain").send(LOCKED_MESSAGE);
+    } catch (err) {
+      console.error("Multi-FX PDF access check failed:", err.message);
+      return res.status(500).type("text/plain").send("Something went wrong. Please try again shortly.");
+    }
+    res.set({ "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
+    res.type("application/pdf");
+    res.sendFile(path.join(__dirname, "private", "multifx-handbook.pdf"), { headers: { "Content-Disposition": 'inline; filename="Multi-FX-Trading-Strategy-Guide.pdf"' } });
+  });
+
+  // The workbook of every section, with the video and extra link the editor set.
+  app.get(P + "/workbook", readLimiter, studentAuth, gate(false), handle(async (req, res) => {
+    let media = {};
+    try { media = course.forStudents(await course.readMedia(false)); } catch (e) { console.error("Multi-FX media read failed:", e.message); media = course.forStudents({}); }
+    const items = content.WORKBOOKS.map((w) => ({ ...w, title: titles[w.id], video: media[w.id].video, resource: media[w.id].resource }));
+    res.json({ items, progress: await course.progressFor(req.studentReg) });
+  }));
+
+  app.get(P + "/community", readLimiter, studentAuth, gate(false), handle(async (_req, res) => {
+    try { res.json(links.multifxFor(await store.readLinks())); } catch (e) { console.error("Multi-FX community read failed:", e.message); res.json(links.multifxFor({})); }
+  }));
+
+  // Live class (its own series, separate from the main course).
+  app.get(P + "/class", readLimiter, studentAuth, gate(false), handle(async (req, res) => {
+    res.json(await classes.forStudent(req.studentReg));
+  }));
+  app.post(P + "/class/heartbeat", beatLimiter, studentAuth, gate(false), handle(async (req, res) => {
+    res.json(await classes.heartbeat(req.studentReg, (req.body || {}).classId));
+  }));
+
+  // Quiz.
+  const quizEntry = (cells) => ({
+    at: cells[0], score: Number(cells[3]), total: Number(cells[4]), pct: Number(cells[5]), grade: cells[6], attempt: Number(cells[7]),
+  });
+  const myAttempts = async (reg) => (await store.tabRows("mfxquiz")).filter((r) => String(r.cells[1] || "").trim().toUpperCase() === reg);
+
+  app.get(P + "/quiz", readLimiter, studentAuth, gate(false), handle(async (req, res) => {
+    const attempts = (await myAttempts(req.studentReg)).map((r) => quizEntry(r.cells)).reverse(); // newest first
+    const best = attempts.reduce((b, a) => (!b || a.pct > b.pct ? a : b), null);
+    res.json({ bank: quiz.BANK.length, perAttempt: Math.min(quiz.PER_ATTEMPT, quiz.BANK.length), attempts, latest: attempts[0] || null, best, scale: grading.SCALE });
+  }));
+
+  app.post(P + "/quiz/start", quizLimiter, studentAuth, gate(true), handle(async (req, res) => {
+    const secret = sessionSecret();
+    if (!secret) return res.status(503).json({ error: "Student sign-in is not set up on the website yet." });
+    const a = quiz.startAttempt(req.studentReg, secret);
+    res.json({ token: a.token, total: a.total, questions: a.questions.map(({ id, q, options }) => ({ id, q, options })) });
+  }));
+
+  let quizChain = Promise.resolve();
+  const quizQueued = (task) => { const run = quizChain.then(task, task); quizChain = run.catch(() => {}); return run; };
+
+  app.post(P + "/quiz/submit", quizLimiter, studentAuth, gate(true), handle(async (req, res) => {
+    const secret = sessionSecret();
+    const b = req.body || {};
+    const attempt = quiz.readToken(String(b.token || ""), secret);
+    if (!attempt || attempt.reg !== req.studentReg) return res.status(400).json({ error: "This quiz attempt has expired. Please start the quiz again." });
+    const graded = quiz.grade(attempt, b.answers);
+    if (!graded) return res.status(400).json({ error: "Your answers could not be read. Please start the quiz again." });
+    const row = await studentRow(req.studentReg);
+    if (!row) return res.status(401).json({ error: "Please sign in to your student portal." });
+    const out = await quizQueued(async () => {
+      const mine = await myAttempts(req.studentReg);
+      if ((await store.tabRows("mfxquiz")).some((r) => r.cells[8] === attempt.attemptId)) {
+        return { status: 409, body: { error: "This attempt was already submitted. Start a new quiz to try again." } };
+      }
+      const pct = grading.percent(graded.score, graded.total);
+      const g = grading.gradeFor(pct);
+      const attemptNo = mine.length + 1;
+      await store.appendTabRows("mfxquiz", [[lagosTimestamp(), req.studentReg, row[4] || "", String(graded.score), String(graded.total), String(pct), g.grade, String(attemptNo), attempt.attemptId, JSON.stringify(graded.breakdown), new Date().toISOString()]]);
+      return { status: 200, body: { score: graded.score, total: graded.total, pct, grade: g.grade, label: g.label, attempt: attemptNo, breakdown: graded.breakdown, review: graded.review } };
+    });
+    res.status(out.status).json(out.body);
+  }));
+
+  // ================= Dashboard =================
+
+  app.get(A + "/codes", adminLimiter, multifxAuth, handle(async (_req, res) => {
+    const list = await codes.list();
+    const students = await store.readCached(5000);
+    const names = new Map(students.map((r) => [(r[0] || "").toUpperCase(), r[4] || ""]));
+    res.json({ codes: list.map((c) => ({ ...c, usedByName: names.get(c.usedBy) || "" })) });
+  }));
+  app.post(A + "/codes", adminLimiter, multifxAuth, handle(async (req, res) => {
+    res.json(await codes.generate(req.body, req.admin));
+  }));
+  app.post(A + "/codes/revoke", adminLimiter, multifxAuth, handle(async (req, res) => {
+    res.json(await codes.revoke((req.body || {}).code, req.admin));
+  }));
+
+  app.get(A + "/media", adminLimiter, multifxAuth, handle(async (_req, res) => {
+    res.json({ sections: content.SECTIONS.map((s) => ({ id: s.id, title: s.title })), values: await course.readMedia(true) });
+  }));
+  app.put(A + "/media", adminLimiter, multifxAuth, handle(async (req, res) => {
+    res.json({ ok: true, values: await course.saveMedia(req.body, titles) });
+  }));
+
+  app.get(A + "/attendance", adminLimiter, multifxAuth, handle(async (_req, res) => { res.json(await classes.list()); }));
+  app.post(A + "/attendance/start", adminLimiter, multifxAuth, handle(async (req, res) => { res.json(await classes.start(req.body, req.admin)); }));
+  app.post(A + "/attendance/end", adminLimiter, multifxAuth, handle(async (req, res) => { res.json(await classes.end(req.admin)); }));
+  app.get(A + "/attendance/report", adminLimiter, multifxAuth, handle(async (req, res) => {
+    const out = await classes.report(String(req.query.id || ""));
+    const rows = await store.readCached(5000);
+    const byReg = new Map(rows.map((r) => [(r[0] || "").toUpperCase(), r]));
+    const people = out.people.map((p) => ({ ...p, name: (byReg.get(p.reg) || [])[4] || "" }));
+    // Students who have Multi-FX but never joined are listed as absent.
+    const joined = new Set(out.people.map((p) => p.reg));
+    const absent = [...(await codes.unlockedRegs())].filter((reg) => !joined.has(reg))
+      .map((reg) => ({ reg, name: (byReg.get(reg) || [])[4] || "", minutes: 0, percent: 0, present: false }));
+    res.json({ ...out, people: people.concat(absent) });
+  }));
+
+  app.get(A + "/quiz-results", adminLimiter, multifxAuth, handle(async (_req, res) => {
+    const rows = (await store.tabRows("mfxquiz")).map((r) => ({ reg: r.cells[1], name: r.cells[2], ...quizEntry(r.cells) })).reverse();
+    res.json({ results: rows.slice(0, 1000), total: rows.length });
+  }));
+
+  return { codes, course, classes };
+}
+
+module.exports = { mount, LOCKED_MESSAGE };
 ```
 
 #### `package.json`
@@ -6607,6 +8214,7 @@ _missing_
                 <a href="#/community" data-view="community">Community</a>
                 <a href="#/class" data-view="class">Live class</a>
                 <a href="#/quiz" data-view="quiz">Quiz</a>
+                <a href="#/multifx" data-view="multifx">Multi-FX</a>
               </div>
             </div>
           </nav>
@@ -6924,6 +8532,11 @@ _missing_
             <div id="hbMount"><p class="live" role="status">Opening the handbook...</p></div>
           </div>
 
+          <!-- View: Multi-FX (a supplementary course unlocked with a one-time code) -->
+          <div id="viewMultifx" class="view" hidden>
+            <div id="mfxMount"><p class="live" role="status">Opening Multi-FX...</p></div>
+          </div>
+
           <!-- View: Workbook -->
           <div id="viewWorkbook" class="view" hidden>
             <div id="wbMount"><p class="live" role="status">Opening the workbooks...</p></div>
@@ -7001,6 +8614,7 @@ _missing_
   <script src="/workbook.js"></script>
   <script src="/funds.js"></script>
   <script src="/copytrading.js"></script>
+  <script src="/multifx.js"></script>
   <script src="/photo.js"></script>
   <script src="/signature.js"></script>
   <script src="/portal.js"></script>
@@ -7074,7 +8688,7 @@ _missing_
     if (typeof stopSignals === "function") stopSignals();
     if (typeof stopBot === "function") stopBot();
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset(); window.abecMultifx.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -7194,14 +8808,14 @@ _missing_
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset(); window.abecMultifx.reset();
     currentView = "";
     route();
   }
 
   // ---- Portal menu: ID Card, Trading (Signals, Bot trading, Traders community) and Mentorship (Handbook, Workbook,
   // Community, Live class, Quiz). Pages keep their addresses: #/card, #/quiz, #/handbook/03, #/traders ... ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds", "copy"];
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds", "copy", "multifx"];
   var copyFollow = false, copyMaster = false;
   var currentView = "";
 
@@ -7239,6 +8853,9 @@ _missing_
   })();
 
   function parseRoute() {
+    // Multi-FX has its own tabs: #/multifx, #/multifx/handbook, #/multifx/handbook/08 ...
+    var mx = /^#\/multifx(?:\/(handbook|workbook|community|class|quiz))?(?:\/(\d{2}))?$/.exec(location.hash || "");
+    if (mx) return { view: "multifx", chapter: "", tab: mx[1] || "", id: mx[2] || "" };
     var m = /^#\/(card|quiz|handbook|workbook|community|traders|class|signals|bot|funds|copy)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
@@ -7260,7 +8877,7 @@ _missing_
       toggles[t].classList.toggle("is-current", !!toggles[t].parentNode.querySelector('.sub-menu a[aria-current="page"]'));
     }
     closeMenus();
-    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook");
+    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook" || r.view === "multifx");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
@@ -7271,18 +8888,20 @@ _missing_
     if (r.view === "funds" && currentView !== "funds") window.abecFunds.show();
     if (r.view !== "signals") stopSignals();
     if (r.view !== "bot") stopBot();
+    if (r.view === "multifx") window.abecMultifx.show(r.tab, r.id); else window.abecMultifx.stop();
     if (r.view === "copy" && currentView !== "copy") window.abecCopy.show(copyFollow, copyMaster);
     if (r.view !== "copy") window.abecCopy.stop();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
     if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
-    if (r.view !== "handbook" || !r.chapter) window.scrollTo(0, 0);
+    if ((r.view !== "handbook" || !r.chapter) && r.view !== "multifx") window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecFunds.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecCopy.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecMultifx.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Live class: join Google Meet in its own window; time with that window open counts towards attendance ----
   var cls = { id: "", win: null, timer: null, minutes: 0 };
@@ -8209,7 +9828,7 @@ _missing_
 
   document.getElementById("switchBtn").addEventListener("click", function () {
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecMultifx.reset();
     currentReg = "";
     mySig = "";
     currentView = "";
@@ -8559,6 +10178,9 @@ _missing_
       if (data) render(); else load();
     },
     summary: function () { return loadSummary(); },
+    // Shared with the Multi-FX handbook (public/multifx.js), so both courses draw text blocks and bars the same way.
+    renderBlock: renderBlock,
+    bar: bar,
     reset: function () { data = null; openId = null; busy = false; if (mount) mount.replaceChildren(); },
   };
 })();
@@ -9106,6 +10728,788 @@ _missing_
       ["fnTiles", "fnReqTable", "fnHolders", "fnLedger", "fnProblems"].forEach(function (id) { var n = $(id); if (n) n.replaceChildren(); });
       ["fnMsg", "fnReqNote", "fnHoldersNote"].forEach(function (id) { var n = $(id); if (n) n.textContent = ""; });
     },
+  };
+})();
+```
+
+#### `public/multifx.js`
+
+```js
+// Multi-FX inside the student portal: a supplementary course unlocked with a one-time code.
+// Locked: a box to enter the code. Unlocked: Handbook, Workbook, Community, Live class and Quiz as tabs.
+// Addresses: #/multifx, #/multifx/handbook, #/multifx/handbook/08, #/multifx/workbook/03, #/multifx/community, #/multifx/class, #/multifx/quiz.
+// portal.js calls setup() once with its sign-in helpers and show(tab, id) whenever the route is Multi-FX.
+(function () {
+  var api = null; // { authFetch(url, opts), signedOut(msg) }
+  var mount = null;
+  var P = "/api/portal/multifx";
+  var state = { unlocked: null, progress: null };
+  var cache = {}; // handbook / workbook data
+  var cur = { tab: "", id: "" };
+  var cls = { id: "", link: "", win: null, timer: null };
+  var TABS = [["handbook", "Handbook"], ["workbook", "Workbook"], ["community", "Community"], ["class", "Live class"], ["quiz", "Quiz"]];
+  var busy = false;
+
+  function el(tag, cls2, text) {
+    var e = document.createElement(tag);
+    if (cls2) e.className = cls2;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function readJson(r) {
+    return r.json().catch(function () { return {}; }).then(function (b) {
+      if (r.status === 401) { api.signedOut(); throw new Error("signed out"); }
+      if (r.status === 403 && b.locked) { state.unlocked = false; cache = {}; var e = new Error(b.error || "Multi-FX is locked."); e.locked = true; throw e; }
+      if (!r.ok) { var er = new Error(b.error || "Something went wrong. Please try again."); er.fields = b.errors; throw er; }
+      return b;
+    });
+  }
+  function get(path) { return api.authFetch(P + path).then(readJson); }
+  function post(path, body) {
+    return api.authFetch(P + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).then(readJson);
+  }
+  function failBox(e, retry) {
+    var box = el("div");
+    box.appendChild(el("p", "quiz-empty", e.message || "Something went wrong."));
+    if (retry) { var b = el("button", "btn ghost", "Try again"); b.type = "button"; b.addEventListener("click", retry); box.appendChild(b); }
+    return box;
+  }
+  function pct(p) { return p ? p.percent : 0; }
+
+  // ---------- Locked ----------
+  function renderLocked(note) {
+    stopBeat();
+    mount.replaceChildren();
+    mount.appendChild(el("h2", null, "Multi-FX"));
+    mount.appendChild(el("p", "lead", "A supplementary course on Volatility Indices and the Smart Money Concept, with its own handbook, workbook, community, live classes and quiz."));
+    var card = el("section", "quizcard quizgate");
+    card.appendChild(el("h3", null, "Unlock Multi-FX"));
+    card.appendChild(el("p", "quizgate-note", note || "Multi-FX is locked. Enter the one-time code you received from your mentor or ABEC-FX."));
+    var form = el("form"); form.noValidate = true;
+    var f = el("div", "field");
+    var lab = el("label", null, "Multi-FX code"); lab.setAttribute("for", "mfxCode");
+    var inp = el("input"); inp.id = "mfxCode"; inp.type = "text"; inp.autocomplete = "off"; inp.setAttribute("autocapitalize", "characters"); inp.spellcheck = false; inp.maxLength = 24; inp.placeholder = "MF-XXXX-XXXX";
+    f.appendChild(lab); f.appendChild(inp);
+    var err = el("p", "formErr"); err.setAttribute("role", "alert");
+    var btn = el("button", "primary", "Unlock Multi-FX"); btn.type = "submit";
+    form.appendChild(f); form.appendChild(err); form.appendChild(btn);
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      err.textContent = "";
+      if (!inp.value.trim()) { err.textContent = "Enter your Multi-FX code."; return; }
+      btn.disabled = true;
+      post("/unlock", { code: inp.value }).then(function () {
+        state.unlocked = null; cache = {};
+        load();
+      }).catch(function (e) {
+        btn.disabled = false;
+        if (e.message !== "signed out") err.textContent = e.message;
+      });
+    });
+    card.appendChild(form);
+    card.appendChild(el("p", "quizgate-foot", "A code works once and unlocks Multi-FX on your account for good, on any device."));
+    mount.appendChild(card);
+  }
+
+  // ---------- Frame (header + tabs) ----------
+  var body = null;
+  function frame() {
+    mount.replaceChildren();
+    mount.appendChild(el("h2", null, "Multi-FX"));
+    mount.appendChild(el("p", "lead", "Volatility Indices and the Smart Money Concept. Study the handbook, do the workbook, join the live classes and test yourself with the quiz."));
+    var prog = el("section", "hb-progress");
+    var top = el("div", "hb-progress-top");
+    top.appendChild(el("strong", null, "Your Multi-FX progress"));
+    var pc = el("span", "hb-pct", pct(state.progress) + "%"); pc.id = "mfxPct";
+    top.appendChild(pc);
+    prog.appendChild(top);
+    var track = window.abecHandbook.bar(pct(state.progress)); track.id = "mfxBar";
+    prog.appendChild(track);
+    mount.appendChild(prog);
+    var tabs = el("nav", "sig-tabs mfx-tabs"); tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Multi-FX sections");
+    TABS.forEach(function (t) {
+      var a = el("a", "mfx-tab", t[1]);
+      a.href = "#/multifx/" + t[0];
+      a.setAttribute("role", "tab");
+      a.setAttribute("aria-selected", t[0] === cur.tab ? "true" : "false");
+      tabs.appendChild(a);
+    });
+    mount.appendChild(tabs);
+    body = el("div", "mfx-body");
+    mount.appendChild(body);
+  }
+  function refreshProgress(p) {
+    state.progress = p;
+    var a = document.getElementById("mfxPct"), b = document.getElementById("mfxBar");
+    if (a) a.textContent = pct(p) + "%";
+    if (b) { b.setAttribute("aria-valuenow", String(pct(p))); b.firstChild.style.width = pct(p) + "%"; }
+  }
+
+  // ---------- Handbook ----------
+  function openPdf(btn, page) {
+    btn.disabled = true;
+    get("/pdf-link").then(function (b) { window.open(b.url + (page ? "#page=" + page : ""), "_blank", "noopener"); })
+      .catch(function (e) { if (e.message === "signed out") return; if (e.locked) { load(); return; } window.alert(e.message); })
+      .then(function () { btn.disabled = false; });
+  }
+  function pdfButton(label, page) {
+    var b = el("button", "btn ghost wide", label); b.type = "button";
+    b.addEventListener("click", function () { openPdf(b, page); });
+    return b;
+  }
+  function isRead(id) { return cache.handbook.progress.handbook.ids.indexOf(id) !== -1; }
+  function pagesText(s) { return s.pdf[0] === s.pdf[1] ? "page " + s.pdf[0] : "pages " + s.pdf[0] + " to " + s.pdf[1]; }
+
+  function renderHandbook() {
+    var d = cache.handbook;
+    body.replaceChildren();
+    if (cur.id) return renderSection(cur.id);
+    var h = d.progress.handbook;
+    body.appendChild(el("p", "hb-progress-sub", h.count === h.total ? "You have read the whole handbook. Well done." : h.count + " of " + h.total + " sections read"));
+    var list = el("ol", "hb-chapters");
+    d.sections.forEach(function (s) {
+      var li = el("li");
+      var a = el("a", "hb-chapter" + (isRead(s.id) ? " is-read" : ""));
+      a.href = "#/multifx/handbook/" + s.id;
+      a.appendChild(el("span", "hb-num", isRead(s.id) ? "✓" : s.id));
+      var t = el("span", "hb-chapter-txt");
+      t.appendChild(el("strong", null, s.title));
+      t.appendChild(el("span", null, (isRead(s.id) ? "Read" : "Not read yet") + " · PDF " + pagesText(s)));
+      a.appendChild(t); li.appendChild(a); list.appendChild(li);
+    });
+    body.appendChild(list);
+    if (h.count === h.total) {
+      var fin = el("section", "hb-final");
+      fin.appendChild(el("h3", null, d.final.title));
+      d.final.paragraphs.forEach(function (t) { fin.appendChild(el("p", null, t)); });
+      var q = el("a", "btn primary wide", "Take the quiz"); q.href = "#/multifx/quiz"; fin.appendChild(q);
+      body.appendChild(fin);
+    }
+    var foot = el("div", "hb-foot");
+    foot.appendChild(el("p", "hb-foot-note", "The PDF has the candlestick drawings and the annotated chart examples."));
+    foot.appendChild(pdfButton("Open the full handbook PDF"));
+    body.appendChild(foot);
+  }
+
+  function renderSection(id) {
+    var d = cache.handbook;
+    var idx = -1;
+    d.sections.forEach(function (s, i) { if (s.id === id) idx = i; });
+    if (idx < 0) { location.hash = "#/multifx/handbook"; return; }
+    var s = d.sections[idx];
+    body.replaceChildren();
+    var back = el("a", "hb-back", "← All sections"); back.href = "#/multifx/handbook"; body.appendChild(back);
+    var art = el("article", "hb-article");
+    art.appendChild(el("p", "hb-kicker", s.id === "00" ? "Introduction" : "Section " + s.id));
+    art.appendChild(el("h2", null, s.title));
+    art.appendChild(el("p", "hb-tagline", s.tagline));
+    s.blocks.forEach(function (b) { art.appendChild(window.abecHandbook.renderBlock(b)); });
+    body.appendChild(art);
+    var done = isRead(s.id);
+    var mark = el("button", (done ? "btn ghost wide" : "btn primary wide") + " hb-mark", done ? "✓ Read. Mark as not read" : "Mark this section as read");
+    mark.type = "button";
+    var msg = el("p", "hb-msg"); msg.setAttribute("role", "status");
+    mark.addEventListener("click", function () { save("handbook", s.id, !isRead(s.id), mark, msg); });
+    body.appendChild(mark); body.appendChild(msg);
+    var nav = el("div", "hb-pager");
+    if (idx > 0) { var pv = el("a", "btn ghost", "← Previous"); pv.href = "#/multifx/handbook/" + d.sections[idx - 1].id; nav.appendChild(pv); } else nav.appendChild(el("span"));
+    if (idx < d.sections.length - 1) { var nx = el("a", "btn ghost", "Next →"); nx.href = "#/multifx/handbook/" + d.sections[idx + 1].id; nav.appendChild(nx); }
+    body.appendChild(nav);
+    body.appendChild(pdfButton("See this section in the PDF (" + pagesText(s) + ")", s.pdf[0]));
+    window.scrollTo(0, 0);
+  }
+
+  function save(kind, id, on, btn, msg) {
+    if (busy) return;
+    busy = true; btn.disabled = true; msg.textContent = "Saving...";
+    post("/progress", { kind: kind, id: id, done: on }).then(function (p) {
+      busy = false;
+      var c = kind === "handbook" ? cache.handbook : cache.workbook;
+      c.progress = p;
+      if (cache.handbook) cache.handbook.progress = p;
+      if (cache.workbook) cache.workbook.progress = p;
+      refreshProgress(p);
+      if (kind === "handbook") renderSection(id); else renderWorkbookItem(id);
+      var m = body.querySelector(".hb-msg");
+      if (m) m.textContent = "Saved. Your Multi-FX progress is now " + p.percent + "%.";
+      var again = body.querySelector(".hb-mark"); if (again) again.focus({ preventScroll: true });
+    }).catch(function (e) {
+      busy = false;
+      if (e.message === "signed out") return;
+      if (e.locked) { load(); return; }
+      btn.disabled = false; msg.textContent = e.message;
+    });
+  }
+
+  // ---------- Workbook ----------
+  function wbDone(id) { return cache.workbook.progress.workbook.ids.indexOf(id) !== -1; }
+  function renderWorkbook() {
+    var d = cache.workbook;
+    body.replaceChildren();
+    if (cur.id) return renderWorkbookItem(cur.id);
+    body.appendChild(el("p", "lead", "A workbook for every handbook section: the key terms, a self-check with answers, practical tasks, and a video where your mentor has added one."));
+    var list = el("ol", "wb-list");
+    d.items.forEach(function (w) {
+      var li = el("li", "wb-row");
+      li.appendChild(el("span", "hb-num", wbDone(w.id) ? "✓" : w.id));
+      var t = el("span", "hb-chapter-txt");
+      t.appendChild(el("strong", null, w.title));
+      t.appendChild(el("span", null, (wbDone(w.id) ? "Done" : "Not done yet") + (w.video ? " · Video" : "") + (w.resource ? " · Extra material" : "")));
+      li.appendChild(t);
+      var a = el("a", "btn ghost", wbDone(w.id) ? "Open again" : "Open"); a.href = "#/multifx/workbook/" + w.id;
+      li.appendChild(a); list.appendChild(li);
+    });
+    body.appendChild(list);
+  }
+  function renderWorkbookItem(id) {
+    var d = cache.workbook;
+    var idx = -1;
+    d.items.forEach(function (w, i) { if (w.id === id) idx = i; });
+    if (idx < 0) { location.hash = "#/multifx/workbook"; return; }
+    var w = d.items[idx];
+    body.replaceChildren();
+    var back = el("a", "hb-back", "← All workbooks"); back.href = "#/multifx/workbook"; body.appendChild(back);
+    var art = el("article", "hb-article");
+    art.appendChild(el("p", "hb-kicker", "Workbook " + w.id));
+    art.appendChild(el("h2", null, w.title));
+    art.appendChild(el("p", "hb-tagline", "Goal: " + w.goal));
+
+    var vbox = el("section", "hb-video");
+    vbox.appendChild(el("h3", null, "Video"));
+    if (w.video && /^[A-Za-z0-9_-]{11}$/.test(w.video)) {
+      var fr = el("div", "hb-video-frame");
+      var f = document.createElement("iframe");
+      f.src = "https://www.youtube-nocookie.com/embed/" + w.video + "?rel=0";
+      f.title = "Workbook video: " + w.title; f.loading = "lazy";
+      f.allow = "accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+      f.setAttribute("allowfullscreen", ""); f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+      fr.appendChild(f); vbox.appendChild(fr);
+      var yl = el("a", "hb-video-link", "Not playing? Watch on YouTube");
+      yl.href = "https://www.youtube.com/watch?v=" + w.video; yl.target = "_blank"; yl.rel = "noopener noreferrer";
+      vbox.appendChild(yl);
+    } else vbox.appendChild(el("p", "hb-video-soon", "The video for this workbook is coming soon. Check back later."));
+    art.appendChild(vbox);
+    if (w.resource && /^https:\/\//.test(w.resource.url)) {
+      var ex = el("a", "btn ghost wide", w.resource.title); ex.href = w.resource.url; ex.target = "_blank"; ex.rel = "noopener noreferrer";
+      art.appendChild(ex);
+    }
+
+    art.appendChild(el("h4", "hb-h", "Key terms"));
+    var wrap = el("div", "hb-tablewrap"); var tb = el("table", "hb-table");
+    var tbody = el("tbody");
+    w.terms.forEach(function (t) { var tr = el("tr"); tr.appendChild(el("th", null, t[0])); tr.appendChild(el("td", null, t[1])); tbody.appendChild(tr); });
+    tb.appendChild(tbody); wrap.appendChild(tb); art.appendChild(wrap);
+
+    art.appendChild(el("h4", "hb-h", "Self-check"));
+    art.appendChild(el("p", "hb-p", "Answer each question in your head or on paper, then open it to check."));
+    w.check.forEach(function (c, i) {
+      var det = el("details", "mfx-check");
+      det.appendChild(el("summary", null, (i + 1) + ". " + c[0]));
+      det.appendChild(el("p", "mfx-answer", c[1]));
+      art.appendChild(det);
+    });
+
+    art.appendChild(el("h4", "hb-h", "Practical tasks"));
+    var ul = el("ul", "hb-list"); w.tasks.forEach(function (t) { ul.appendChild(el("li", null, t)); }); art.appendChild(ul);
+    body.appendChild(art);
+
+    var done = wbDone(w.id);
+    var mark = el("button", (done ? "btn ghost wide" : "btn primary wide") + " hb-mark", done ? "✓ Done. Mark as not done" : "Mark this workbook as done");
+    mark.type = "button";
+    var msg = el("p", "hb-msg"); msg.setAttribute("role", "status");
+    mark.addEventListener("click", function () { save("workbook", w.id, !wbDone(w.id), mark, msg); });
+    body.appendChild(mark); body.appendChild(msg);
+    var nav = el("div", "hb-pager");
+    if (idx > 0) { var pv = el("a", "btn ghost", "← Previous"); pv.href = "#/multifx/workbook/" + d.items[idx - 1].id; nav.appendChild(pv); } else nav.appendChild(el("span"));
+    if (idx < d.items.length - 1) { var nx = el("a", "btn ghost", "Next →"); nx.href = "#/multifx/workbook/" + d.items[idx + 1].id; nav.appendChild(nx); }
+    body.appendChild(nav);
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Community ----------
+  function renderCommunity(d) {
+    body.replaceChildren();
+    body.appendChild(el("p", "lead", "Join the Multi-FX community to learn alongside other students and get updates from your mentors."));
+    var card = el("section", "quizcard communitycard");
+    var any = false;
+    [["whatsapp", "Open WhatsApp community", "btn primary wide"], ["telegram", "Open Telegram community", "btn ghost wide"]].forEach(function (x) {
+      if (d[x[0]] && /^https:\/\//.test(d[x[0]])) {
+        var a = el("a", x[2], x[1]); a.href = d[x[0]]; a.target = "_blank"; a.rel = "noopener noreferrer"; card.appendChild(a); any = true;
+      }
+    });
+    if (!any) card.appendChild(el("p", "live", "The Multi-FX community link is coming soon."));
+    body.appendChild(card);
+  }
+
+  // ---------- Live class ----------
+  function stopBeat() { if (cls.timer) { clearInterval(cls.timer); cls.timer = null; } }
+  function status(text) { var s = document.getElementById("mfxClsStatus"); if (s) s.textContent = text || ""; }
+  function beat() {
+    if (!cls.win || cls.win.closed) { stopBeat(); status("Your Meet window is closed, so your time is not being counted. Press Join to go back in."); return; }
+    post("/class/heartbeat", { classId: cls.id }).then(function (b) {
+      if (!b.live) { stopBeat(); status("This class has ended. Thank you for joining."); renderClass(true); return; }
+      status("You are being counted: " + b.minutes + (b.minutes === 1 ? " minute" : " minutes") + " so far.");
+    }).catch(function (e) { if (e.locked) { stopBeat(); load(); } /* a missed beat is fine */ });
+  }
+  function renderClass(keep) {
+    if (!keep) { body.replaceChildren(el("p", "live", "Loading...")); }
+    get("/class").then(function (b) {
+      if (cur.tab !== "class") return;
+      body.replaceChildren();
+      body.appendChild(el("p", "lead", "Join your Multi-FX class on Google Meet from here. You are marked present when you are in the class for at least " + b.threshold + "% of it."));
+      var card = el("section", "quizcard");
+      if (b.live) {
+        cls.id = b.live.id; cls.link = b.live.link;
+        card.appendChild(el("h3", null, b.live.title));
+        var j = el("button", "btn primary wide", "Join class on Google Meet"); j.type = "button";
+        j.addEventListener("click", function () {
+          cls.win = window.open(cls.link, "abecfxMfxMeet");
+          if (!cls.win) { status("Your browser blocked the Meet window. Allow pop-ups for this site, then press Join again."); return; }
+          stopBeat(); status("Joining..."); beat(); cls.timer = setInterval(beat, 30000);
+        });
+        card.appendChild(j);
+        var st = el("p", "live"); st.id = "mfxClsStatus"; st.setAttribute("role", "status"); card.appendChild(st);
+        card.appendChild(el("p", "cert-note", "Keep this page open in your browser while you are in class. Your time is counted while the Meet window stays open."));
+      } else {
+        stopBeat();
+        card.appendChild(el("p", "live", "No Multi-FX class is live right now. When your mentor starts one, it will appear here."));
+      }
+      body.appendChild(card);
+      body.appendChild(el("h3", "cls-h", "Your attendance"));
+      var wrap = el("div", "hb-tablewrap"); var t = el("table", "cls-table");
+      if (!b.history.length) t.appendChild(el("caption", null, "No classes yet."));
+      else {
+        var head = t.createTHead().insertRow();
+        ["Class", "Date", "Time in class", "Result"].forEach(function (h) { head.appendChild(el("th", null, h)); });
+        var tbody = t.createTBody();
+        b.history.forEach(function (c) {
+          var row = tbody.insertRow();
+          [c.title, (c.startedAt || "").split(",")[0], c.minutes + " of " + c.lengthMinutes + " min (" + c.percent + "%)", c.live ? "Live now" : c.present ? "Present" : "Absent"].forEach(function (v) { row.insertCell().textContent = v; });
+        });
+      }
+      wrap.appendChild(t); body.appendChild(wrap);
+    }).catch(function (e) { if (e.message === "signed out") return; if (e.locked) { load(); return; } body.replaceChildren(failBox(e, function () { renderClass(); })); });
+  }
+
+  // ---------- Quiz ----------
+  function renderQuiz() {
+    body.replaceChildren(el("p", "live", "Loading..."));
+    get("/quiz").then(function (d) {
+      if (cur.tab !== "quiz") return;
+      body.replaceChildren();
+      body.appendChild(el("p", "lead", "Test what you have learned. Each attempt asks " + d.perAttempt + " questions picked at random from a bank of " + d.bank + ". You can take it as often as you like."));
+      var card = el("section", "quizcard");
+      card.appendChild(el("h3", null, "Quiz results"));
+      if (!d.attempts.length) card.appendChild(el("p", "quiz-empty", "You have not taken the Multi-FX quiz yet."));
+      else {
+        card.appendChild(el("p", "hb-p", "Best: " + d.best.score + " / " + d.best.total + " (" + d.best.pct + "%, grade " + d.best.grade + "). Latest: " + d.latest.score + " / " + d.latest.total + " (grade " + d.latest.grade + ")."));
+        var wrap = el("div", "hb-tablewrap"); var t = el("table", "cls-table");
+        var head = t.createTHead().insertRow();
+        ["Attempt", "Date", "Score", "Grade"].forEach(function (h) { head.appendChild(el("th", null, h)); });
+        var tb = t.createTBody();
+        d.attempts.slice(0, 10).forEach(function (a) {
+          var row = tb.insertRow();
+          [String(a.attempt), (a.at || "").split(",")[0], a.score + " / " + a.total + " (" + a.pct + "%)", a.grade].forEach(function (v) { row.insertCell().textContent = v; });
+        });
+        wrap.appendChild(t); card.appendChild(wrap);
+      }
+      var go = el("button", "btn primary wide", d.attempts.length ? "Take the quiz again" : "Start the quiz"); go.type = "button";
+      go.addEventListener("click", function () { startQuiz(go); });
+      card.appendChild(go);
+      body.appendChild(card);
+    }).catch(function (e) { if (e.message === "signed out") return; if (e.locked) { load(); return; } body.replaceChildren(failBox(e, renderQuiz)); });
+  }
+
+  function startQuiz(btn) {
+    btn.disabled = true;
+    post("/quiz/start").then(function (a) {
+      if (cur.tab !== "quiz") return;
+      runQuiz(a);
+    }).catch(function (e) { btn.disabled = false; if (e.message === "signed out") return; if (e.locked) { load(); return; } window.alert(e.message); });
+  }
+
+  function runQuiz(a) {
+    body.replaceChildren();
+    var answers = a.questions.map(function () { return null; });
+    var form = el("form", "mfx-quiz"); form.noValidate = true;
+    form.appendChild(el("h3", null, "Multi-FX quiz"));
+    var count = el("p", "hb-progress-sub"); count.setAttribute("role", "status");
+    form.appendChild(count);
+    function updateCount() {
+      var n = answers.filter(function (x) { return x !== null; }).length;
+      count.textContent = n + " of " + a.total + " answered";
+    }
+    a.questions.forEach(function (q, i) {
+      var fs = el("fieldset", "mfx-q");
+      fs.appendChild(el("legend", null, (i + 1) + ". " + q.q));
+      q.options.forEach(function (o, j) {
+        var lab = el("label", "mfx-opt");
+        var r = document.createElement("input"); r.type = "radio"; r.name = "mq" + i; r.value = String(j);
+        r.addEventListener("change", function () { answers[i] = j; updateCount(); });
+        lab.appendChild(r); lab.appendChild(el("span", null, o));
+        fs.appendChild(lab);
+      });
+      form.appendChild(fs);
+    });
+    updateCount();
+    var err = el("p", "formErr"); err.setAttribute("role", "alert");
+    var sub = el("button", "btn primary wide", "Submit answers"); sub.type = "submit";
+    form.appendChild(err); form.appendChild(sub);
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var left = answers.filter(function (x) { return x === null; }).length;
+      if (left && !window.confirm(left + " question" + (left === 1 ? " is" : "s are") + " not answered and will count as wrong. Submit anyway?")) return;
+      sub.disabled = true; err.textContent = "";
+      post("/quiz/submit", { token: a.token, answers: answers }).then(showResult).catch(function (e) {
+        sub.disabled = false;
+        if (e.message === "signed out") return;
+        if (e.locked) { load(); return; }
+        err.textContent = e.message;
+      });
+    });
+    body.appendChild(form);
+    window.scrollTo(0, 0);
+  }
+
+  var SECTION_NAMES = {};
+  function showResult(r) {
+    body.replaceChildren();
+    var card = el("section", "quizcard");
+    card.appendChild(el("h3", null, "Your result"));
+    card.appendChild(el("p", "hb-p", r.score + " / " + r.total + " (" + r.pct + "%). Grade " + r.grade + (r.label ? ": " + r.label : "") + ". This was attempt " + r.attempt + "."));
+    var secs = Object.keys(r.breakdown).sort();
+    if (secs.length) {
+      var ul = el("ul", "hb-list");
+      secs.forEach(function (s) { ul.appendChild(el("li", null, (SECTION_NAMES[s] || "Section " + s) + ": " + r.breakdown[s][0] + " of " + r.breakdown[s][1] + " right")); });
+      card.appendChild(ul);
+    }
+    var again = el("button", "btn primary wide", "Take the quiz again"); again.type = "button";
+    again.addEventListener("click", renderQuiz);
+    card.appendChild(again);
+    body.appendChild(card);
+    body.appendChild(el("h3", "cls-h", "Review your answers"));
+    r.review.forEach(function (q, i) {
+      var box = el("section", "mfx-review " + (q.right ? "is-right" : "is-wrong"));
+      box.appendChild(el("p", "mfx-rq", (i + 1) + ". " + q.q));
+      box.appendChild(el("p", null, (q.right ? "✓ Correct: " : "✗ Your answer: ") + (q.chosen === null ? "(no answer)" : q.options[q.chosen])));
+      if (!q.right) box.appendChild(el("p", null, "Correct answer: " + q.options[q.correct]));
+      box.appendChild(el("p", "mfx-why", q.why));
+      body.appendChild(box);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Entry points ----------
+  function showTab() {
+    stopBeatIfLeaving();
+    if (!cur.tab) { location.replace("#/multifx/handbook"); return; }
+    frame();
+    var t = cur.tab;
+    if (t === "handbook" || t === "workbook") {
+      var want = t;
+      if (cache[want]) { want === "handbook" ? renderHandbook() : renderWorkbook(); return; }
+      body.appendChild(el("p", "live", "Opening..."));
+      get(want === "handbook" ? "/handbook" : "/workbook").then(function (d) {
+        cache[want] = d; refreshProgress(d.progress);
+        if (want === "handbook") d.sections.forEach(function (s) { SECTION_NAMES[s.id] = s.title; });
+        if (cur.tab === want) { frame(); want === "handbook" ? renderHandbook() : renderWorkbook(); }
+      }).catch(function (e) { if (e.message === "signed out") return; if (e.locked) { load(); return; } body.replaceChildren(failBox(e, showTab)); });
+    } else if (t === "community") {
+      body.appendChild(el("p", "live", "Loading..."));
+      get("/community").then(renderCommunity).catch(function (e) { if (e.message === "signed out") return; if (e.locked) { load(); return; } body.replaceChildren(failBox(e, showTab)); });
+    } else if (t === "class") renderClass();
+    else if (t === "quiz") { ensureNames(); renderQuiz(); }
+  }
+  function ensureNames() {
+    if (Object.keys(SECTION_NAMES).length) return;
+    get("/handbook").then(function (d) { d.sections.forEach(function (s) { SECTION_NAMES[s.id] = s.title; }); }).catch(function () {});
+  }
+  function stopBeatIfLeaving() { if (cur.tab !== "class") stopBeat(); }
+
+  function load() {
+    mount.replaceChildren(el("p", "live", "Opening Multi-FX..."));
+    return get("").then(function (d) {
+      state.unlocked = d.unlocked; state.progress = d.progress || null;
+      if (!d.unlocked) { renderLocked(); return; }
+      showTab();
+    }).catch(function (e) {
+      if (e.message === "signed out") return;
+      if (e.locked) { renderLocked(e.message); return; }
+      mount.replaceChildren(failBox(e, load));
+    });
+  }
+
+  window.abecMultifx = {
+    setup: function (a) { api = a; mount = document.getElementById("mfxMount"); },
+    // Called by the portal each time the route is Multi-FX. tab: handbook|workbook|community|class|quiz or "". id: a section id or "".
+    show: function (tab, id) {
+      var was = cur.tab;
+      cur = { tab: tab || "", id: id || "" };
+      if (state.unlocked === true) { if (cur.tab) showTab(); else location.replace("#/multifx/handbook"); }
+      else if (state.unlocked === false && was !== undefined && mount.querySelector("#mfxCode")) { /* the code box is already showing */ }
+      else load();
+    },
+    stop: function () { stopBeat(); },
+    reset: function () { stopBeat(); state = { unlocked: null, progress: null }; cache = {}; cur = { tab: "", id: "" }; if (mount) mount.replaceChildren(); },
+  };
+})();
+```
+
+#### `public/admin-multifx.js`
+
+```js
+// Dashboard > Multi-FX: make and cancel the one-time unlock codes, set each workbook's video and extra link, run the
+// Multi-FX live classes, and read the Multi-FX quiz results.
+// admin.js calls setup() once with its api helper, open() when the tab opens and clear() on sign-out.
+(function () {
+  var api = null;    // admin.js: api(path, method, body) -> Promise
+  var onAuth = null; // admin.js: showLogin(message)
+  var root = null;
+  var data = { codes: [], media: null, sections: [], classes: null, report: null };
+  var A = "/api/admin/multifx";
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function card(title, note) {
+    var c = el("article", "adm-card wide");
+    c.appendChild(el("h3", null, title));
+    if (note) c.appendChild(el("p", "adm-note", note));
+    return c;
+  }
+  function field(label, input, id) {
+    var w = el("div", "field");
+    var l = el("label", null, label); l.setAttribute("for", id);
+    input.id = id;
+    var e = el("p", "lk-err"); e.id = id + "-err"; e.setAttribute("role", "alert");
+    w.appendChild(l); w.appendChild(input); w.appendChild(e);
+    return w;
+  }
+  function input(type, ph) { var i = el("input"); i.type = type; i.autocomplete = "off"; i.spellcheck = false; if (ph) i.placeholder = ph; return i; }
+  function table(heads, rows) {
+    var wrap = el("div", "tablewrap"), t = el("table", "adm-table");
+    var hr = el("tr"); heads.forEach(function (h) { hr.appendChild(el("th", null, h)); });
+    var th = el("thead"); th.appendChild(hr); t.appendChild(th);
+    var tb = el("tbody");
+    rows.forEach(function (r) {
+      var tr = el("tr");
+      r.forEach(function (c) { var td = el("td"); if (c && c.nodeType) td.appendChild(c); else td.textContent = c == null ? "" : String(c); tr.appendChild(td); });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); wrap.appendChild(t);
+    return wrap;
+  }
+  function fail(err, msgEl) {
+    if (err && err.auth) { onAuth(err.message); return; }
+    msgEl.textContent = (err && err.message) || "Something went wrong.";
+  }
+  function copy(text, btn) {
+    var done = function () { var t = btn.textContent; btn.textContent = "Copied"; setTimeout(function () { btn.textContent = t; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () {});
+  }
+
+  // ---------- Codes ----------
+  function codesCards() {
+    var make = card("Make Multi-FX codes", "Students cannot open Multi-FX until they enter a one-time code. Make codes here and give them out. A code unlocks Multi-FX for one student, on any device, for good. Cancelling a code that was already used takes Multi-FX away from that student.");
+    var form = el("form", "lk-form"); form.noValidate = true;
+    var count = input("number"); count.min = "1"; count.max = "50"; count.value = "1";
+    var forReg = input("text", "ABECFX/26/0001. Leave empty for a code any student can use"); forReg.setAttribute("autocapitalize", "characters");
+    form.appendChild(field("How many codes", count, "mfxCount"));
+    form.appendChild(field("For one student only (optional)", forReg, "mfxFor"));
+    var bar = el("div", "lk-bar"); var go = el("button", "primary", "Make codes"); go.type = "submit"; var msg = el("span", "lk-msg"); msg.setAttribute("role", "status");
+    bar.appendChild(go); bar.appendChild(msg); form.appendChild(bar);
+    var fresh = el("div", "qc-new"); fresh.hidden = true;
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      ["mfxCount", "mfxFor"].forEach(function (k) { document.getElementById(k + "-err").textContent = ""; });
+      msg.textContent = "Making..."; go.disabled = true;
+      api(A + "/codes", "POST", { count: Number(count.value), forReg: forReg.value }).then(function (r) {
+        msg.textContent = "Made " + r.codes.length + (r.codes.length === 1 ? " code." : " codes.");
+        fresh.hidden = false; fresh.replaceChildren();
+        var head = el("div", "adm-card-head"); head.appendChild(el("h3", null, "New codes"));
+        var all = el("button", "btn ghost", "Copy all"); all.type = "button";
+        all.addEventListener("click", function () { copy(r.codes.map(function (c) { return c.code; }).join("\n"), all); });
+        head.appendChild(all); fresh.appendChild(head);
+        var ul = el("ul", "qc-list");
+        r.codes.forEach(function (c) { var li = el("li"); li.appendChild(el("code", null, c.code)); ul.appendChild(li); });
+        fresh.appendChild(ul);
+        return loadCodes();
+      }).catch(function (e) {
+        if (e.fields) { if (e.fields.count) document.getElementById("mfxCount-err").textContent = e.fields.count; if (e.fields.forReg) document.getElementById("mfxFor-err").textContent = e.fields.forReg; }
+        fail(e, msg);
+      }).then(function () { go.disabled = false; });
+    });
+    make.appendChild(form); make.appendChild(fresh);
+
+    var all = card("All Multi-FX codes");
+    var tools = el("div", "filters");
+    var search = input("search", "Search code, student name or reg number"); search.setAttribute("aria-label", "Search Multi-FX codes");
+    var sel = el("select"); sel.setAttribute("aria-label", "Filter by status");
+    [["", "Every status"], ["Unused", "Unused"], ["Redeemed", "In use (unlocked)"], ["Revoked", "Cancelled"]].forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; sel.appendChild(op); });
+    tools.appendChild(search); tools.appendChild(sel);
+    var holder = el("div"); var note = el("p", "adm-note"); note.setAttribute("role", "status");
+    all.appendChild(tools); all.appendChild(holder); all.appendChild(note);
+    function draw() {
+      var q = search.value.trim().toLowerCase();
+      var list = data.codes.filter(function (c) {
+        return (!sel.value || c.status === sel.value) && (!q || (c.code + " " + c.usedBy + " " + (c.usedByName || "") + " " + c.forReg).toLowerCase().indexOf(q) >= 0);
+      });
+      holder.replaceChildren(table(["Code", "Status", "Used by", "For", "Made", "Action"], list.map(function (c) {
+        var act = "";
+        if (c.status !== "Revoked") {
+          act = el("button", "btn ghost", "Cancel"); act.type = "button";
+          act.addEventListener("click", function () {
+            var warn = c.status === "Redeemed" ? "This code was already used by " + (c.usedByName || c.usedBy) + ". Cancelling it takes Multi-FX away from them. Continue?" : "Cancel code " + c.code + "?";
+            if (!window.confirm(warn)) return;
+            act.disabled = true;
+            api(A + "/codes/revoke", "POST", { code: c.code }).then(loadCodes).catch(function (e) { fail(e, note); });
+          });
+        }
+        return [c.code, c.status === "Redeemed" ? "Unlocked" : c.status === "Revoked" ? "Cancelled" : "Unused", c.usedBy ? c.usedBy + (c.usedByName ? " (" + c.usedByName + ")" : "") : "", c.forReg, c.createdAt, act];
+      })));
+      note.textContent = list.length + " of " + data.codes.length + " codes";
+    }
+    search.addEventListener("input", draw); sel.addEventListener("change", draw);
+    codesCards.draw = draw;
+    return [make, all];
+  }
+  function loadCodes() {
+    return api(A + "/codes").then(function (r) { data.codes = r.codes; if (codesCards.draw) codesCards.draw(); });
+  }
+
+  // ---------- Workbook media ----------
+  function mediaCard() {
+    var c = card("Workbook videos and extra links", "Each workbook can show a YouTube video and one extra link (a worksheet, a Google Drive file, an article). Leave a box empty to show \"coming soon\" or hide the link. Links must start with https://");
+    var form = el("div", "mfx-media");
+    var msg = el("span", "lk-msg"); msg.setAttribute("role", "status");
+    var save = el("button", "primary", "Save"); save.type = "button";
+    var bar = el("div", "lk-bar"); bar.appendChild(save); bar.appendChild(msg);
+    c.appendChild(form); c.appendChild(bar);
+    mediaCard.fill = function () {
+      form.replaceChildren();
+      data.sections.forEach(function (s) {
+        var v = data.media[s.id] || {};
+        var box = el("fieldset", "mfx-mrow"); box.appendChild(el("legend", null, s.id + ". " + s.title));
+        var vid = input("url", "https://youtu.be/..."); vid.value = v.video || "";
+        var lt = input("text", "Name of the extra link, e.g. Worksheet"); lt.value = v.linkTitle || ""; lt.maxLength = 80;
+        var lk = input("url", "https://..."); lk.value = v.link || "";
+        box.appendChild(field("YouTube video", vid, "mfxv-" + s.id));
+        box.appendChild(field("Extra link title", lt, "mfxt-" + s.id));
+        box.appendChild(field("Extra link", lk, "mfxl-" + s.id));
+        form.appendChild(box);
+      });
+    };
+    save.addEventListener("click", function () {
+      var body = {};
+      data.sections.forEach(function (s) {
+        body[s.id] = { video: document.getElementById("mfxv-" + s.id).value, linkTitle: document.getElementById("mfxt-" + s.id).value, link: document.getElementById("mfxl-" + s.id).value };
+        ["v", "t", "l"].forEach(function (k) { document.getElementById("mfx" + k + "-" + s.id + "-err").textContent = ""; });
+      });
+      msg.textContent = "Saving..."; save.disabled = true;
+      api(A + "/media", "PUT", body).then(function (r) {
+        data.media = r.values; msg.textContent = "Saved. Students see the changes within about 30 seconds.";
+      }).catch(function (e) {
+        if (e.fields) {
+          Object.keys(e.fields).forEach(function (id) {
+            if (e.fields[id].video) document.getElementById("mfxv-" + id + "-err").textContent = e.fields[id].video;
+            if (e.fields[id].link) document.getElementById("mfxl-" + id + "-err").textContent = e.fields[id].link;
+          });
+        }
+        fail(e, msg);
+      }).then(function () { save.disabled = false; });
+    });
+    return c;
+  }
+  function loadMedia() {
+    return api(A + "/media").then(function (r) { data.sections = r.sections; data.media = r.values; if (mediaCard.fill) mediaCard.fill(); });
+  }
+
+  // ---------- Live class ----------
+  function classCards() {
+    var c = card("Multi-FX live class", "Start the class when your Google Meet begins and end it when it finishes. Only students who have unlocked Multi-FX see it. A student is marked present when they were there for at least half of the class. This is separate from the main course's classes.");
+    var liveBox = el("div"); var form = el("form", "lk-form"); form.noValidate = true;
+    var title = input("text", "Multi-FX week 1: Market structure"); title.maxLength = 100;
+    var link = input("url", "https://meet.google.com/abc-defg-hij");
+    form.appendChild(field("Class name", title, "mfxClsTitle")); form.appendChild(field("Google Meet link", link, "mfxClsLink"));
+    var bar = el("div", "lk-bar"); var go = el("button", "primary", "Start class"); go.type = "submit"; var msg = el("span", "lk-msg"); msg.setAttribute("role", "status");
+    bar.appendChild(go); bar.appendChild(msg); form.appendChild(bar);
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      ["mfxClsTitle", "mfxClsLink"].forEach(function (k) { document.getElementById(k + "-err").textContent = ""; });
+      msg.textContent = "Starting..."; go.disabled = true;
+      api(A + "/attendance/start", "POST", { title: title.value, link: link.value }).then(function () { title.value = ""; link.value = ""; msg.textContent = ""; return loadClasses(); })
+        .catch(function (e) {
+          if (e.fields) { if (e.fields.title) document.getElementById("mfxClsTitle-err").textContent = e.fields.title; if (e.fields.link) document.getElementById("mfxClsLink-err").textContent = e.fields.link; }
+          fail(e, msg);
+        }).then(function () { go.disabled = false; });
+    });
+    c.appendChild(liveBox); c.appendChild(form);
+
+    var list = card("Multi-FX classes"); var holder = el("div"); var note = el("p", "adm-note"); note.setAttribute("role", "status");
+    list.appendChild(holder); list.appendChild(note);
+    var rep = card("Attendance"); rep.hidden = true; var repHolder = el("div"); var repNote = el("p", "adm-note"); rep.appendChild(repHolder); rep.appendChild(repNote);
+
+    classCards.draw = function () {
+      var d = data.classes; if (!d) return;
+      var live = d.classes.filter(function (x) { return x.live; })[0];
+      liveBox.replaceChildren();
+      if (live) {
+        liveBox.appendChild(el("p", "adm-note", live.title + " is live. Started " + live.startedAt + "."));
+        var end = el("button", "primary", "End class"); end.type = "button";
+        end.addEventListener("click", function () { end.disabled = true; api(A + "/attendance/end", "POST", {}).then(loadClasses).catch(function (e) { fail(e, note); }); });
+        liveBox.appendChild(end);
+      }
+      go.disabled = !!live;
+      holder.replaceChildren(table(["Class", "Started", "Status", "Joined", "Present", ""], d.classes.map(function (x) {
+        var b = el("button", "btn ghost", "Attendance"); b.type = "button";
+        b.addEventListener("click", function () {
+          api(A + "/attendance/report?id=" + encodeURIComponent(x.id)).then(function (r) {
+            rep.hidden = false;
+            repHolder.replaceChildren(table(["Reg number", "Name", "Minutes", "Percent", "Result"], r.people.map(function (p) { return [p.reg, p.name, p.minutes, p.percent + "%", p.present ? "Present" : "Absent"]; })));
+            repNote.textContent = x.title + ": " + r.people.filter(function (p) { return p.present; }).length + " present, needing " + r.threshold + "% of the class.";
+          }).catch(function (e) { fail(e, note); });
+        });
+        return [x.title, x.startedAt, x.live ? "Live now" : "Ended", x.joined, x.present, b];
+      })));
+      note.textContent = d.classes.length ? "" : "No Multi-FX classes yet.";
+    };
+    return [c, list, rep];
+  }
+  function loadClasses() { return api(A + "/attendance").then(function (r) { data.classes = r; if (classCards.draw) classCards.draw(); }); }
+
+  // ---------- Quiz results ----------
+  function quizCard() {
+    var c = card("Multi-FX quiz results", "Every attempt, newest first (the latest 1000).");
+    var holder = el("div"); var note = el("p", "adm-note"); c.appendChild(holder); c.appendChild(note);
+    quizCard.draw = function (r) {
+      holder.replaceChildren(table(["Reg number", "Name", "Score", "Percent", "Grade", "Attempt", "Date"], r.results.map(function (x) { return [x.reg, x.name, x.score + " / " + x.total, x.pct + "%", x.grade, x.attempt, x.at]; })));
+      note.textContent = r.total + (r.total === 1 ? " attempt" : " attempts") + " in total.";
+    };
+    return c;
+  }
+  function loadQuiz() { return api(A + "/quiz-results").then(function (r) { quizCard.draw(r); }); }
+
+  function build() {
+    root.replaceChildren();
+    codesCards().forEach(function (x) { root.appendChild(x); });
+    root.appendChild(mediaCard());
+    classCards().forEach(function (x) { root.appendChild(x); });
+    root.appendChild(quizCard());
+  }
+
+  window.abecAdminMultifx = {
+    setup: function (a) { api = a.api; onAuth = a.onAuth; root = document.getElementById("view-multifx"); },
+    open: function () {
+      build();
+      Promise.all([loadCodes(), loadMedia(), loadClasses(), loadQuiz()]).catch(function (e) {
+        if (e && e.auth) onAuth(e.message);
+        else { var p = el("p", "adm-note", (e && e.message) || "Could not load Multi-FX."); root.insertBefore(p, root.firstChild); }
+      });
+    },
+    clear: function () { data = { codes: [], media: null, sections: [], classes: null, report: null }; if (root) root.replaceChildren(); },
   };
 })();
 ```
@@ -10030,6 +12434,7 @@ _missing_
         <button type="button" role="tab" id="tab-staff" aria-selected="false" aria-controls="view-staff" hidden>Staff</button>
         <button type="button" role="tab" id="tab-idcards" aria-selected="false" aria-controls="view-idcards" hidden>ID cards</button>
         <button type="button" role="tab" id="tab-certificates" aria-selected="false" aria-controls="view-certificates" hidden>Certificates</button>
+        <button type="button" role="tab" id="tab-multifx" aria-selected="false" aria-controls="view-multifx" hidden>Multi-FX</button>
         <button type="button" role="tab" id="tab-funds" aria-selected="false" aria-controls="view-funds" hidden>Funds</button>
         <button type="button" role="tab" id="tab-hosting" aria-selected="false" aria-controls="view-hosting" hidden>VPS hosting</button>
         <button type="button" role="tab" id="tab-database" aria-selected="false" aria-controls="view-database">Database</button>
@@ -10254,6 +12659,8 @@ _missing_
           </div>
         </article>
       </div>
+
+      <div id="view-multifx" role="tabpanel" aria-labelledby="tab-multifx" hidden></div>
 
       <div id="view-funds" role="tabpanel" aria-labelledby="tab-funds" hidden>
         <article class="adm-card wide">
@@ -10568,6 +12975,7 @@ _missing_
   <script src="/certificate-art.js"></script>
   <script src="/certificate.js"></script>
   <script src="/admin-funds.js"></script>
+  <script src="/admin-multifx.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>
@@ -10632,6 +13040,7 @@ _missing_
     $("shSearch").value = "";
     me = null;
     window.abecAdminFunds.clear();
+    window.abecAdminMultifx.clear();
     setDashTitle();
     staffData = null;
     if ($("tmDlg").open) $("tmDlg").close();
@@ -10668,9 +13077,10 @@ _missing_
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", funds: "funds", hosting: "hosting" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", funds: "funds", hosting: "hosting", multifx: "multifx" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   window.abecAdminFunds.setup({ api: api, onAuth: function (m) { showLogin(m); } });
+  window.abecAdminMultifx.setup({ api: api, onAuth: function (m) { showLogin(m); } });
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
     var name = me && me.roleLabel ? me.roleLabel + " dashboard" : "Dashboard";
@@ -12197,12 +14607,13 @@ _missing_
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "funds", "database", "staff", "idcards", "certificates", "hosting"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "funds", "multifx", "database", "staff", "idcards", "certificates", "hosting"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "funds" || name === "hosting";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "funds" || name === "hosting" || name === "multifx";
     if (name === "funds") window.abecAdminFunds.open();
+    if (name === "multifx") window.abecAdminMultifx.open();
     if (name === "quizcodes") openQuizCodes();
     if (name === "attendance") openAttendance();
     if (name === "hosting") openHosting();
@@ -12231,6 +14642,7 @@ _missing_
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-funds").addEventListener("click", function () { setTab("funds"); });
+  $("tab-multifx").addEventListener("click", function () { setTab("multifx"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-staff").addEventListener("click", function () { setTab("staff"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });
@@ -12733,6 +15145,10 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .fn-pay { display: block; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
 .fn-problems { margin-top: 10px; padding: 10px 14px; border: 1px solid #e8b64c; background: #fff8e6; border-radius: 12px; font-size: .88rem; display: grid; gap: 4px; }
 .fn-problems[hidden] { display: none; }
+
+/* Multi-FX tab */
+.mfx-mrow { border: 1px solid var(--line, #e5e0e8); border-radius: 12px; margin: 0 0 12px; padding: 10px 14px 4px; min-width: 0; }
+.mfx-mrow legend { font-weight: 700; padding: 0 6px; }
 ```
 
 #### `public/styles.css`
@@ -13637,6 +16053,26 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .fd-form textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; resize: vertical; }
 .fd-withdraw .live { max-width: none; margin: 10px 0; }
 @media print { #viewFunds { display: none; } }
+
+/* ---- Multi-FX (supplementary course): tabs, workbook self-check, quiz ---- */
+.mfx-tabs { margin: 14px 0 18px; }
+.mfx-tab { flex: none; padding: 9px 14px; border-radius: 12px; font-weight: 700; font-size: .9rem; color: var(--muted); text-decoration: none; white-space: nowrap; }
+.mfx-tab[aria-selected="true"] { background: var(--purple-soft, #f1e4f2); color: var(--purple, #5a1060); }
+.mfx-check { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 0 0 8px; }
+.mfx-check summary { cursor: pointer; font-weight: 600; }
+.mfx-answer { margin: 8px 0 0; color: var(--muted); }
+.mfx-quiz { display: grid; gap: 14px; }
+.mfx-q { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 12px 14px; margin: 0; min-width: 0; }
+.mfx-q legend { font-weight: 700; padding: 0 6px; }
+.mfx-opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; cursor: pointer; }
+.mfx-opt input { margin-top: 4px; flex: none; }
+.mfx-review { border: 1px solid var(--line); border-left-width: 5px; border-radius: 12px; background: #fff; padding: 10px 14px; margin: 0 0 10px; }
+.mfx-review.is-right { border-left-color: #1d9a5a; }
+.mfx-review.is-wrong { border-left-color: #c43c3c; }
+.mfx-review p { margin: 4px 0; }
+.mfx-rq { font-weight: 700; }
+.mfx-why { color: var(--muted); font-size: .92rem; }
+.hb-table th { text-align: left; white-space: nowrap; vertical-align: top; }
 ```
 
 #### `public/links.js`
@@ -13797,6 +16233,8 @@ const FIELDS = [
   { key: "communityTelegram", label: "Mentorship community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "tradersWhatsapp", label: "Traders community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
   { key: "tradersTelegram", label: "Traders community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
+  { key: "multifxWhatsapp", label: "Multi-FX community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "multifxTelegram", label: "Multi-FX community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
@@ -13818,6 +16256,8 @@ const DEFAULTS = {
   communityTelegram: "",
   tradersWhatsapp: "",
   tradersTelegram: "",
+  multifxWhatsapp: "",
+  multifxTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   certSignerReg: "",
@@ -13892,7 +16332,7 @@ function toRows(values) {
 
 // The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
 // handed to anyone who visits the site.
-const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram", "tradersWhatsapp", "tradersTelegram"];
+const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram", "tradersWhatsapp", "tradersTelegram", "multifxWhatsapp", "multifxTelegram"];
 // The certificate settings are not site links either: they are only sent with a certificate.
 function publicView(values) {
   const out = { ...values };
@@ -13922,8 +16362,14 @@ function tradersFor(values) {
   return { whatsapp: v.tradersWhatsapp || "", telegram: v.tradersTelegram || "" };
 }
 
+// The Multi-FX community page (only for students who unlocked Multi-FX): its own two groups, no fallback.
+function multifxFor(values) {
+  const v = values || {};
+  return { whatsapp: v.multifxWhatsapp || "", telegram: v.multifxTelegram || "" };
+}
+
 module.exports = {
-  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor, tradersFor,
+  multifxFor, fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor, tradersFor,
   siteFields, communityFields, pick, siteKeys, CERT_KEYS, certFields,
 };
 ```
@@ -14510,10 +16956,11 @@ const quizDir = process.env.QUIZBOT_DIR || path.join(root, "..", "abecfx-quiz-bo
 
 const SITE_FILES = [
   "server.js", "sheets.js", "staff.js", "fund.js", "quizcodes.js", "admin-database.js", "idrules.js", "grading.js", "stats.js", "keepalive.js", "quiztoken.js", "session.js",
-  "handbook-content.js", "handbook-progress.js", "pdflink.js",
+  "handbook-content.js", "handbook-progress.js", "pdflink.js", "attendance.js",
+  "multifx.js", "multifxcodes.js", "multifx-content.js", "multifx-quiz.js", "multifx-routes.js",
   "package.json", "render.yaml", ".env.example",
   "public/register.html", "public/app.js",
-  "public/portal.html", "public/portal.js", "public/handbook.js", "public/funds.js", "public/admin-funds.js",
+  "public/portal.html", "public/portal.js", "public/handbook.js", "public/funds.js", "public/admin-funds.js", "public/multifx.js", "public/admin-multifx.js",
   "public/status.html", "public/status.js", "public/lookup-kind.js",
   "public/card.js", "public/qr.js", "public/nav.js",
   "public/admin.html", "public/admin.js", "public/admin.css",
@@ -14521,7 +16968,7 @@ const SITE_FILES = [
   "certificate.js", "public/certificate.js", "public/certificate.html", "public/certificate-page.js",
   "status/build.js",
 ];
-const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf", "public/certificate-art.js"];
+const SITE_DATA = ["countries.js", "countryCodes.js", "states.json", "private/handbook.pdf", "private/multifx-handbook.pdf", "public/certificate-art.js"];
 const QUIZ_FILES = ["bot.js", "webapp/embed.js", "package.json", "env.example", "render.yaml"];
 
 const LANG = { js: "js", json: "json", html: "html", css: "css", yaml: "yaml", example: "bash", md: "md" };

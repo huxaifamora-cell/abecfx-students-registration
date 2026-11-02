@@ -1865,6 +1865,11 @@ app.get("/api/admin/attendance/report", adminLimiter, attendanceAuth, attendance
   res.json({ ...out, people: people.concat(absent) });
 }));
 
+// ---- Multi-FX: a supplementary course unlocked with a one-time code (rules in multifx*.js, routes in multifx-routes.js) ----
+require("./multifx-routes").mount({
+  app, store, rateLimit, studentAuth, requirePerm, adminLimiter, lookupLimiter, lagosTimestamp, sessionSecret, pdfLink, links, attendanceLib, grading, clean,
+});
+
 // ---- Database view: the editor browses, adds, edits and deletes records from /admin ----
 // What may be changed, and the checks on every change, live in admin-database.js. Only a WRONG password counts
 // toward the lock-out here (a mistyped value must not lock the editor out of editing); a second limiter just

@@ -14,6 +14,8 @@ const FIELDS = [
   { key: "communityTelegram", label: "Mentorship community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "tradersWhatsapp", label: "Traders community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
   { key: "tradersTelegram", label: "Traders community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
+  { key: "multifxWhatsapp", label: "Multi-FX community: WhatsApp group link", kind: "url", hint: "https://chat.whatsapp.com/...", group: "community" },
+  { key: "multifxTelegram", label: "Multi-FX community: Telegram group link", kind: "url", hint: "https://t.me/+...", group: "community" },
   { key: "deriv", label: "Deriv affiliate link (new users open their account with this)", kind: "url", hint: "https://track.deriv.com/..." },
   { key: "contact", label: "Contact phone / WhatsApp number", kind: "phone", hint: "+234 801 234 5678" },
   { key: "about", label: "About text", kind: "text", hint: "A short paragraph about ABEC-FX", max: 700 },
@@ -35,6 +37,8 @@ const DEFAULTS = {
   communityTelegram: "",
   tradersWhatsapp: "",
   tradersTelegram: "",
+  multifxWhatsapp: "",
+  multifxTelegram: "",
   deriv: "https://track.deriv.com/_ccXdteH9J4T1hit6RV3zsGNd7ZgqdRLk/1/",
   contact: "+23408162563346",
   certSignerReg: "",
@@ -109,7 +113,7 @@ function toRows(values) {
 
 // The links that are only for signed-in students: kept out of the public /api/links so the group invites are not
 // handed to anyone who visits the site.
-const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram", "tradersWhatsapp", "tradersTelegram"];
+const STUDENT_ONLY = ["communityWhatsapp", "communityTelegram", "tradersWhatsapp", "tradersTelegram", "multifxWhatsapp", "multifxTelegram"];
 // The certificate settings are not site links either: they are only sent with a certificate.
 function publicView(values) {
   const out = { ...values };
@@ -139,7 +143,13 @@ function tradersFor(values) {
   return { whatsapp: v.tradersWhatsapp || "", telegram: v.tradersTelegram || "" };
 }
 
+// The Multi-FX community page (only for students who unlocked Multi-FX): its own two groups, no fallback.
+function multifxFor(values) {
+  const v = values || {};
+  return { whatsapp: v.multifxWhatsapp || "", telegram: v.multifxTelegram || "" };
+}
+
 module.exports = {
-  fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor, tradersFor,
+  multifxFor, fieldFor, FIELDS, DEFAULTS, STUDENT_ONLY, COMMUNITY_KEYS, sanitize, fromRows, toRows, publicView, communityFor, tradersFor,
   siteFields, communityFields, pick, siteKeys, CERT_KEYS, certFields,
 };

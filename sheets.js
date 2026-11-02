@@ -5,6 +5,8 @@ const videos = require("./videos");
 const staff = require("./staff");
 const quizcodes = require("./quizcodes");
 const attendance = require("./attendance");
+const multifxcodes = require("./multifxcodes");
+const multifx = require("./multifx");
 const bot = require("./bot");
 const fund = require("./fund");
 const copy = require("./copy");
@@ -85,6 +87,25 @@ const CLASS_LAST_COL = "H";
 const ATT_TAB = process.env.GOOGLE_ATTENDANCE_TAB || "Attendance";
 const ATT_HEADERS = attendance.ATT_HEADERS;
 const ATT_LAST_COL = "D";
+
+// Multi-FX (see multifx.js, multifxcodes.js, multifx-quiz.js): the supplementary course unlocked with a one-time code.
+// Managed from the portal's Multi-FX section and the dashboard's "Multi-FX" tab, never through the Database view.
+const MFXCODE_TAB = process.env.GOOGLE_MFXCODE_TAB || "Multi-FX Codes";
+const MFXCODE_HEADERS = multifxcodes.HEADERS;
+const MFXCODE_LAST_COL = "H";
+const MFXPROG_TAB = process.env.GOOGLE_MFXPROGRESS_TAB || "Multi-FX Progress";
+const MFXPROG_HEADERS = multifx.PROGRESS_HEADERS;
+const MFXPROG_LAST_COL = "H";
+const MFXMEDIA_TAB = process.env.GOOGLE_MFXMEDIA_TAB || "Multi-FX Workbook Media";
+const MFXMEDIA_HEADERS = multifx.MEDIA_HEADERS;
+const MFXMEDIA_LAST_COL = "E";
+const MFXQUIZ_TAB = process.env.GOOGLE_MFXQUIZ_TAB || "Multi-FX Quiz Results";
+const MFXQUIZ_HEADERS = [
+  "Submitted At (Lagos)", "Reg Number", "Full Name", "Score", "Total Questions", "Percent", "Grade", "Attempt", "Attempt ID", "Breakdown (JSON)", "Submitted (UTC)",
+];
+const MFXQUIZ_LAST_COL = "K";
+const MFXCLASS_TAB = process.env.GOOGLE_MFXCLASS_TAB || "Multi-FX Classes";
+const MFXATT_TAB = process.env.GOOGLE_MFXATTENDANCE_TAB || "Multi-FX Attendance";
 
 // Bot trading (see bot.js): each member's connection key hash and risk settings, every order, and every closed trade.
 // Managed from the portal's "Bot trading" page, never through the Database view.
@@ -284,6 +305,19 @@ async function init() {
   await ensureTab(ATT_TAB);
   await ensureHeaders(ATT_TAB, ATT_HEADERS, ATT_LAST_COL);
 
+  const mfxCodes = await ensureTab(MFXCODE_TAB);
+  await ensureHeaders(MFXCODE_TAB, MFXCODE_HEADERS, MFXCODE_LAST_COL);
+  await ensureTab(MFXPROG_TAB);
+  await ensureHeaders(MFXPROG_TAB, MFXPROG_HEADERS, MFXPROG_LAST_COL);
+  await ensureTab(MFXMEDIA_TAB);
+  await ensureHeaders(MFXMEDIA_TAB, MFXMEDIA_HEADERS, MFXMEDIA_LAST_COL);
+  await ensureTab(MFXQUIZ_TAB);
+  await ensureHeaders(MFXQUIZ_TAB, MFXQUIZ_HEADERS, MFXQUIZ_LAST_COL);
+  await ensureTab(MFXCLASS_TAB);
+  await ensureHeaders(MFXCLASS_TAB, CLASS_HEADERS, CLASS_LAST_COL);
+  await ensureTab(MFXATT_TAB);
+  await ensureHeaders(MFXATT_TAB, ATT_HEADERS, ATT_LAST_COL);
+
   await ensureTab(BOTACC_TAB);
   await ensureHeaders(BOTACC_TAB, BOTACC_HEADERS, BOTACC_LAST_COL);
   await ensureTab(BOTORD_TAB);
@@ -384,6 +418,17 @@ async function init() {
             range: { sheetId: quizCodes.sheetId, startRowIndex: 1, startColumnIndex: 4, endColumnIndex: 5 },
             rule: {
               condition: { type: "ONE_OF_LIST", values: quizcodes.STATUS_LIST.map((x) => ({ userEnteredValue: x })) },
+              showCustomUi: true,
+              strict: true,
+            },
+          },
+        },
+        {
+          // Dropdown on the Multi-FX Codes Status column (column E), so a hand edit cannot invent a status.
+          setDataValidation: {
+            range: { sheetId: mfxCodes.sheetId, startRowIndex: 1, startColumnIndex: 4, endColumnIndex: 5 },
+            rule: {
+              condition: { type: "ONE_OF_LIST", values: multifxcodes.STATUS_LIST.map((x) => ({ userEnteredValue: x })) },
               showCustomUi: true,
               strict: true,
             },
@@ -758,6 +803,14 @@ const EDITOR_TABS = {
   copytrades: { title: COPYTRADE_TAB, headers: COPYTRADE_HEADERS, lastCol: COPYTRADE_LAST_COL },
   copyorders: { title: COPYORDER_TAB, headers: COPYORDER_HEADERS, lastCol: COPYORDER_LAST_COL },
   hostingrequests: { title: HOSTREQ_TAB, headers: HOSTREQ_HEADERS, lastCol: HOSTREQ_LAST_COL },
+  // Internal only: the Multi-FX course (unlock codes, progress, workbook videos, quiz results, live classes and attendance).
+  // Managed through multifx*.js, the portal's Multi-FX section and the "Multi-FX" dashboard tab, never the Database view.
+  mfxcodes: { title: MFXCODE_TAB, headers: MFXCODE_HEADERS, lastCol: MFXCODE_LAST_COL },
+  mfxprogress: { title: MFXPROG_TAB, headers: MFXPROG_HEADERS, lastCol: MFXPROG_LAST_COL },
+  mfxmedia: { title: MFXMEDIA_TAB, headers: MFXMEDIA_HEADERS, lastCol: MFXMEDIA_LAST_COL },
+  mfxquiz: { title: MFXQUIZ_TAB, headers: MFXQUIZ_HEADERS, lastCol: MFXQUIZ_LAST_COL },
+  mfxclasses: { title: MFXCLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
+  mfxattendance: { title: MFXATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },
   // Internal only: live classes and who attended. Managed through attendance.js and the "Attendance" dashboard tab.
   classes: { title: CLASS_TAB, headers: CLASS_HEADERS, lastCol: CLASS_LAST_COL },
   attendance: { title: ATT_TAB, headers: ATT_HEADERS, lastCol: ATT_LAST_COL },
