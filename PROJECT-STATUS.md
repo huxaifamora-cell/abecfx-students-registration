@@ -1,7 +1,7 @@
 # ABEC-FX Student Platform: Project Status
 
 **Owner:** Adebass Base Edge Consult (ABEC-FX), forex mentorship
-**Last updated:** 2 Nov 2026, 20:32 (Lagos time), after change 17 (Multi-FX: a supplementary course under Mentorship, unlocked with a one-time code, with handbook, workbook, community, live class and quiz). Change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
+**Last updated:** 2 Nov 2026, 20:58 (Lagos time), after change 17 (Multi-FX: a supplementary course under Mentorship, unlocked with a one-time code, with handbook, workbook, community, live class and quiz). Change 16 (copy trading: alumni members copy a master's trades, and any mentor or staff member can be a master; with a guide to running the masters on a central VPS and a request form for members who want hosting. Everything is kept in Google Sheet tabs). Change 15 (Funds under Trading: the Palliative Fund, a pool that sponsors new Alumni members, with their share and amount shown in the portal and withdrawal requests; run from a new Funds tab in the dashboard; ready for the copy-trading system to feed it). Change 14 (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button) (admin dashboard, ID cards tab: clicking a person's name now shows every ID card they hold, each with its own download button). Change 13 (find a student now offers Student ID card, Alumni ID card, Staff ID card and Certificate; one person can hold several, decided by what the admin ticks). Change 12 (the certificate now uses the real background and emblem of the owner's approved certificate design) came before it. Change 11 (one-time quiz codes: the quiz is locked until a student enters a code made by an admin or a role in charge) came before it. Change 10 added the Editor role, and roles an admin creates with chosen access. Change 9 added the Database tab in the editor dashboard (create, read, update, delete). Change 8 added date of birth at registration. Change 7 added chapter video tutorials. Change 6 added social icons, Deriv link, About and Contact, editable from the admin dashboard. The five changes of the 16 Oct list are built
 **Registration site:** Node.js + Express on Render, Google Sheet as the database
 **Quiz bot:** separate Telegram Mini App bot on its own Render service
 
@@ -108,6 +108,7 @@
 | 2026-10-26 | **Old rows keep working with no sheet edit.** A row that still says **Staff Member** or **Alumni Member** in column J (or Mentor, Staff Member, CEO) is read as before: that person has that one card and no Student ID until the editor ticks more. An empty or unknown Status is still an Uncertified student; an old Graduate is still Certified. The Status dropdown in the sheet now lists Uncertified, Certified, Not a student | No data migration. **To make an old staff member also a student, set column J to Uncertified or Certified and tick Q.** The sheet headers (Q and R) and their Yes dropdowns are added automatically on the next start. |
 | 2026-10-26 | **The dropdown on find-a-student and the certificate page:** Student ID card, Alumni ID card, Staff ID card, Certificate. The three ID choices stay on `/status` and look the same registration number up again as that card (`GET /api/lookup?reg=...&kind=student\|alumni\|staff`); Certificate opens `/certificate`; choosing an ID card on the certificate page opens `/status?kind=...`. Asking for a card the person does not hold answers "X (reg) does not have a Staff ID card" and says which cards they do have (and whether a certificate exists). A link without `kind` (an old QR code, `/status?reg=...`) shows the person's **main card** (student first, then alumni, then staff) and selects it in the dropdown. The QR code on every card now carries its own kind, so a Staff ID card's QR opens the Staff ID card | Owner request. Public data only: no email or WhatsApp. `cards` and `certified` are added to the lookup answer. |
 | 2026-10-26 | **Dashboard:** the Database tab's Students form has two new tick fields (Staff Member, Alumni Member) beside Status; the role box shows only while Staff Member is ticked; **Not a student** is refused unless Staff Member or Alumni Member is ticked (otherwise the person would have no card). The statistics bars still count each person once, under their main status (student first, then alumni, then staff), so they add up to the total; the **Staff** and **Certified graduates** tiles count everyone who holds that card, so they can be larger than their bars | Keeps every number equal to its list. |
+| 2026-11-02 | **Fix: "Quota exceeded for ... Read requests per minute" after a restart.** `init()` in `sheets.js` read the tab list and then each tab's header row one tab at a time, about 70 reads for ~35 tabs, over Google's 60 reads a minute, so portal card, Alumni check and links reads failed right after every start. It now reads the tab list once and all header rows in one batch (about 3 reads), and uses the id Google returns when it creates a tab. New test `test/sheets-init.test.js`. Owner action: push `sheets.js`, `test/sheets-init.test.js`, `status/STATUS-SOURCE.md`, `PROJECT-STATUS.md`. If the error shows once right after the deploy, wait a minute and it clears. |
 | 2026-11-02 | **Change 17: Multi-FX supplementary course.** New `multifxcodes.js`, `multifx.js`, `multifx-content.js`, `multifx-quiz.js`, `multifx-routes.js`, `public/multifx.js`, `public/admin-multifx.js`, `private/multifx-handbook.pdf`; `attendance.js` (tab names can be chosen, so Multi-FX has its own class series); `pdflink.js` (links are bound to a purpose); `sheets.js` (six new tabs); `server.js` (mounts the routes); `staff.js` (new **Multi-FX** access); `links.js` (Multi-FX community fields); `admin-database.js` (delete cascade and registration-number changes cover the new tabs); portal and dashboard pages and styles; `test/staff.test.js` updated; 12 new tests. |
 | 2026-11-01 | **Change 15: a new Funds page under Trading (Alumni members only), first fund = Palliative Fund.** Menu: Trading > Funds (hidden for anyone without the Alumni ID card; a non-Alumni who opens `#/funds` is told it is for Alumni members). The page shows the fund's total, its growth since the start (with a small chart), the member's own share in percent, their amount, what was put in for them, what they withdrew and their gain, a table of the fund's recent results, their own activity and their withdrawal requests. More funds can be added later in one place (`FUNDS` in `fund.js`); the page lists them and opens one | Owner request. **Assumed:** only Alumni members see Funds (as for Signals and Bot trading); a member sees the fund as a whole and **only their own** share, never another member's. The Palliative Fund description on the page is a **draft I wrote**; replace it in `fund.js`. |
 | 2026-11-01 | **How a member's share and amount compound: units, like a unit trust.** The fund is cut into units. Money paid in buys units at the current unit value (it starts at 1.0000). A trading result changes the unit value, never anyone's units, so every member's amount moves by the same percentage and the profit already made keeps compounding. Someone who joins later pays today's unit value and does not take earlier profit; a loss is shared in proportion. A member's percentage = their units / all units | Owner asked for "the percentage and amount that is theirs through compounding". This is the standard fair way to share a pool that members join and leave at different times; a simple "percent of money put in" would be wrong as soon as anyone joins or withdraws after the first result. |
@@ -342,7 +343,7 @@
 
 ## 7. Latest code
 
-Generated by `node status/build.js` on 2 Nov 2026, 20:32 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
+Generated by `node status/build.js` on 2 Nov 2026, 20:58 (Lagos time) from the real files, so it matches what is deployed. Data files (`countries.js`, `countryCodes.js`, `states.json`), images, the handbook PDF and README files are listed but not embedded.
 
 ### Registration website
 
@@ -2533,7 +2534,27 @@ const genOf = (k) => gens.get(k) || 0;
 
 const range = (r, tab = TAB) => encodeURIComponent(`${tab}!${r}`);
 
+// While init() runs it reads the list of tabs and every header row ONCE (initCtx) instead of once per tab. With about
+// 35 tabs, one metadata read plus one header read per tab used up Google's 60 reads a minute at every start-up and
+// made the real requests fail with "Quota exceeded". Outside init() nothing is cached here.
+let initCtx = null; // { tabs: Map title -> { sheetId, title }, heads: Map title -> first row }
+
+async function loadInitCtx() {
+  const meta = await call("?fields=sheets.properties(sheetId,title)");
+  const tabs = new Map();
+  for (const sh of meta.sheets || []) tabs.set(sh.properties.title, sh.properties);
+  const heads = new Map();
+  const titles = [...tabs.keys()];
+  for (let i = 0; i < titles.length; i += 25) {
+    const chunk = titles.slice(i, i + 25);
+    const data = await call(`/values:batchGet?${chunk.map((t) => "ranges=" + range("1:1", t)).join("&")}`);
+    (data.valueRanges || []).forEach((vr, k) => heads.set(chunk[k], (vr.values && vr.values[0]) || []));
+  }
+  return { tabs, heads };
+}
+
 async function findTab(title) {
+  if (initCtx) return initCtx.tabs.get(title);
   const meta = await call("?fields=sheets.properties(sheetId,title)");
   return (meta.sheets || []).map((s) => s.properties).find((p) => p.title === title);
 }
@@ -2541,23 +2562,30 @@ async function findTab(title) {
 async function ensureTab(title) {
   let tab = await findTab(title);
   if (!tab) {
-    await call(":batchUpdate", {
+    const res = await call(":batchUpdate", {
       method: "POST",
       data: { requests: [{ addSheet: { properties: { title } } }] },
     });
-    tab = await findTab(title);
+    const made = res && res.replies && res.replies[0] && res.replies[0].addSheet && res.replies[0].addSheet.properties;
+    if (initCtx && made) { initCtx.tabs.set(title, made); initCtx.heads.set(title, []); tab = made; }
+    else tab = await findTab(title);
   }
   return tab;
 }
 
 async function ensureHeaders(tab, headers, lastCol) {
-  const head = await call(`/values/${range(`A1:${lastCol}1`, tab)}`);
-  const current = (head.values && head.values[0]) || [];
+  let current;
+  if (initCtx && initCtx.heads.has(tab)) current = initCtx.heads.get(tab);
+  else {
+    const head = await call(`/values/${range(`A1:${lastCol}1`, tab)}`);
+    current = (head.values && head.values[0]) || [];
+  }
   if (headers.some((h, i) => current[i] !== h)) {
     await call(`/values/${range(`A1:${lastCol}1`, tab)}?valueInputOption=RAW`, {
       method: "PUT",
       data: { values: [headers] },
     });
+    if (initCtx) initCtx.heads.set(tab, headers.slice());
   }
 }
 
@@ -2571,9 +2599,23 @@ async function renameLegacyStaffTab() {
     method: "POST",
     data: { requests: [{ updateSheetProperties: { properties: { sheetId: old.sheetId, title: "Staff" }, fields: "title" } }] },
   });
+  if (initCtx) {
+    initCtx.tabs.delete("Team");
+    initCtx.tabs.set("Staff", { sheetId: old.sheetId, title: "Staff" });
+    initCtx.heads.set("Staff", initCtx.heads.get("Team") || []);
+  }
 }
 
 async function init() {
+  initCtx = await loadInitCtx();
+  try {
+    await initTabs();
+  } finally {
+    initCtx = null;
+  }
+}
+
+async function initTabs() {
   const students = await ensureTab(TAB);
   await ensureHeaders(TAB, HEADERS, LAST_COL);
 
