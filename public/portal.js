@@ -201,6 +201,12 @@
       groups[i].querySelector(".sub-menu").hidden = true;
       groups[i].querySelector(".sub-toggle").setAttribute("aria-expanded", "false");
     }
+    showLevel("root"); // the next time Mentorship opens it starts with just ABEC-FX and MULTI-FX
+  }
+  // Mentorship opens on two choices, ABEC-FX and MULTI-FX; picking one shows only that course's pages.
+  function showLevel(name) {
+    var levels = document.querySelectorAll("#mentorshipMenu .sub-level");
+    for (var i = 0; i < levels.length; i++) levels[i].hidden = levels[i].getAttribute("data-level") !== name;
   }
   (function setupMenus() {
     var nav = document.getElementById("subnav");
@@ -223,6 +229,20 @@
       });
     });
     document.addEventListener("click", function (e) { if (!nav.contains(e.target)) closeMenus(); });
+    Array.prototype.forEach.call(nav.querySelectorAll(".sub-course"), function (b) {
+      b.addEventListener("click", function () {
+        showLevel(b.getAttribute("data-course"));
+        var first = document.querySelector('#mentorshipMenu .sub-level:not([hidden]) a');
+        if (first) first.focus();
+      });
+    });
+    Array.prototype.forEach.call(nav.querySelectorAll(".sub-back"), function (b) {
+      b.addEventListener("click", function () {
+        showLevel("root");
+        var c = document.querySelector("#mentorshipMenu .sub-course");
+        if (c) c.focus();
+      });
+    });
   })();
 
   function parseRoute() {
