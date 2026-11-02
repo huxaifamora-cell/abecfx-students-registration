@@ -234,3 +234,7 @@ button.bar { display: grid; height: auto; font-weight: 400; justify-content: str
 .fn-pay { display: block; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
 .fn-problems { margin-top: 10px; padding: 10px 14px; border: 1px solid #e8b64c; background: #fff8e6; border-radius: 12px; font-size: .88rem; display: grid; gap: 4px; }
 .fn-problems[hidden] { display: none; }
+
+/* Multi-FX tab */
+.mfx-mrow { border: 1px solid var(--line, #e5e0e8); border-radius: 12px; margin: 0 0 12px; padding: 10px 14px 4px; min-width: 0; }
+.mfx-mrow legend { font-weight: 700; padding: 0 6px; }

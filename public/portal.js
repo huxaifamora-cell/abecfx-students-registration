@@ -61,7 +61,7 @@
     if (typeof stopSignals === "function") stopSignals();
     if (typeof stopBot === "function") stopBot();
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset(); window.abecMultifx.reset();
     currentReg = "";
     currentView = "";
     forget();
@@ -181,14 +181,14 @@
     home.hidden = false;
     currentReg = d.regNumber;
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecFunds.reset(); window.abecMultifx.reset();
     currentView = "";
     route();
   }
 
   // ---- Portal menu: ID Card, Trading (Signals, Bot trading, Traders community) and Mentorship (Handbook, Workbook,
   // Community, Live class, Quiz). Pages keep their addresses: #/card, #/quiz, #/handbook/03, #/traders ... ----
-  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds", "copy"];
+  var VIEWS = ["card", "quiz", "handbook", "workbook", "community", "traders", "class", "signals", "bot", "funds", "copy", "multifx"];
   var copyFollow = false, copyMaster = false;
   var currentView = "";
 
@@ -226,6 +226,9 @@
   })();
 
   function parseRoute() {
+    // Multi-FX has its own tabs: #/multifx, #/multifx/handbook, #/multifx/handbook/08 ...
+    var mx = /^#\/multifx(?:\/(handbook|workbook|community|class|quiz))?(?:\/(\d{2}))?$/.exec(location.hash || "");
+    if (mx) return { view: "multifx", chapter: "", tab: mx[1] || "", id: mx[2] || "" };
     var m = /^#\/(card|quiz|handbook|workbook|community|traders|class|signals|bot|funds|copy)(?:\/(\d{2}))?$/.exec(location.hash || "");
     return { view: m ? m[1] : "card", chapter: m && m[2] ? m[2] : "" };
   }
@@ -247,7 +250,7 @@
       toggles[t].classList.toggle("is-current", !!toggles[t].parentNode.querySelector('.sub-menu a[aria-current="page"]'));
     }
     closeMenus();
-    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook");
+    document.querySelector(".sheet-inner").classList.toggle("is-wide", r.view === "handbook" || r.view === "workbook" || r.view === "multifx");
     if (r.view === "card" && currentView !== "card") window.abecHandbook.summary();
     if (r.view === "quiz" && currentView !== "quiz") showQuiz(currentReg);
     if (r.view === "community" && currentView !== "community") showCommunity();
@@ -258,18 +261,20 @@
     if (r.view === "funds" && currentView !== "funds") window.abecFunds.show();
     if (r.view !== "signals") stopSignals();
     if (r.view !== "bot") stopBot();
+    if (r.view === "multifx") window.abecMultifx.show(r.tab, r.id); else window.abecMultifx.stop();
     if (r.view === "copy" && currentView !== "copy") window.abecCopy.show(copyFollow, copyMaster);
     if (r.view !== "copy") window.abecCopy.stop();
     if (r.view === "handbook") window.abecHandbook.show(r.chapter);
     if (r.view === "workbook") window.abecWorkbook.show();
     currentView = r.view;
-    if (r.view !== "handbook" || !r.chapter) window.scrollTo(0, 0);
+    if ((r.view !== "handbook" || !r.chapter) && r.view !== "multifx") window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
   window.abecHandbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecWorkbook.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecFunds.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
   window.abecCopy.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
+  window.abecMultifx.setup({ authFetch: function (u, o) { return authFetch(u, o); }, signedOut: function (m) { signedOut(m); } });
 
   // ---- Live class: join Google Meet in its own window; time with that window open counts towards attendance ----
   var cls = { id: "", win: null, timer: null, minutes: 0 };
@@ -1196,7 +1201,7 @@
 
   document.getElementById("switchBtn").addEventListener("click", function () {
     closeQuiz(true);
-    window.abecHandbook.reset(); window.abecWorkbook.reset();
+    window.abecHandbook.reset(); window.abecWorkbook.reset(); window.abecMultifx.reset();
     currentReg = "";
     mySig = "";
     currentView = "";

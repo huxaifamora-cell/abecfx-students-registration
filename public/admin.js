@@ -54,6 +54,7 @@
     $("shSearch").value = "";
     me = null;
     window.abecAdminFunds.clear();
+    window.abecAdminMultifx.clear();
     setDashTitle();
     staffData = null;
     if ($("tmDlg").open) $("tmDlg").close();
@@ -90,9 +91,10 @@
   }
 
   // Show only what this role may use. (The server enforces it too; hiding is just so nobody meets a dead end.)
-  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", funds: "funds", hosting: "hosting" };
+  var TAB_NEEDS = { overview: "view", quiz: "view", quizcodes: "quizcodes", attendance: "attendance", links: "links", community: "community", videos: "videos", database: "database", staff: "staff", idcards: "staff", certificates: "certificates", funds: "funds", hosting: "hosting", multifx: "multifx" };
   function allowed(perm) { return !!(me && me.perms.indexOf(perm) >= 0); }
   window.abecAdminFunds.setup({ api: api, onAuth: function (m) { showLogin(m); } });
+  window.abecAdminMultifx.setup({ api: api, onAuth: function (m) { showLogin(m); } });
   // The header and tab title name the signed-in role: "Admin dashboard", "Moderator dashboard", ...
   function setDashTitle() {
     var name = me && me.roleLabel ? me.roleLabel + " dashboard" : "Dashboard";
@@ -1619,12 +1621,13 @@
   // ---------- Events ----------
   function setTab(name) {
     if (TAB_NEEDS[name] && !allowed(TAB_NEEDS[name])) name = "overview";
-    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "funds", "database", "staff", "idcards", "certificates", "hosting"].forEach(function (n) {
+    ["overview", "quiz", "quizcodes", "attendance", "links", "community", "videos", "funds", "multifx", "database", "staff", "idcards", "certificates", "hosting"].forEach(function (n) {
       $("view-" + n).hidden = n !== name;
       $("tab-" + n).setAttribute("aria-selected", n === name ? "true" : "false");
     });
-    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "funds" || name === "hosting";
+    $("statsHint").hidden = name === "links" || name === "community" || name === "videos" || name === "database" || name === "staff" || name === "quizcodes" || name === "attendance" || name === "idcards" || name === "certificates" || name === "funds" || name === "hosting" || name === "multifx";
     if (name === "funds") window.abecAdminFunds.open();
+    if (name === "multifx") window.abecAdminMultifx.open();
     if (name === "quizcodes") openQuizCodes();
     if (name === "attendance") openAttendance();
     if (name === "hosting") openHosting();
@@ -1653,6 +1656,7 @@
   $("tab-community").addEventListener("click", function () { setTab("community"); });
   $("tab-videos").addEventListener("click", function () { setTab("videos"); });
   $("tab-funds").addEventListener("click", function () { setTab("funds"); });
+  $("tab-multifx").addEventListener("click", function () { setTab("multifx"); });
   $("tab-database").addEventListener("click", function () { setTab("database"); });
   $("tab-staff").addEventListener("click", function () { setTab("staff"); });
   $("tab-idcards").addEventListener("click", function () { setTab("idcards"); });

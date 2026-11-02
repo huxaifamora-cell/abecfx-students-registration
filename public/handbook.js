@@ -312,6 +312,9 @@
       if (data) render(); else load();
     },
     summary: function () { return loadSummary(); },
+    // Shared with the Multi-FX handbook (public/multifx.js), so both courses draw text blocks and bars the same way.
+    renderBlock: renderBlock,
+    bar: bar,
     reset: function () { data = null; openId = null; busy = false; if (mount) mount.replaceChildren(); },
   };
 })();
