@@ -917,3 +917,11 @@ button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outli
 .mfx-rq { font-weight: 700; }
 .mfx-why { color: var(--muted); font-size: .92rem; }
 .hb-table th { text-align: left; white-space: nowrap; vertical-align: top; }
+
+/* Mentorship menu: two courses, each with its own pages */
+.sub-head { margin: 6px 14px 2px; padding-top: 6px; font-size: .72rem; font-weight: 800; letter-spacing: .08em; color: var(--violet); opacity: .75; }
+.sub-head:first-child { margin-top: 2px; padding-top: 0; }
+.sub-head ~ .sub-head { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
+.sub-head + a { }
+#mentorshipMenu { max-height: min(70vh, 460px); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 700px) { #mentorshipMenu { max-height: 44vh; } }

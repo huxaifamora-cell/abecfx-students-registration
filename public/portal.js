@@ -241,7 +241,9 @@
     });
     var links = document.querySelectorAll("#subnav a[data-view]");
     for (var i = 0; i < links.length; i++) {
-      if (links[i].getAttribute("data-view") === r.view) links[i].setAttribute("aria-current", "page");
+      var tab = links[i].getAttribute("data-tab"); // Multi-FX entries are one page with five tabs
+      var here = links[i].getAttribute("data-view") === r.view && (!tab || tab === (r.tab || "handbook"));
+      if (here) links[i].setAttribute("aria-current", "page");
       else links[i].removeAttribute("aria-current");
     }
     // a dropdown button is lit while the page you are on sits under it
